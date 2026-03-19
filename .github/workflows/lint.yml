@@ -38,14 +38,12 @@ jobs:
             # Lint JS/TS
             biome check .
 
-            # Ensure Go 1.23+ is available
+            # Ensure Go 1.23+ is available (install to ~/go1.23 if needed)
+            export PATH=$HOME/go1.23/bin:$PATH
             if ! go version 2>/dev/null | grep -qE 'go1\.(2[3-9]|[3-9][0-9])'; then
-              export PATH=/usr/local/go/bin:$PATH
-              if ! go version 2>/dev/null | grep -qE 'go1\.(2[3-9]|[3-9][0-9])'; then
-                curl -sL https://go.dev/dl/go1.23.6.linux-amd64.tar.gz | sudo tar -C /usr/local -xzf -
-              fi
+              mkdir -p $HOME/go1.23
+              curl -sL https://go.dev/dl/go1.23.6.linux-amd64.tar.gz | tar -C $HOME/go1.23 --strip-components=1 -xzf -
             fi
-            export PATH=/usr/local/go/bin:$PATH
 
             # Lint Go
             cd jaycetrades.com && golangci-lint run ./...

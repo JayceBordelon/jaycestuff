@@ -20,12 +20,12 @@ func New(dbPath string) (*Store, error) {
 	}
 
 	if _, err := db.Exec("PRAGMA journal_mode=WAL"); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to set journal mode: %w", err)
 	}
 
 	if err := migrate(db); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
 
@@ -85,9 +85,8 @@ func (s *Store) SaveMorningTrades(date string, tradeList []trades.Trade) error {
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
-	// Clear any existing trades for this date (idempotent re-runs)
 	if _, err := tx.Exec("DELETE FROM trades WHERE date = ?", date); err != nil {
 		return fmt.Errorf("failed to clear existing trades: %w", err)
 	}
@@ -103,7 +102,7 @@ func (s *Store) SaveMorningTrades(date string, tradeList []trades.Trade) error {
 	if err != nil {
 		return fmt.Errorf("failed to prepare statement: %w", err)
 	}
-	defer stmt.Close()
+	defer func() { _ = stmt.Close() }()
 
 	for _, t := range tradeList {
 		_, err := stmt.Exec(
@@ -131,7 +130,7 @@ func (s *Store) GetMorningTrades(date string) ([]trades.Trade, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to query trades: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var result []trades.Trade
 	for rows.Next() {
@@ -156,7 +155,7 @@ func (s *Store) SaveEODSummaries(date string, summaryList []trades.TradeSummary)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if _, err := tx.Exec("DELETE FROM summaries WHERE date = ?", date); err != nil {
 		return fmt.Errorf("failed to clear existing summaries: %w", err)
@@ -171,7 +170,7 @@ func (s *Store) SaveEODSummaries(date string, summaryList []trades.TradeSummary)
 	if err != nil {
 		return fmt.Errorf("failed to prepare statement: %w", err)
 	}
-	defer stmt.Close()
+	defer func() { _ = stmt.Close() }()
 
 	for _, s := range summaryList {
 		_, err := stmt.Exec(
@@ -195,7 +194,7 @@ func (s *Store) GetEODSummaries(date string) ([]trades.TradeSummary, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to query summaries: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var result []trades.TradeSummary
 	for rows.Next() {
