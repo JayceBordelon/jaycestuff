@@ -7,3 +7,6 @@
 *.test
 *.out
 vendor/
+*.db
+*.db-wal
+*.db-shm

@@ -31,6 +31,18 @@ type Trade struct {
 	MentionCount int     `json:"mention_count"` // WSB mention count
 }
 
+type TradeSummary struct {
+	Symbol       string  `json:"symbol"`
+	ContractType string  `json:"contract_type"`
+	StrikePrice  float64 `json:"strike_price"`
+	Expiration   string  `json:"expiration"`
+	EntryPrice   float64 `json:"entry_price"`
+	ClosingPrice float64 `json:"closing_price"`
+	StockOpen    float64 `json:"stock_open"`
+	StockClose   float64 `json:"stock_close"`
+	Notes        string  `json:"notes"`
+}
+
 type Analyzer struct {
 	apiKey     string
 	httpClient *http.Client
@@ -177,6 +189,88 @@ func (a *Analyzer) GetTopTrades(ctx context.Context, sentimentData []sentiment.T
 	}
 
 	return trades, nil
+}
+
+func (a *Analyzer) GetEndOfDayAnalysis(ctx context.Context, morningTrades []Trade) ([]TradeSummary, error) {
+	tradesJSON, err := json.Marshal(morningTrades)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal morning trades: %w", err)
+	}
+
+	today := time.Now().Format("2006-01-02")
+	weekday := time.Now().Weekday().String()
+
+	prompt := fmt.Sprintf(EndOfDayPrompt, today, weekday, string(tradesJSON))
+
+	reqBody := responsesAPIRequest{
+		Model: "gpt-4o",
+		Input: prompt,
+		Tools: []tool{
+			{Type: "web_search_preview"},
+		},
+		Temperature: 0.3,
+	}
+
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal OpenAI request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.openai.com/v1/responses", bytes.NewBuffer(body))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+a.apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := a.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call OpenAI API: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	var apiResp responsesAPIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return nil, fmt.Errorf("failed to decode OpenAI response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		errMsg := "unknown error"
+		if apiResp.Error != nil {
+			errMsg = apiResp.Error.Message
+		}
+		return nil, fmt.Errorf("openAI API returned status %d: %s", resp.StatusCode, errMsg)
+	}
+
+	content := apiResp.OutputText
+	if content == "" {
+		for _, item := range apiResp.Output {
+			if item.Type == "message" && len(item.Content) > 0 {
+				for _, c := range item.Content {
+					if c.Type == "output_text" && c.Text != "" {
+						content = c.Text
+						break
+					}
+				}
+				if content != "" {
+					break
+				}
+			}
+		}
+	}
+
+	if content == "" {
+		return nil, fmt.Errorf("empty response from OpenAI")
+	}
+
+	var summaries []TradeSummary
+	content = stripMarkdownCodeBlock(content)
+	if err := json.Unmarshal([]byte(content), &summaries); err != nil {
+		return nil, fmt.Errorf("failed to parse summaries from OpenAI response: %w", err)
+	}
+
+	return summaries, nil
 }
 
 // stripMarkdownCodeBlock removes markdown code block formatting from a string.

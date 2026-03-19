@@ -6,17 +6,24 @@ import (
 )
 
 type Config struct {
-	CronSchedule    string // Cron expression (e.g., "0 9 * * 1-5" for 9am weekdays)
-	ResendAPIKey    string
-	OpenAIAPIKey    string
-	EmailRecipients []string // Comma-separated list of recipients
-	EmailFrom       string
+	CronScheduleOpen  string // Cron expression for market open job
+	CronScheduleClose string // Cron expression for market close job
+	ResendAPIKey      string
+	OpenAIAPIKey      string
+	EmailRecipients   []string // Comma-separated list of recipients
+	EmailFrom         string
+	DBPath            string // Path to SQLite database file
 }
 
 func Load() *Config {
-	cronSchedule := os.Getenv("CRON_SCHEDULE")
-	if cronSchedule == "" {
-		cronSchedule = "25 9 * * 1-5" // Default: 9:25am EST (5 min before market open)
+	cronOpen := os.Getenv("CRON_SCHEDULE_OPEN")
+	if cronOpen == "" {
+		cronOpen = "25 9 * * 1-5" // Default: 9:25am EST (5 min before market open)
+	}
+
+	cronClose := os.Getenv("CRON_SCHEDULE_CLOSE")
+	if cronClose == "" {
+		cronClose = "5 16 * * 1-5" // Default: 4:05pm EST (5 min after market close)
 	}
 
 	emailFrom := os.Getenv("EMAIL_FROM")
@@ -33,11 +40,18 @@ func Load() *Config {
 		}
 	}
 
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "jaycetrades.db"
+	}
+
 	return &Config{
-		CronSchedule:    cronSchedule,
-		ResendAPIKey:    os.Getenv("RESEND_API_KEY"),
-		OpenAIAPIKey:    os.Getenv("OPENAI_API_KEY"),
-		EmailRecipients: recipients,
-		EmailFrom:       emailFrom,
+		CronScheduleOpen:  cronOpen,
+		CronScheduleClose: cronClose,
+		ResendAPIKey:      os.Getenv("RESEND_API_KEY"),
+		OpenAIAPIKey:      os.Getenv("OPENAI_API_KEY"),
+		EmailRecipients:   recipients,
+		EmailFrom:         emailFrom,
+		DBPath:            dbPath,
 	}
 }
