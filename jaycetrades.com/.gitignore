@@ -10,3 +10,4 @@ vendor/
 *.db
 *.db-wal
 *.db-shm
+/scanner

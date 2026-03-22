@@ -107,7 +107,12 @@ func main() {
 		runEndOfDayAnalysis(cfg, db, analyzer, emailClient)
 	}
 
-	c := cron.New(cron.WithLocation(time.FixedZone("EST", -5*60*60)))
+	loc, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		log.Fatalf("Failed to load timezone: %v", err)
+	}
+
+	c := cron.New(cron.WithLocation(loc))
 
 	_, err = c.AddFunc(cfg.CronScheduleOpen, openJob)
 	if err != nil {
@@ -123,8 +128,8 @@ func main() {
 
 	log.Printf("Options trade scanner started")
 	log.Printf("Database: %s", cfg.DBPath)
-	log.Printf("Market open schedule: %s (EST)", cfg.CronScheduleOpen)
-	log.Printf("Market close schedule: %s (EST)", cfg.CronScheduleClose)
+	log.Printf("Market open schedule: %s (ET)", cfg.CronScheduleOpen)
+	log.Printf("Market close schedule: %s (ET)", cfg.CronScheduleClose)
 	log.Printf("Emails will be sent to: %v", cfg.EmailRecipients)
 
 	// Run immediately on startup if RUN_ON_START is set
