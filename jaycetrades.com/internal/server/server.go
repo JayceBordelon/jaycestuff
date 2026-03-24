@@ -47,6 +47,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/subscribe", s.handleSubscribe)
 	s.mux.HandleFunc("/api/unsubscribe", s.handleUnsubscribe)
 	s.mux.HandleFunc("/health", s.handleHealth)
+	s.mux.HandleFunc("/robots.txt", s.handleRobots)
+	s.mux.HandleFunc("/sitemap.xml", s.handleSitemap)
 }
 
 func (s *Server) Start() {
@@ -131,6 +133,24 @@ func (s *Server) handleUnsubscribe(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, apiResponse{OK: true, Message: "healthy"})
+}
+
+func (s *Server) handleRobots(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	_, _ = w.Write([]byte("User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: https://jaycetrades.com/sitemap.xml\n"))
+}
+
+func (s *Server) handleSitemap(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/xml; charset=utf-8")
+	_, _ = w.Write([]byte(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://jaycetrades.com/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>
+`))
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
