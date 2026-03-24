@@ -3,16 +3,21 @@ package server
 import (
 	"embed"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"regexp"
 	"strings"
 
 	"jaycetrades.com/internal/store"
+	"jaycetrades.com/internal/trades"
 )
 
 //go:embed subscribe.html
-var staticFS embed.FS
+var subscribeHTML embed.FS
+
+//go:embed dashboard.html
+var dashboardHTML embed.FS
 
 var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 
@@ -46,6 +51,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/", s.handleIndex)
 	s.mux.HandleFunc("/api/subscribe", s.handleSubscribe)
 	s.mux.HandleFunc("/api/unsubscribe", s.handleUnsubscribe)
+	s.mux.HandleFunc("/dashboard", s.handleDashboard)
+	s.mux.HandleFunc("/api/trades/today", s.handleTradesToday)
 	s.mux.HandleFunc("/health", s.handleHealth)
 	s.mux.HandleFunc("/robots.txt", s.handleRobots)
 	s.mux.HandleFunc("/sitemap.xml", s.handleSitemap)
@@ -64,13 +71,63 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	data, err := staticFS.ReadFile("subscribe.html")
+	data, err := subscribeHTML.ReadFile("subscribe.html")
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = w.Write(data)
+}
+
+func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
+	data, err := dashboardHTML.ReadFile("dashboard.html")
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = w.Write(data)
+}
+
+type dashboardTrade struct {
+	Trade   trades.Trade        `json:"trade"`
+	Summary *trades.TradeSummary `json:"summary,omitempty"`
+}
+
+type dashboardResponse struct {
+	Date   string           `json:"date"`
+	Trades []dashboardTrade `json:"trades"`
+}
+
+func (s *Server) handleTradesToday(w http.ResponseWriter, r *http.Request) {
+	date, err := s.db.GetLatestTradeDate()
+	if err != nil {
+		writeJSON(w, http.StatusOK, dashboardResponse{})
+		return
+	}
+
+	morningTrades, err := s.db.GetMorningTrades(date)
+	if err != nil {
+		writeJSON(w, http.StatusOK, dashboardResponse{Date: date})
+		return
+	}
+
+	summaries, _ := s.db.GetEODSummaries(date)
+	summaryMap := make(map[string]*trades.TradeSummary)
+	for i := range summaries {
+		key := summaries[i].Symbol + "|" + summaries[i].ContractType + "|" + fmt.Sprintf("%.2f", summaries[i].StrikePrice)
+		summaryMap[key] = &summaries[i]
+	}
+
+	result := make([]dashboardTrade, len(morningTrades))
+	for i, t := range morningTrades {
+		key := t.Symbol + "|" + t.ContractType + "|" + fmt.Sprintf("%.2f", t.StrikePrice)
+		result[i] = dashboardTrade{Trade: t, Summary: summaryMap[key]}
+	}
+
+	w.Header().Set("Cache-Control", "public, max-age=30")
+	writeJSON(w, http.StatusOK, dashboardResponse{Date: date, Trades: result})
 }
 
 func (s *Server) handleSubscribe(w http.ResponseWriter, r *http.Request) {
@@ -148,6 +205,11 @@ func (s *Server) handleSitemap(w http.ResponseWriter, r *http.Request) {
     <loc>https://jaycetrades.com/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://jaycetrades.com/dashboard</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
   </url>
 </urlset>
 `))

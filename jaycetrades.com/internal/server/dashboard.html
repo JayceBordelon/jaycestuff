@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>JayceTrades | Live Dashboard</title>
+  <meta name="description" content="Live options trade dashboard showing today's AI-powered picks with real-time contract performance and P&L tracking.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://jaycetrades.com/dashboard">
+  <meta property="og:title" content="JayceTrades | Live Dashboard">
+  <meta property="og:description" content="Live options trade dashboard with real-time contract performance tracking.">
+  <meta property="og:url" content="https://jaycetrades.com/dashboard">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f0f0f3;
+      --content-bg: #ffffff;
+      --card-bg: #fafafa;
+      --card-header-bg: #f4f4f5;
+      --card-border: #e4e4e7;
+      --text-primary: #18181b;
+      --text-secondary: #52525b;
+      --text-muted: #71717a;
+      --text-label: #a1a1aa;
+      --header-bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      --accent: #a78bfa;
+      --green: #16a34a;
+      --green-bg: #dcfce7;
+      --red: #dc2626;
+      --red-bg: #fee2e2;
+      --blue: #1d4ed8;
+      --blue-bg: #dbeafe;
+      --amber: #b45309;
+      --amber-bg: #fef3c7;
+      --detail-bg: #f6f6f8;
+      --detail-border: #e4e4e7;
+      --footer-bg: #f6f6f8;
+      --footer-border: #e4e4e7;
+      --profit-bg: #f0fdf4;
+      --profit-border: #bbf7d0;
+      --loss-bg: #fef2f2;
+      --loss-border: #fecaca;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111113;
+        --content-bg: #1c1c1e;
+        --card-bg: #232326;
+        --card-header-bg: #2a2a2e;
+        --card-border: #333338;
+        --text-primary: #f0f0f0;
+        --text-secondary: #a0a0a8;
+        --text-muted: #707078;
+        --text-label: #88888f;
+        --detail-bg: #2a2a2e;
+        --detail-border: #333338;
+        --footer-bg: #1c1c1e;
+        --footer-border: #333338;
+        --green-bg: rgba(22, 163, 74, 0.15);
+        --red-bg: rgba(220, 38, 38, 0.15);
+        --blue-bg: rgba(29, 78, 216, 0.15);
+        --amber-bg: rgba(180, 83, 9, 0.15);
+        --profit-bg: #0a2e1a;
+        --profit-border: #1a4a2e;
+        --loss-bg: #2e0a0a;
+        --loss-border: #4a1a1a;
+      }
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background-color: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+
+    .page { max-width: 720px; margin: 0 auto; }
+
+    /* Header */
+    .header {
+      padding: 24px 28px;
+      background: var(--header-bg);
+      border-radius: 16px 16px 0 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+    .logo-jayce { color: #fafafa; }
+    .logo-trades { color: #a78bfa; }
+    .header-meta { display: flex; align-items: center; gap: 12px; }
+    .header-date {
+      color: #a1a1aa; font-size: 13px; font-weight: 500;
+      background: rgba(255,255,255,0.08); padding: 5px 11px; border-radius: 6px;
+    }
+    .live-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: #4ade80;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4); }
+      50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); }
+    }
+
+    /* Content area */
+    .content {
+      background-color: var(--content-bg);
+      padding: 24px 28px;
+    }
+    .page-title { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px; }
+    .page-subtitle { color: var(--text-muted); font-size: 13px; margin-bottom: 24px; }
+
+    /* Scoreboard */
+    .scoreboard {
+      display: flex;
+      background-color: var(--detail-bg);
+      border: 1px solid var(--detail-border);
+      border-radius: 12px;
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    .scoreboard-stat {
+      flex: 1; text-align: center; padding: 14px 8px;
+    }
+    .scoreboard-stat + .scoreboard-stat { border-left: 1px solid var(--detail-border); }
+    .scoreboard-value { font-size: 28px; font-weight: 800; }
+    .scoreboard-label {
+      font-size: 10px; color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.5px; font-weight: 600;
+    }
+
+    /* Trade cards */
+    .trade-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .trade-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px;
+      background-color: var(--card-header-bg);
+      border-bottom: 1px solid var(--card-border);
+      flex-wrap: wrap; gap: 8px;
+    }
+    .trade-header-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .trade-num {
+      width: 28px; height: 28px; border-radius: 7px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: #fff; font-size: 13px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .trade-symbol { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; }
+    .badge {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .badge-call { background: var(--green-bg); color: var(--green); }
+    .badge-put { background: var(--red-bg); color: var(--red); }
+    .badge-low { background: var(--blue-bg); color: var(--blue); }
+    .badge-medium { background: var(--detail-bg); color: var(--text-secondary); }
+    .badge-high { background: var(--amber-bg); color: var(--amber); }
+    .badge-bullish { background: var(--green-bg); color: var(--green); }
+    .badge-bearish { background: var(--red-bg); color: var(--red); }
+    .badge-neutral { background: var(--detail-bg); color: var(--text-muted); }
+    .badge-profit { background: var(--green-bg); color: var(--green); }
+    .badge-loss { background: var(--red-bg); color: var(--red); }
+    .badge-flat { background: var(--detail-bg); color: var(--text-muted); }
+    .trade-price { text-align: right; }
+    .trade-price-value { font-size: 18px; font-weight: 800; }
+    .trade-price-sub { font-size: 11px; color: var(--text-muted); }
+
+    .trade-body { padding: 14px 18px; }
+
+    /* Specs grid */
+    .specs-grid {
+      display: flex;
+      background-color: var(--detail-bg);
+      border: 1px solid var(--detail-border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .spec {
+      flex: 1; text-align: center; padding: 10px 6px;
+    }
+    .spec + .spec { border-left: 1px solid var(--detail-border); }
+    .spec-label {
+      color: var(--text-label); font-size: 9px; text-transform: uppercase;
+      letter-spacing: 0.6px; font-weight: 600;
+    }
+    .spec-value { font-size: 16px; font-weight: 800; margin-top: 2px; }
+    .spec-value-sm { font-size: 13px; font-weight: 700; margin-top: 2px; }
+    .spec-sub { font-size: 10px; font-weight: 700; color: var(--green); }
+
+    /* Targets row */
+    .targets {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
+      margin-bottom: 10px; font-size: 13px;
+    }
+    .targets .label {
+      color: var(--text-label); font-size: 10px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .targets .dot { color: var(--text-label); padding: 0 6px; }
+
+    /* Sentiment row */
+    .sentiment-row {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .catalyst { color: var(--text-secondary); font-size: 12px; }
+
+    /* Thesis */
+    .thesis {
+      color: var(--text-secondary); font-size: 13px; line-height: 1.55;
+      margin-bottom: 12px;
+    }
+
+    /* EOD result overlay */
+    .eod-result {
+      border-radius: 8px; padding: 12px 14px;
+      border: 1px solid var(--detail-border);
+      background-color: var(--detail-bg);
+    }
+    .eod-result.profit { background-color: var(--profit-bg); border-color: var(--profit-border); }
+    .eod-result.loss { background-color: var(--loss-bg); border-color: var(--loss-border); }
+    .eod-grid { display: flex; gap: 16px; flex-wrap: wrap; }
+    .eod-col { flex: 1; min-width: 140px; }
+    .eod-arrow { color: var(--text-label); padding: 0 3px; }
+    .eod-notes {
+      color: var(--text-secondary); font-size: 12px; line-height: 1.5;
+      margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--detail-border);
+    }
+
+    /* Footer */
+    .footer {
+      padding: 20px 28px;
+      background-color: var(--footer-bg);
+      border-radius: 0 0 16px 16px;
+      border-top: 1px solid var(--footer-border);
+      text-align: center;
+    }
+    .footer-text { color: var(--text-muted); font-size: 11px; line-height: 1.5; }
+    .footer-brand { margin-top: 8px; }
+    .footer-brand .logo { font-size: 14px; }
+    .footer-brand .logo-jayce { color: var(--text-primary); }
+    .footer-links { margin-top: 8px; }
+    .footer-links a {
+      color: var(--text-muted); font-size: 12px; text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .footer-links a:hover { color: var(--text-secondary); }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center; padding: 60px 20px;
+    }
+    .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+    .empty-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .empty-sub { color: var(--text-muted); font-size: 14px; }
+
+    /* Refresh indicator */
+    .refresh-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .refresh-timer { color: var(--text-muted); font-size: 12px; }
+
+    /* Nav link */
+    .nav-link {
+      color: #a1a1aa; font-size: 13px; text-decoration: none;
+      transition: color 0.15s;
+    }
+    .nav-link:hover { color: #fafafa; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="header">
+      <div>
+        <a href="/" style="text-decoration: none;">
+          <span class="logo"><span class="logo-jayce">Jayce</span><span class="logo-trades">Trades</span></span>
+        </a>
+      </div>
+      <div class="header-meta">
+        <a href="/" class="nav-link">Subscribe</a>
+        <span class="header-date" id="dateLabel">Loading...</span>
+        <div class="live-dot" id="liveDot" title="Auto-refreshing"></div>
+      </div>
+    </div>
+
+    <div class="content" id="mainContent">
+      <div class="empty-state">
+        <div class="empty-icon">&#9203;</div>
+        <div class="empty-title">Loading trades...</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p class="footer-text">
+        <strong>Disclaimer:</strong> Not financial advice. Options trading involves substantial risk. Trade responsibly.
+      </p>
+      <div class="footer-brand">
+        <span class="logo"><span class="logo-jayce">Jayce</span><span class="logo-trades">Trades</span></span>
+      </div>
+      <div class="footer-links">
+        <a href="/">Subscribe for free email alerts</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var REFRESH_SECONDS = 60;
+    var countdown = REFRESH_SECONDS;
+
+    function fmt(n, d) { return Number(n).toFixed(d === undefined ? 2 : d); }
+    function fmtPct(n) { return (n > 0 ? '+' : '') + fmt(n, 0) + '%'; }
+    function fmtMoney(n) { return '$' + fmt(n); }
+
+    function sentimentLabel(score) {
+      if (score > 0.3) return 'Bullish';
+      if (score < -0.3) return 'Bearish';
+      return 'Neutral';
+    }
+    function sentimentClass(score) {
+      if (score > 0.3) return 'badge-bullish';
+      if (score < -0.3) return 'badge-bearish';
+      return 'badge-neutral';
+    }
+    function riskClass(level) {
+      if (level === 'LOW') return 'badge-low';
+      if (level === 'HIGH') return 'badge-high';
+      return 'badge-medium';
+    }
+
+    function renderDashboard(data) {
+      var el = document.getElementById('mainContent');
+      var dateEl = document.getElementById('dateLabel');
+      dateEl.textContent = data.date || 'No data';
+
+      if (!data.trades || data.trades.length === 0) {
+        el.innerHTML =
+          '<div class="empty-state">' +
+            '<div class="empty-icon">&#128200;</div>' +
+            '<div class="empty-title">No trades yet today</div>' +
+            '<div class="empty-sub">Trades are published at 9:25 AM ET on market days.</div>' +
+          '</div>';
+        return;
+      }
+
+      // Build scoreboard if we have summaries
+      var hasSummaries = false;
+      var winners = 0, losers = 0, totalPnl = 0;
+      for (var i = 0; i < data.trades.length; i++) {
+        var s = data.trades[i].summary;
+        if (s) {
+          hasSummaries = true;
+          var pnl = (s.closing_price - s.entry_price) * 100;
+          totalPnl += pnl;
+          if (pnl > 0) winners++;
+          else if (pnl < 0) losers++;
+        }
+      }
+
+      var html = '';
+
+      // Refresh bar
+      html += '<div class="refresh-bar">' +
+        '<h1 class="page-title">' + (hasSummaries ? 'End of Day Results' : 'Today\'s Plays') + '</h1>' +
+        '<span class="refresh-timer" id="timer">Refreshes in ' + REFRESH_SECONDS + 's</span>' +
+      '</div>';
+      html += '<p class="page-subtitle">' + data.trades.length + ' options picks' +
+        (hasSummaries ? '' : ' &middot; 0-7 DTE &middot; Under $200/contract') + '</p>';
+
+      // Scoreboard (only if we have EOD data)
+      if (hasSummaries) {
+        var pnlColor = totalPnl > 0 ? 'var(--green)' : totalPnl < 0 ? 'var(--red)' : 'var(--text-muted)';
+        html += '<div class="scoreboard">' +
+          '<div class="scoreboard-stat"><div class="scoreboard-value" style="color: var(--green);">' + winners + '</div><div class="scoreboard-label">Winners</div></div>' +
+          '<div class="scoreboard-stat"><div class="scoreboard-value" style="color: var(--red);">' + losers + '</div><div class="scoreboard-label">Losers</div></div>' +
+          '<div class="scoreboard-stat"><div class="scoreboard-value" style="color: ' + pnlColor + ';">' + (totalPnl > 0 ? '+' : '') + '$' + fmt(totalPnl, 0) + '</div><div class="scoreboard-label">Net P&L</div></div>' +
+        '</div>';
+      }
+
+      // Trade cards
+      for (var i = 0; i < data.trades.length; i++) {
+        var t = data.trades[i].trade;
+        var s = data.trades[i].summary;
+        var typeClass = t.contract_type === 'CALL' ? 'badge-call' : 'badge-put';
+        var profitPct = t.estimated_price > 0 ? ((t.profit_target - t.estimated_price) / t.estimated_price * 100) : 0;
+
+        html += '<div class="trade-card">';
+
+        // Header
+        html += '<div class="trade-header">' +
+          '<div class="trade-header-left">' +
+            '<div class="trade-num">' + (i + 1) + '</div>' +
+            '<span class="trade-symbol">$' + t.symbol + '</span>' +
+            '<span class="badge ' + typeClass + '">' + t.contract_type + '</span>' +
+            '<span class="badge ' + riskClass(t.risk_level) + '">' + t.risk_level + '</span>';
+
+        // If we have EOD, show result badge
+        if (s) {
+          var priceDelta = s.closing_price - s.entry_price;
+          var result = priceDelta > 0.005 ? 'PROFIT' : priceDelta < -0.005 ? 'LOSS' : 'FLAT';
+          var resClass = result === 'PROFIT' ? 'badge-profit' : result === 'LOSS' ? 'badge-loss' : 'badge-flat';
+          html += '<span class="badge ' + resClass + '">' + result + '</span>';
+        }
+
+        html += '</div>' +
+          '<div class="trade-price">' +
+            '<div class="trade-price-value">' + fmtMoney(t.estimated_price) + '</div>' +
+            '<div class="trade-price-sub">$' + fmt(t.estimated_price * 100, 0) + '/contract</div>' +
+          '</div>' +
+        '</div>';
+
+        // Body
+        html += '<div class="trade-body">';
+
+        // Contract specs
+        html += '<div class="specs-grid">' +
+          '<div class="spec"><div class="spec-label">Strike</div><div class="spec-value">$' + fmt(t.strike_price, 0) + '</div></div>' +
+          '<div class="spec"><div class="spec-label">Expires</div><div class="spec-value-sm">' + t.expiration + '</div><div class="spec-sub">' + t.dte + ' DTE</div></div>' +
+          '<div class="spec"><div class="spec-label">Stock Price</div><div class="spec-value">$' + fmt(t.current_price, 0) + '</div></div>' +
+        '</div>';
+
+        // Targets
+        html += '<div class="targets">' +
+          '<span class="label">Target</span> <span style="color: ' + (t.contract_type === 'CALL' ? 'var(--green)' : 'var(--red)') + '; font-weight: 800;">' + fmtMoney(t.target_price) + '</span>' +
+          '<span class="dot">&middot;</span>' +
+          '<span class="label">Stop</span> <span style="font-weight: 700;">' + fmtMoney(t.stop_loss) + '</span>' +
+          '<span class="dot">&middot;</span>' +
+          '<span class="label">Profit</span> <span style="color: var(--green); font-weight: 700;">' + fmtMoney(t.profit_target) + '</span>' +
+          '<span style="color: var(--green); font-size: 11px; font-weight: 700;">(+' + fmt(profitPct, 0) + '%)</span>' +
+        '</div>';
+
+        // Sentiment + catalyst
+        html += '<div class="sentiment-row">';
+        var sLabel = sentimentLabel(t.sentiment_score);
+        html += '<span class="badge ' + sentimentClass(t.sentiment_score) + '">' + sLabel;
+        if (t.mention_count > 0) html += ' &middot; ' + t.mention_count + ' mentions';
+        html += '</span>';
+        if (t.catalyst) html += '<span class="catalyst">' + t.catalyst + '</span>';
+        html += '</div>';
+
+        // Thesis
+        html += '<div class="thesis">' + escapeHtml(t.thesis) + '</div>';
+
+        // EOD result (if available)
+        if (s) {
+          var contractPnl = s.closing_price - s.entry_price;
+          var contractPct = s.entry_price > 0 ? (contractPnl / s.entry_price * 100) : 0;
+          var stockPct = s.stock_open > 0 ? ((s.stock_close - s.stock_open) / s.stock_open * 100) : 0;
+          var resultClass = contractPnl > 0.005 ? 'profit' : contractPnl < -0.005 ? 'loss' : '';
+
+          html += '<div class="eod-result ' + resultClass + '">' +
+            '<div class="eod-grid">' +
+              '<div class="eod-col">' +
+                '<div class="spec-label">Contract</div>' +
+                '<div style="margin-top: 4px;">' +
+                  '<span style="color: var(--text-muted); font-size: 13px;">' + fmtMoney(s.entry_price) + '</span>' +
+                  '<span class="eod-arrow">&#8594;</span>' +
+                  '<span style="font-size: 14px; font-weight: 700;">' + fmtMoney(s.closing_price) + '</span>' +
+                  '<span style="margin-left: 4px; font-size: 11px; font-weight: 700; color: ' + (contractPct > 0 ? 'var(--green)' : contractPct < 0 ? 'var(--red)' : 'var(--text-muted)') + ';">' + fmtPct(contractPct) + '</span>' +
+                '</div>' +
+              '</div>' +
+              '<div class="eod-col">' +
+                '<div class="spec-label">Stock</div>' +
+                '<div style="margin-top: 4px;">' +
+                  '<span style="color: var(--text-muted); font-size: 13px;">' + fmtMoney(s.stock_open) + '</span>' +
+                  '<span class="eod-arrow">&#8594;</span>' +
+                  '<span style="font-size: 14px; font-weight: 700;">' + fmtMoney(s.stock_close) + '</span>' +
+                  '<span style="margin-left: 4px; font-size: 11px; font-weight: 700; color: ' + (stockPct > 0 ? 'var(--green)' : stockPct < 0 ? 'var(--red)' : 'var(--text-muted)') + ';">' + fmtPct(stockPct) + '</span>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+          if (s.notes) {
+            html += '<div class="eod-notes">' + escapeHtml(s.notes) + '</div>';
+          }
+          html += '</div>';
+        }
+
+        html += '</div>'; // trade-body
+        html += '</div>'; // trade-card
+      }
+
+      el.innerHTML = html;
+    }
+
+    function escapeHtml(text) {
+      var d = document.createElement('div');
+      d.appendChild(document.createTextNode(text));
+      return d.innerHTML;
+    }
+
+    function fetchData() {
+      fetch('/api/trades/today')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          renderDashboard(data);
+          countdown = REFRESH_SECONDS;
+        })
+        .catch(function() {
+          // Keep showing existing data, just reset timer
+          countdown = REFRESH_SECONDS;
+        });
+    }
+
+    function tick() {
+      countdown--;
+      var timerEl = document.getElementById('timer');
+      if (timerEl) timerEl.textContent = 'Refreshes in ' + countdown + 's';
+      if (countdown <= 0) fetchData();
+    }
+
+    fetchData();
+    setInterval(tick, 1000);
+  </script>
+</body>
+</html>

@@ -281,6 +281,15 @@ func (s *Store) SaveEODSummaries(date string, summaryList []trades.TradeSummary)
 	return tx.Commit()
 }
 
+func (s *Store) GetLatestTradeDate() (string, error) {
+	var date string
+	err := s.db.QueryRow("SELECT date FROM trades ORDER BY date DESC LIMIT 1").Scan(&date)
+	if err != nil {
+		return "", fmt.Errorf("no trades found: %w", err)
+	}
+	return date, nil
+}
+
 func (s *Store) GetEODSummaries(date string) ([]trades.TradeSummary, error) {
 	rows, err := s.db.Query(`
 		SELECT symbol, contract_type, strike_price, expiration,
