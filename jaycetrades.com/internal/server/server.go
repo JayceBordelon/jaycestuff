@@ -91,7 +91,7 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 }
 
 type dashboardTrade struct {
-	Trade   trades.Trade        `json:"trade"`
+	Trade   trades.Trade         `json:"trade"`
 	Summary *trades.TradeSummary `json:"summary,omitempty"`
 }
 
