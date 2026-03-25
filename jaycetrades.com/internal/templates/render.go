@@ -3,11 +3,12 @@ package templates
 import (
 	"bytes"
 	"embed"
+	"fmt"
 	"html/template"
 	"time"
 )
 
-//go:embed email.html summary.html
+//go:embed email.html summary.html test.html error.html
 var templateFS embed.FS
 
 type Trade struct {
@@ -88,8 +89,32 @@ var funcMap = template.FuncMap{
 		}
 		return a
 	},
-	"gt": func(a, b float64) bool { return a > b },
-	"lt": func(a, b float64) bool { return a < b },
+	"gt": func(a, b any) bool {
+		switch av := a.(type) {
+		case float64:
+			if bv, ok := b.(float64); ok {
+				return av > bv
+			}
+		case int:
+			if bv, ok := b.(int); ok {
+				return av > bv
+			}
+		}
+		return false
+	},
+	"lt": func(a, b any) bool {
+		switch av := a.(type) {
+		case float64:
+			if bv, ok := b.(float64); ok {
+				return av < bv
+			}
+		case int:
+			if bv, ok := b.(int); ok {
+				return av < bv
+			}
+		}
+		return false
+	},
 }
 
 func RenderEmail(trades []Trade) (string, error) {
@@ -102,6 +127,88 @@ func RenderEmail(trades []Trade) (string, error) {
 		Subject: "Today's Top Options Plays",
 		Date:    time.Now().Format("Monday, Jan 2, 2006"),
 		Trades:  trades,
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
+}
+
+type StatusEmailData struct {
+	Subject string
+	Date    string
+}
+
+type ErrorEmailData struct {
+	Subject string
+	Date    string
+	Error   string
+}
+
+// RenderTestEmail verifies the main email and summary templates with sample data,
+// then returns a "System Online" notification email.
+func RenderTestEmail() (string, error) {
+	// Exercise the main email template with sample data to catch type/rendering errors
+	sampleTrades := []Trade{
+		{
+			Symbol: "SPY", ContractType: "CALL", StrikePrice: 500,
+			Expiration: "2026-04-01", DTE: 5, EstimatedPrice: 1.50,
+			Thesis: "Startup verification", SentimentScore: 0.5,
+			CurrentPrice: 498, TargetPrice: 505, StopLoss: 0.75,
+			ProfitTarget: 3.00, RiskLevel: "MEDIUM",
+			Catalyst: "System test", MentionCount: 42,
+		},
+	}
+	if _, err := RenderEmail(sampleTrades); err != nil {
+		return "", fmt.Errorf("email template verification failed: %w", err)
+	}
+
+	// Exercise the summary template too
+	sampleSummaries := []SummaryTrade{
+		{
+			Symbol: "SPY", ContractType: "CALL", StrikePrice: 500,
+			Expiration: "2026-04-01", EntryPrice: 1.50, ClosingPrice: 2.10,
+			StockOpen: 498, StockClose: 503, Notes: "Startup verification",
+		},
+	}
+	if _, err := RenderSummaryEmail(sampleSummaries); err != nil {
+		return "", fmt.Errorf("summary template verification failed: %w", err)
+	}
+
+	// Render the startup notification email
+	tmpl, err := template.New("test.html").Funcs(funcMap).ParseFS(templateFS, "test.html")
+	if err != nil {
+		return "", err
+	}
+
+	data := StatusEmailData{
+		Subject: "System Online",
+		Date:    time.Now().Format("Monday, Jan 2, 2006"),
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
+}
+
+// RenderErrorEmail renders an error notification email. Kept intentionally simple
+// (no loops, no comparisons) to minimize the chance of this template itself failing.
+func RenderErrorEmail(errMsg string) (string, error) {
+	tmpl, err := template.New("error.html").Funcs(funcMap).ParseFS(templateFS, "error.html")
+	if err != nil {
+		return "", err
+	}
+
+	data := ErrorEmailData{
+		Subject: "System Alert",
+		Date:    time.Now().Format("Monday, Jan 2, 2006 3:04 PM"),
+		Error:   errMsg,
 	}
 
 	var buf bytes.Buffer

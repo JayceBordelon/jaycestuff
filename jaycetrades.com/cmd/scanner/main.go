@@ -149,6 +149,15 @@ func main() {
 		log.Printf("Active subscribers: %d", len(subs))
 	}
 
+	// Startup e2e verification: render all templates with sample data and send a test email
+	log.Println("Running startup verification...")
+	if err := sendStartupTestEmail(cfg, db, emailClient); err != nil {
+		log.Printf("Startup verification FAILED: %v", err)
+		sendErrorNotification(cfg, db, emailClient, fmt.Sprintf("Startup verification failed: %v", err))
+	} else {
+		log.Println("Startup verification passed, test email sent")
+	}
+
 	// Run immediately on startup if RUN_ON_START is set
 	if os.Getenv("RUN_ON_START") == "true" {
 		log.Println("Running initial analysis...")
@@ -162,6 +171,44 @@ func main() {
 
 	log.Println("Shutting down...")
 	c.Stop()
+}
+
+func sendStartupTestEmail(cfg *config.Config, db *store.Store, emailClient *email.Client) error {
+	htmlContent, err := templates.RenderTestEmail()
+	if err != nil {
+		return fmt.Errorf("template verification: %w", err)
+	}
+
+	recipients := getRecipients(db)
+	if len(recipients) == 0 {
+		return fmt.Errorf("no active subscribers")
+	}
+
+	subject := fmt.Sprintf("JayceTrades System Online — %s", time.Now().Format("Jan 2, 3:04 PM"))
+	if err := emailClient.SendTradeEmail(cfg.EmailFrom, recipients, subject, htmlContent); err != nil {
+		return fmt.Errorf("email delivery: %w", err)
+	}
+
+	return nil
+}
+
+func sendErrorNotification(cfg *config.Config, db *store.Store, emailClient *email.Client, errMsg string) {
+	htmlContent, err := templates.RenderErrorEmail(errMsg)
+	if err != nil {
+		log.Printf("Failed to render error email (giving up): %v", err)
+		return
+	}
+
+	recipients := getRecipients(db)
+	if len(recipients) == 0 {
+		log.Println("No active subscribers for error notification")
+		return
+	}
+
+	subject := fmt.Sprintf("JayceTrades Alert — %s", time.Now().Format("Jan 2, 3:04 PM"))
+	if err := emailClient.SendTradeEmail(cfg.EmailFrom, recipients, subject, htmlContent); err != nil {
+		log.Printf("Failed to send error notification email: %v", err)
+	}
 }
 
 func getRecipients(db *store.Store) []string {
@@ -194,6 +241,7 @@ func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Sc
 	topTrades, err := analyzer.GetTopTrades(ctx, sentimentData)
 	if err != nil {
 		log.Printf("Error analyzing trades: %v", err)
+		sendErrorNotification(cfg, db, emailClient, fmt.Sprintf("Trade analysis failed: %v", err))
 		return
 	}
 	log.Printf("Generated %d trade recommendations", len(topTrades))
@@ -248,6 +296,7 @@ func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Sc
 	htmlContent, err := templates.RenderEmail(templateTrades)
 	if err != nil {
 		log.Printf("Error rendering email: %v", err)
+		sendErrorNotification(cfg, db, emailClient, fmt.Sprintf("Email template rendering failed: %v", err))
 		return
 	}
 	subject := fmt.Sprintf("Options Trades for %s", time.Now().Format("Monday, Jan 2"))
@@ -262,6 +311,7 @@ func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Sc
 	log.Printf("Sending email to %d subscribers...", len(recipients))
 	if err := emailClient.SendTradeEmail(cfg.EmailFrom, recipients, subject, htmlContent); err != nil {
 		log.Printf("Error sending email: %v", err)
+		sendErrorNotification(cfg, db, emailClient, fmt.Sprintf("Email delivery failed: %v", err))
 		return
 	}
 
@@ -290,6 +340,7 @@ func runEndOfDayAnalysis(cfg *config.Config, db *store.Store, analyzer *trades.A
 	summaries, err := analyzer.GetEndOfDayAnalysis(ctx, savedTrades)
 	if err != nil {
 		log.Printf("Error getting EOD analysis: %v", err)
+		sendErrorNotification(cfg, db, emailClient, fmt.Sprintf("EOD analysis failed: %v", err))
 		return
 	}
 	log.Printf("Got %d trade summaries", len(summaries))
@@ -318,6 +369,7 @@ func runEndOfDayAnalysis(cfg *config.Config, db *store.Store, analyzer *trades.A
 	htmlContent, err := templates.RenderSummaryEmail(templateSummaries)
 	if err != nil {
 		log.Printf("Error rendering summary email: %v", err)
+		sendErrorNotification(cfg, db, emailClient, fmt.Sprintf("Summary email rendering failed: %v", err))
 		return
 	}
 	subject := fmt.Sprintf("EOD Summary for %s", time.Now().Format("Monday, Jan 2"))
@@ -332,6 +384,7 @@ func runEndOfDayAnalysis(cfg *config.Config, db *store.Store, analyzer *trades.A
 	log.Printf("Sending EOD summary email to %d subscribers...", len(recipients))
 	if err := emailClient.SendTradeEmail(cfg.EmailFrom, recipients, subject, htmlContent); err != nil {
 		log.Printf("Error sending EOD email: %v", err)
+		sendErrorNotification(cfg, db, emailClient, fmt.Sprintf("EOD email delivery failed: %v", err))
 		return
 	}
 
