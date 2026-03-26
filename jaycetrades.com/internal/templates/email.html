@@ -28,9 +28,9 @@
       .summary-box { background-color: #334155 !important; border-color: #475569 !important; }
       .footer-bg { background-color: #1e293b !important; border-color: #334155 !important; }
       .text-primary { color: #f1f5f9 !important; }
-      .text-secondary { color: #94a3b8 !important; }
-      .text-muted { color: #64748b !important; }
-      .text-label { color: #94a3b8 !important; }
+      .text-secondary { color: #cbd5e1 !important; }
+      .text-muted { color: #94a3b8 !important; }
+      .text-label { color: #cbd5e1 !important; }
       .stat-border { border-color: #334155 !important; }
       .card-divider { border-color: #334155 !important; }
     }
@@ -69,7 +69,7 @@
                     <h1 class="text-primary" style="margin: 0 0 4px 0; font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px;">
                       Today's Top Plays
                     </h1>
-                    <p class="text-secondary" style="margin: 0; font-size: 13px; color: #64748b;">
+                    <p class="text-muted" style="margin: 0; font-size: 13px; color: #64748b;">
                       {{len .Trades}} options picks &middot; 0-7 DTE &middot; Under $200/contract
                     </p>
                   </td>
@@ -160,7 +160,7 @@
                                 <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; background: {{if gt $trade.SentimentScore 0.0}}#dcfce7{{else if lt $trade.SentimentScore 0.0}}#fee2e2{{else}}#f1f5f9{{end}}; color: {{if gt $trade.SentimentScore 0.0}}#16a34a{{else if lt $trade.SentimentScore 0.0}}#dc2626{{else}}#64748b{{end}}; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; vertical-align: middle;">
                                   {{if gt $trade.SentimentScore 0.3}}Bullish{{else if lt $trade.SentimentScore -0.3}}Bearish{{else}}Neutral{{end}}{{if gt $trade.MentionCount 0}} &middot; {{$trade.MentionCount}} mentions{{end}}
                                 </span>
-                                {{if $trade.Catalyst}}<span class="text-muted" style="color: #94a3b8; font-size: 12px; padding: 0 6px; vertical-align: middle;">&middot;</span><span class="text-secondary" style="color: #475569; font-size: 12px; vertical-align: middle;">{{$trade.Catalyst}}</span>{{end}}
+                                {{if $trade.Catalyst}}<span class="text-muted" style="color: #94a3b8; font-size: 12px; padding: 0 6px; vertical-align: middle;">&middot;</span><span class="text-secondary" style="color: #64748b; font-size: 12px; vertical-align: middle;">{{$trade.Catalyst}}</span>{{end}}
                               </td>
                             </tr>
                           </table>
@@ -170,7 +170,7 @@
                       <!-- Row 5: Thesis -->
                       <tr>
                         <td style="padding: 10px 18px 14px 18px;">
-                          <div class="text-secondary" style="color: #475569; font-size: 13px; line-height: 1.55;">
+                          <div class="text-secondary" style="color: #64748b; font-size: 13px; line-height: 1.55;">
                             {{$trade.Thesis}}
                           </div>
                         </td>
@@ -195,7 +195,7 @@
                       <strong>Disclaimer:</strong> Not financial advice. Options trading involves substantial risk. Trade responsibly.
                     </p>
                     <p style="margin: 0;">
-                      <span style="font-size: 14px; font-weight: 700; color: #0f172a;">Jayce</span><span style="font-size: 14px; font-weight: 700; color: #a78bfa;">Trades</span>
+                      <span class="text-primary" style="font-size: 14px; font-weight: 700; color: #0f172a;">Jayce</span><span style="font-size: 14px; font-weight: 700; color: #a78bfa;">Trades</span>
                     </p>
                   </td>
                 </tr>

@@ -11,20 +11,27 @@
   <meta property="og:title" content="JayceTrades | Live Dashboard">
   <meta property="og:description" content="Live options trade dashboard with real-time contract performance tracking.">
   <meta property="og:url" content="https://jaycetrades.com/dashboard">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
+    /* jaycebordelon.com design tokens */
     :root {
       color-scheme: light dark;
-      --bg: #f0f0f3;
-      --content-bg: #ffffff;
-      --card-bg: #fafafa;
-      --card-header-bg: #f4f4f5;
-      --card-border: #e4e4e7;
-      --text-primary: #18181b;
-      --text-secondary: #52525b;
-      --text-muted: #71717a;
-      --text-label: #a1a1aa;
-      --header-bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-      --accent: #a78bfa;
+      --background: #fafafa;
+      --foreground: #0f172a;
+      --card: #ffffff;
+      --card-foreground: #0f172a;
+      --primary: #475569;
+      --primary-foreground: #ffffff;
+      --muted: #f1f5f9;
+      --muted-foreground: #64748b;
+      --accent: #94a3b8;
+      --border: #e2e8f0;
+      --input: #e2e8f0;
+      --ring: #475569;
+      --destructive: #ef4444;
+      --radius: 0.5rem;
       --green: #16a34a;
       --green-bg: #dcfce7;
       --red: #dc2626;
@@ -33,10 +40,6 @@
       --blue-bg: #dbeafe;
       --amber: #b45309;
       --amber-bg: #fef3c7;
-      --detail-bg: #f6f6f8;
-      --detail-border: #e4e4e7;
-      --footer-bg: #f6f6f8;
-      --footer-border: #e4e4e7;
       --profit-bg: #f0fdf4;
       --profit-border: #bbf7d0;
       --loss-bg: #fef2f2;
@@ -45,19 +48,18 @@
 
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #111113;
-        --content-bg: #1c1c1e;
-        --card-bg: #232326;
-        --card-header-bg: #2a2a2e;
-        --card-border: #333338;
-        --text-primary: #f0f0f0;
-        --text-secondary: #a0a0a8;
-        --text-muted: #707078;
-        --text-label: #88888f;
-        --detail-bg: #2a2a2e;
-        --detail-border: #333338;
-        --footer-bg: #1c1c1e;
-        --footer-border: #333338;
+        --background: #0f172a;
+        --foreground: #f1f5f9;
+        --card: #1e293b;
+        --card-foreground: #f1f5f9;
+        --primary: #94a3b8;
+        --primary-foreground: #0f172a;
+        --muted: #1e293b;
+        --muted-foreground: #94a3b8;
+        --accent: #cbd5e1;
+        --border: #334155;
+        --input: #334155;
+        --ring: #94a3b8;
         --green-bg: rgba(22, 163, 74, 0.15);
         --red-bg: rgba(220, 38, 38, 0.15);
         --blue-bg: rgba(29, 78, 216, 0.15);
@@ -72,32 +74,41 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       -webkit-font-smoothing: antialiased;
-      background-color: var(--bg);
-      color: var(--text-primary);
+      background-color: var(--background);
+      color: var(--foreground);
       min-height: 100vh;
       padding: 24px 16px;
     }
 
     .page { max-width: 720px; margin: 0 auto; }
 
+    .main-card {
+      background-color: var(--card);
+      color: var(--card-foreground);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+
     /* Header */
     .header {
-      padding: 24px 28px;
-      background: var(--header-bg);
-      border-radius: 16px 16px 0 0;
+      padding: 20px 28px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      border-bottom: 1px solid var(--border);
     }
-    .logo { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
-    .logo-jayce { color: #fafafa; }
-    .logo-trades { color: #a78bfa; }
+    .logo { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; text-decoration: none; }
+    .logo-jayce { color: var(--foreground); }
+    .logo-trades { color: var(--primary); }
     .header-meta { display: flex; align-items: center; gap: 12px; }
     .header-date {
-      color: #a1a1aa; font-size: 13px; font-weight: 500;
-      background: rgba(255,255,255,0.08); padding: 5px 11px; border-radius: 6px;
+      color: var(--muted-foreground); font-size: 12px; font-weight: 500;
+      background: var(--muted); border: 1px solid var(--border);
+      padding: 4px 10px; border-radius: 6px;
     }
     .live-dot {
       width: 8px; height: 8px; border-radius: 50%; background: #4ade80;
@@ -107,54 +118,53 @@
       0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4); }
       50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); }
     }
+    .nav-link {
+      color: var(--muted-foreground); font-size: 13px; text-decoration: none;
+      transition: color 0.15s;
+    }
+    .nav-link:hover { color: var(--foreground); }
 
     /* Content area */
-    .content {
-      background-color: var(--content-bg);
-      padding: 24px 28px;
-    }
+    .content { padding: 24px 28px; }
     .page-title { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px; }
-    .page-subtitle { color: var(--text-muted); font-size: 13px; margin-bottom: 24px; }
+    .page-subtitle { color: var(--muted-foreground); font-size: 13px; margin-bottom: 24px; }
 
     /* Scoreboard */
     .scoreboard {
       display: flex;
-      background-color: var(--detail-bg);
-      border: 1px solid var(--detail-border);
-      border-radius: 12px;
+      background-color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
       margin-bottom: 24px;
       overflow: hidden;
     }
-    .scoreboard-stat {
-      flex: 1; text-align: center; padding: 14px 8px;
-    }
-    .scoreboard-stat + .scoreboard-stat { border-left: 1px solid var(--detail-border); }
+    .scoreboard-stat { flex: 1; text-align: center; padding: 14px 8px; }
+    .scoreboard-stat + .scoreboard-stat { border-left: 1px solid var(--border); }
     .scoreboard-value { font-size: 28px; font-weight: 800; }
     .scoreboard-label {
-      font-size: 10px; color: var(--text-muted); text-transform: uppercase;
+      font-size: 10px; color: var(--muted-foreground); text-transform: uppercase;
       letter-spacing: 0.5px; font-weight: 600;
     }
 
     /* Trade cards */
     .trade-card {
-      background-color: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
+      background-color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
       overflow: hidden;
       margin-bottom: 16px;
     }
     .trade-header {
       display: flex; align-items: center; justify-content: space-between;
       padding: 14px 18px;
-      background-color: var(--card-header-bg);
-      border-bottom: 1px solid var(--card-border);
+      border-bottom: 1px solid var(--border);
       flex-wrap: wrap; gap: 8px;
     }
     .trade-header-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .trade-num {
       width: 28px; height: 28px; border-radius: 7px;
-      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-      color: #fff; font-size: 13px; font-weight: 800;
+      background-color: var(--primary); color: var(--primary-foreground);
+      font-size: 13px; font-weight: 800;
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
     .trade-symbol { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; }
@@ -165,35 +175,33 @@
     .badge-call { background: var(--green-bg); color: var(--green); }
     .badge-put { background: var(--red-bg); color: var(--red); }
     .badge-low { background: var(--blue-bg); color: var(--blue); }
-    .badge-medium { background: var(--detail-bg); color: var(--text-secondary); }
+    .badge-medium { background: var(--muted); color: var(--muted-foreground); border: 1px solid var(--border); }
     .badge-high { background: var(--amber-bg); color: var(--amber); }
     .badge-bullish { background: var(--green-bg); color: var(--green); }
     .badge-bearish { background: var(--red-bg); color: var(--red); }
-    .badge-neutral { background: var(--detail-bg); color: var(--text-muted); }
+    .badge-neutral { background: var(--muted); color: var(--muted-foreground); border: 1px solid var(--border); }
     .badge-profit { background: var(--green-bg); color: var(--green); }
     .badge-loss { background: var(--red-bg); color: var(--red); }
-    .badge-flat { background: var(--detail-bg); color: var(--text-muted); }
+    .badge-flat { background: var(--muted); color: var(--muted-foreground); border: 1px solid var(--border); }
     .trade-price { text-align: right; }
     .trade-price-value { font-size: 18px; font-weight: 800; }
-    .trade-price-sub { font-size: 11px; color: var(--text-muted); }
+    .trade-price-sub { font-size: 11px; color: var(--muted-foreground); }
 
     .trade-body { padding: 14px 18px; }
 
     /* Specs grid */
     .specs-grid {
       display: flex;
-      background-color: var(--detail-bg);
-      border: 1px solid var(--detail-border);
-      border-radius: 8px;
+      background-color: var(--card);
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) - 2px);
       overflow: hidden;
       margin-bottom: 12px;
     }
-    .spec {
-      flex: 1; text-align: center; padding: 10px 6px;
-    }
-    .spec + .spec { border-left: 1px solid var(--detail-border); }
+    .spec { flex: 1; text-align: center; padding: 10px 6px; }
+    .spec + .spec { border-left: 1px solid var(--border); }
     .spec-label {
-      color: var(--text-label); font-size: 9px; text-transform: uppercase;
+      color: var(--muted-foreground); font-size: 9px; text-transform: uppercase;
       letter-spacing: 0.6px; font-weight: 600;
     }
     .spec-value { font-size: 16px; font-weight: 800; margin-top: 2px; }
@@ -206,113 +214,103 @@
       margin-bottom: 10px; font-size: 13px;
     }
     .targets .label {
-      color: var(--text-label); font-size: 10px; font-weight: 600;
+      color: var(--muted-foreground); font-size: 10px; font-weight: 600;
       text-transform: uppercase; letter-spacing: 0.5px;
     }
-    .targets .dot { color: var(--text-label); padding: 0 6px; }
+    .targets .dot { color: var(--accent); padding: 0 6px; }
 
     /* Sentiment row */
     .sentiment-row {
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
       margin-bottom: 10px;
     }
-    .catalyst { color: var(--text-secondary); font-size: 12px; }
+    .catalyst { color: var(--muted-foreground); font-size: 12px; }
 
     /* Thesis */
     .thesis {
-      color: var(--text-secondary); font-size: 13px; line-height: 1.55;
+      color: var(--muted-foreground); font-size: 13px; line-height: 1.55;
       margin-bottom: 12px;
     }
 
     /* EOD result overlay */
     .eod-result {
-      border-radius: 8px; padding: 12px 14px;
-      border: 1px solid var(--detail-border);
-      background-color: var(--detail-bg);
+      border-radius: calc(var(--radius) - 2px); padding: 12px 14px;
+      border: 1px solid var(--border);
+      background-color: var(--card);
     }
     .eod-result.profit { background-color: var(--profit-bg); border-color: var(--profit-border); }
     .eod-result.loss { background-color: var(--loss-bg); border-color: var(--loss-border); }
     .eod-grid { display: flex; gap: 16px; flex-wrap: wrap; }
     .eod-col { flex: 1; min-width: 140px; }
-    .eod-arrow { color: var(--text-label); padding: 0 3px; }
+    .eod-arrow { color: var(--accent); padding: 0 3px; }
     .eod-notes {
-      color: var(--text-secondary); font-size: 12px; line-height: 1.5;
-      margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--detail-border);
+      color: var(--muted-foreground); font-size: 12px; line-height: 1.5;
+      margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);
     }
 
     /* Footer */
     .footer {
       padding: 20px 28px;
-      background-color: var(--footer-bg);
-      border-radius: 0 0 16px 16px;
-      border-top: 1px solid var(--footer-border);
+      border-top: 1px solid var(--border);
       text-align: center;
     }
-    .footer-text { color: var(--text-muted); font-size: 11px; line-height: 1.5; }
+    .footer-text { color: var(--muted-foreground); font-size: 11px; line-height: 1.5; }
     .footer-brand { margin-top: 8px; }
     .footer-brand .logo { font-size: 14px; }
-    .footer-brand .logo-jayce { color: var(--text-primary); }
     .footer-links { margin-top: 8px; }
     .footer-links a {
-      color: var(--text-muted); font-size: 12px; text-decoration: underline;
-      text-underline-offset: 2px;
+      color: var(--muted-foreground); font-size: 12px; text-decoration: underline;
+      text-underline-offset: 2px; transition: color 0.15s;
     }
-    .footer-links a:hover { color: var(--text-secondary); }
+    .footer-links a:hover { color: var(--foreground); }
 
     /* Empty state */
-    .empty-state {
-      text-align: center; padding: 60px 20px;
-    }
+    .empty-state { text-align: center; padding: 60px 20px; }
     .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
     .empty-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
-    .empty-sub { color: var(--text-muted); font-size: 14px; }
+    .empty-sub { color: var(--muted-foreground); font-size: 14px; }
 
     /* Refresh indicator */
     .refresh-bar {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 20px;
     }
-    .refresh-timer { color: var(--text-muted); font-size: 12px; }
-
-    /* Nav link */
-    .nav-link {
-      color: #a1a1aa; font-size: 13px; text-decoration: none;
-      transition: color 0.15s;
-    }
-    .nav-link:hover { color: #fafafa; }
+    .refresh-timer { color: var(--muted-foreground); font-size: 12px; }
   </style>
 </head>
 <body>
   <div class="page">
-    <div class="header">
-      <div>
-        <a href="/" style="text-decoration: none;">
+    <div class="main-card">
+      <div class="header">
+        <div>
+          <a href="/" style="text-decoration: none;">
+            <span class="logo"><span class="logo-jayce">Jayce</span><span class="logo-trades">Trades</span></span>
+          </a>
+        </div>
+        <div class="header-meta">
+          <a href="/" class="nav-link">Subscribe</a>
+          <span class="header-date" id="dateLabel">Loading...</span>
+          <div class="live-dot" id="liveDot" title="Auto-refreshing"></div>
+        </div>
+      </div>
+
+      <div class="content" id="mainContent">
+        <div class="empty-state">
+          <div class="empty-icon">&#9203;</div>
+          <div class="empty-title">Loading trades...</div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <p class="footer-text">
+          <strong>Disclaimer:</strong> Not financial advice. Options trading involves substantial risk. Trade responsibly.
+        </p>
+        <div class="footer-brand">
           <span class="logo"><span class="logo-jayce">Jayce</span><span class="logo-trades">Trades</span></span>
-        </a>
-      </div>
-      <div class="header-meta">
-        <a href="/" class="nav-link">Subscribe</a>
-        <span class="header-date" id="dateLabel">Loading...</span>
-        <div class="live-dot" id="liveDot" title="Auto-refreshing"></div>
-      </div>
-    </div>
-
-    <div class="content" id="mainContent">
-      <div class="empty-state">
-        <div class="empty-icon">&#9203;</div>
-        <div class="empty-title">Loading trades...</div>
-      </div>
-    </div>
-
-    <div class="footer">
-      <p class="footer-text">
-        <strong>Disclaimer:</strong> Not financial advice. Options trading involves substantial risk. Trade responsibly.
-      </p>
-      <div class="footer-brand">
-        <span class="logo"><span class="logo-jayce">Jayce</span><span class="logo-trades">Trades</span></span>
-      </div>
-      <div class="footer-links">
-        <a href="/">Subscribe for free email alerts</a>
+        </div>
+        <div class="footer-links">
+          <a href="/">Subscribe for free email alerts</a>
+        </div>
       </div>
     </div>
   </div>
@@ -382,7 +380,7 @@
 
       // Scoreboard (only if we have EOD data)
       if (hasSummaries) {
-        var pnlColor = totalPnl > 0 ? 'var(--green)' : totalPnl < 0 ? 'var(--red)' : 'var(--text-muted)';
+        var pnlColor = totalPnl > 0 ? 'var(--green)' : totalPnl < 0 ? 'var(--red)' : 'var(--muted-foreground)';
         html += '<div class="scoreboard">' +
           '<div class="scoreboard-stat"><div class="scoreboard-value" style="color: var(--green);">' + winners + '</div><div class="scoreboard-label">Winners</div></div>' +
           '<div class="scoreboard-stat"><div class="scoreboard-value" style="color: var(--red);">' + losers + '</div><div class="scoreboard-label">Losers</div></div>' +
@@ -466,19 +464,19 @@
               '<div class="eod-col">' +
                 '<div class="spec-label">Contract</div>' +
                 '<div style="margin-top: 4px;">' +
-                  '<span style="color: var(--text-muted); font-size: 13px;">' + fmtMoney(s.entry_price) + '</span>' +
+                  '<span style="color: var(--muted-foreground); font-size: 13px;">' + fmtMoney(s.entry_price) + '</span>' +
                   '<span class="eod-arrow">&#8594;</span>' +
                   '<span style="font-size: 14px; font-weight: 700;">' + fmtMoney(s.closing_price) + '</span>' +
-                  '<span style="margin-left: 4px; font-size: 11px; font-weight: 700; color: ' + (contractPct > 0 ? 'var(--green)' : contractPct < 0 ? 'var(--red)' : 'var(--text-muted)') + ';">' + fmtPct(contractPct) + '</span>' +
+                  '<span style="margin-left: 4px; font-size: 11px; font-weight: 700; color: ' + (contractPct > 0 ? 'var(--green)' : contractPct < 0 ? 'var(--red)' : 'var(--muted-foreground)') + ';">' + fmtPct(contractPct) + '</span>' +
                 '</div>' +
               '</div>' +
               '<div class="eod-col">' +
                 '<div class="spec-label">Stock</div>' +
                 '<div style="margin-top: 4px;">' +
-                  '<span style="color: var(--text-muted); font-size: 13px;">' + fmtMoney(s.stock_open) + '</span>' +
+                  '<span style="color: var(--muted-foreground); font-size: 13px;">' + fmtMoney(s.stock_open) + '</span>' +
                   '<span class="eod-arrow">&#8594;</span>' +
                   '<span style="font-size: 14px; font-weight: 700;">' + fmtMoney(s.stock_close) + '</span>' +
-                  '<span style="margin-left: 4px; font-size: 11px; font-weight: 700; color: ' + (stockPct > 0 ? 'var(--green)' : stockPct < 0 ? 'var(--red)' : 'var(--text-muted)') + ';">' + fmtPct(stockPct) + '</span>' +
+                  '<span style="margin-left: 4px; font-size: 11px; font-weight: 700; color: ' + (stockPct > 0 ? 'var(--green)' : stockPct < 0 ? 'var(--red)' : 'var(--muted-foreground)') + ';">' + fmtPct(stockPct) + '</span>' +
                 '</div>' +
               '</div>' +
             '</div>';
