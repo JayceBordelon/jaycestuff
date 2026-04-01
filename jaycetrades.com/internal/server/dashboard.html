@@ -42,10 +42,7 @@
       --blue-bg: #dbeafe;
       --amber: #b45309;
       --amber-bg: #fef3c7;
-      --purple: #7c3aed;
-      --purple-bg: #ede9fe;
     }
-
     @media (prefers-color-scheme: dark) {
       :root {
         --background: #0f172a;
@@ -60,20 +57,17 @@
         --border: #334155;
         --input: #334155;
         --ring: #94a3b8;
-        --green-bg: rgba(22, 163, 74, 0.15);
-        --green-light: rgba(22, 163, 74, 0.08);
-        --green-border: rgba(22, 163, 74, 0.3);
-        --red-bg: rgba(220, 38, 38, 0.15);
-        --red-light: rgba(220, 38, 38, 0.08);
-        --red-border: rgba(220, 38, 38, 0.3);
-        --blue-bg: rgba(29, 78, 216, 0.15);
-        --amber-bg: rgba(180, 83, 9, 0.15);
-        --purple-bg: rgba(124, 58, 237, 0.15);
+        --green-bg: rgba(22,163,74,0.15);
+        --green-light: rgba(22,163,74,0.08);
+        --green-border: rgba(22,163,74,0.3);
+        --red-bg: rgba(220,38,38,0.15);
+        --red-light: rgba(220,38,38,0.08);
+        --red-border: rgba(220,38,38,0.3);
+        --blue-bg: rgba(29,78,216,0.15);
+        --amber-bg: rgba(180,83,9,0.15);
       }
     }
-
     * { margin: 0; padding: 0; box-sizing: border-box; }
-
     body {
       font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       -webkit-font-smoothing: antialiased;
@@ -82,9 +76,7 @@
       min-height: 100vh;
       padding: 24px 16px;
     }
-
     .page { max-width: 960px; margin: 0 auto; }
-
     .main-card {
       background-color: var(--card);
       color: var(--card-foreground);
@@ -93,38 +85,47 @@
       box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1);
       overflow: hidden;
     }
-
-    /* Header */
     .header {
       padding: 16px 28px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      display: flex; align-items: center; justify-content: space-between;
       border-bottom: 1px solid var(--border);
-      flex-wrap: wrap;
-      gap: 12px;
+      flex-wrap: wrap; gap: 12px;
     }
     .logo { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; text-decoration: none; }
     .logo-jayce { color: var(--foreground); }
     .logo-trades { color: var(--primary); }
-    .header-right { display: flex; align-items: center; gap: 12px; }
+    .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .nav-link {
-      color: var(--muted-foreground); font-size: 13px; text-decoration: none;
-      transition: color 0.15s;
+      color: var(--muted-foreground); font-size: 13px; text-decoration: none; transition: color 0.15s;
     }
     .nav-link:hover { color: var(--foreground); }
 
-    /* Date Navigation */
+    /* Mode toggle */
+    .mode-toggle {
+      display: flex; background: var(--muted); border: 1px solid var(--border);
+      border-radius: 6px; overflow: hidden;
+    }
+    .mode-btn {
+      background: none; border: none; cursor: pointer;
+      padding: 5px 14px; font-size: 12px; font-weight: 600;
+      color: var(--muted-foreground); font-family: inherit;
+      transition: all 0.15s;
+    }
+    .mode-btn.active {
+      background: var(--primary); color: var(--primary-foreground);
+    }
+    .mode-btn:not(.active):hover { color: var(--foreground); }
+
+    /* Date nav */
     .date-nav {
-      display: flex; align-items: center; gap: 0;
+      display: flex; align-items: center;
       background: var(--muted); border: 1px solid var(--border);
       border-radius: 8px; overflow: hidden;
     }
     .date-nav-btn {
       background: none; border: none; cursor: pointer;
       padding: 6px 10px; color: var(--muted-foreground);
-      font-size: 14px; font-weight: 600;
-      transition: all 0.15s;
+      font-size: 14px; font-weight: 600; transition: all 0.15s;
       display: flex; align-items: center;
     }
     .date-nav-btn:hover { color: var(--foreground); background: var(--border); }
@@ -132,80 +133,57 @@
     .date-nav-label {
       padding: 6px 14px; font-size: 13px; font-weight: 600;
       color: var(--foreground); white-space: nowrap;
-      border-left: 1px solid var(--border);
-      border-right: 1px solid var(--border);
-      min-width: 130px; text-align: center;
+      border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+      min-width: 140px; text-align: center;
     }
     .live-dot {
       width: 8px; height: 8px; border-radius: 50%; background: #4ade80;
       animation: pulse-dot 2s ease-in-out infinite; flex-shrink: 0;
     }
     @keyframes pulse-dot {
-      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4); }
-      50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); }
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(74,222,128,0.4); }
+      50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(74,222,128,0); }
     }
 
-    /* Content */
     .content { padding: 24px 28px; }
 
-    /* Stats Grid */
+    /* Stats */
     .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      margin-bottom: 24px;
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 12px; margin-bottom: 24px;
     }
-    @media (max-width: 640px) {
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
-    }
+    @media (max-width: 640px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
     .stat-card {
       background: var(--muted); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 16px;
-      text-align: center;
+      border-radius: var(--radius); padding: 16px; text-align: center;
     }
     .stat-value { font-size: 28px; font-weight: 800; line-height: 1.1; }
     .stat-label {
       font-size: 10px; color: var(--muted-foreground); text-transform: uppercase;
       letter-spacing: 0.5px; font-weight: 600; margin-top: 4px;
     }
-    .stat-sub {
-      font-size: 11px; color: var(--muted-foreground); margin-top: 2px;
-    }
-
-    /* Win Rate Bar */
+    .stat-sub { font-size: 11px; color: var(--muted-foreground); margin-top: 2px; }
     .win-bar-container {
       width: 100%; height: 6px; background: var(--red-bg);
       border-radius: 3px; margin-top: 8px; overflow: hidden;
     }
-    .win-bar-fill {
-      height: 100%; background: var(--green); border-radius: 3px;
-      transition: width 0.5s ease;
-    }
+    .win-bar-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width 0.5s ease; }
 
-    /* Section Headers */
     .section-header {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 16px;
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
     }
     .section-title { font-size: 16px; font-weight: 700; }
     .section-subtitle { font-size: 12px; color: var(--muted-foreground); }
+    .divider { height: 1px; background: var(--border); margin: 24px 0; }
 
-    /* Divider */
-    .divider {
-      height: 1px; background: var(--border); margin: 24px 0;
-    }
-
-    /* Chart */
+    /* Chart bars */
     .chart-container { margin-bottom: 8px; }
     .chart-row {
       display: flex; align-items: center; gap: 10px;
       padding: 7px 0; border-bottom: 1px solid var(--border);
     }
     .chart-row:last-child { border-bottom: none; }
-    .chart-label {
-      width: 120px; flex-shrink: 0;
-      display: flex; align-items: center; gap: 6px;
-    }
+    .chart-label { width: 120px; flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
     .chart-symbol { font-size: 14px; font-weight: 700; }
     .chart-type {
       font-size: 9px; font-weight: 700; padding: 2px 5px;
@@ -215,27 +193,50 @@
     .chart-type-put { background: var(--red-bg); color: var(--red); }
     .chart-bar-wrapper {
       flex: 1; height: 28px; background: var(--muted);
-      border-radius: 4px; overflow: hidden; position: relative;
+      border-radius: 4px; overflow: hidden;
     }
     .chart-bar {
-      height: 100%; border-radius: 4px;
-      transition: width 0.5s ease;
-      min-width: 2px;
+      height: 100%; border-radius: 4px; transition: width 0.5s ease; min-width: 2px;
     }
     .chart-bar-profit { background: var(--green); opacity: 0.65; }
     .chart-bar-loss { background: var(--red); opacity: 0.65; }
-    .chart-pnl {
-      width: 80px; text-align: right; font-size: 14px; font-weight: 700;
-      flex-shrink: 0;
-    }
-    .chart-pnl-pct {
-      font-size: 11px; font-weight: 600; margin-left: 4px;
-    }
+    .chart-pnl { width: 80px; text-align: right; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+    .chart-pnl-pct { font-size: 11px; font-weight: 600; margin-left: 4px; }
     .color-green { color: var(--green); }
     .color-red { color: var(--red); }
     .color-muted { color: var(--muted-foreground); }
 
-    /* Trade Table */
+    /* Week daily bars */
+    .week-day-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: background 0.1s;
+    }
+    .week-day-row:hover { background: var(--muted); margin: 0 -8px; padding: 10px 8px; border-radius: 4px; }
+    .week-day-row:last-child { border-bottom: none; }
+    .week-day-label { width: 80px; flex-shrink: 0; }
+    .week-day-name { font-size: 14px; font-weight: 700; }
+    .week-day-date { font-size: 11px; color: var(--muted-foreground); }
+    .week-day-stats { font-size: 11px; color: var(--muted-foreground); width: 90px; flex-shrink: 0; }
+    .week-day-bar { flex: 1; height: 28px; background: var(--muted); border-radius: 4px; overflow: hidden; }
+    .week-day-pnl { width: 70px; text-align: right; font-size: 15px; font-weight: 800; flex-shrink: 0; }
+
+    /* Week day detail (expandable) */
+    .week-day-detail { padding: 0; }
+    .week-trade-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 12px; border-radius: 6px; margin-bottom: 4px;
+    }
+    .week-trade-row.profit { background: var(--green-light); border: 1px solid var(--green-border); }
+    .week-trade-row.loss { background: var(--red-light); border: 1px solid var(--red-border); }
+    .week-trade-row.flat { background: var(--muted); border: 1px solid var(--border); }
+    .week-trade-symbol { font-size: 13px; font-weight: 700; width: 70px; }
+    .week-trade-spec { font-size: 11px; color: var(--muted-foreground); flex: 1; }
+    .week-trade-prices { font-size: 11px; color: var(--muted-foreground); }
+    .week-trade-pnl { font-size: 13px; font-weight: 700; width: 70px; text-align: right; }
+
+    /* Trade table */
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .trade-table { width: 100%; border-collapse: collapse; }
     .trade-table th {
       text-align: left; font-size: 10px; font-weight: 600;
@@ -243,18 +244,13 @@
       letter-spacing: 0.5px; padding: 8px 10px;
       border-bottom: 2px solid var(--border);
     }
-    .trade-table th:last-child,
-    .trade-table td:last-child { text-align: right; }
+    .trade-table th:last-child, .trade-table td:last-child { text-align: right; }
     .trade-table td {
-      padding: 10px; font-size: 13px;
-      border-bottom: 1px solid var(--border);
-      vertical-align: middle;
+      padding: 10px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle;
     }
     .trade-table tr:last-child td { border-bottom: none; }
     .trade-table-symbol { font-weight: 700; font-size: 14px; }
     .trade-table-detail { color: var(--muted-foreground); font-size: 11px; }
-
-    /* Badge */
     .badge {
       display: inline-block; font-size: 10px; font-weight: 700;
       padding: 3px 8px; border-radius: 4px; text-transform: uppercase;
@@ -269,22 +265,14 @@
     .badge-loss { background: var(--red-bg); color: var(--red); }
     .badge-flat { background: var(--muted); color: var(--muted-foreground); border: 1px solid var(--border); }
 
-    /* Expandable Trade Details */
     .trade-detail-row { display: none; }
     .trade-detail-row.open { display: table-row; }
-    .trade-detail-cell {
-      padding: 0 10px 12px 10px;
-      background: var(--muted);
-    }
+    .trade-detail-cell { padding: 0 10px 12px 10px; background: var(--muted); }
     .trade-detail-inner {
-      padding: 14px 16px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
+      padding: 14px 16px; background: var(--card);
+      border: 1px solid var(--border); border-radius: var(--radius);
     }
-    .detail-grid {
-      display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px;
-    }
+    .detail-grid { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; }
     .detail-col { flex: 1; min-width: 120px; }
     .detail-label {
       font-size: 9px; color: var(--muted-foreground); text-transform: uppercase;
@@ -298,8 +286,7 @@
     }
     .detail-eod {
       margin-top: 10px; padding: 12px;
-      border-radius: calc(var(--radius) - 2px);
-      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) - 2px); border: 1px solid var(--border);
     }
     .detail-eod.profit { background: var(--green-light); border-color: var(--green-border); }
     .detail-eod.loss { background: var(--red-light); border-color: var(--red-border); }
@@ -315,7 +302,7 @@
     }
     .expand-icon.open { transform: rotate(90deg); }
 
-    /* Morning-only state */
+    /* Morning cards */
     .morning-card {
       background: var(--muted); border: 1px solid var(--border);
       border-radius: var(--radius); padding: 14px 18px; margin-bottom: 12px;
@@ -327,16 +314,13 @@
     .morning-symbol { font-size: 18px; font-weight: 800; }
     .morning-price { font-size: 16px; font-weight: 800; }
     .morning-specs {
-      display: flex; gap: 16px; flex-wrap: wrap;
-      font-size: 12px; color: var(--muted-foreground);
+      display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--muted-foreground);
     }
     .morning-specs strong { color: var(--foreground); font-weight: 700; }
     .morning-thesis {
       color: var(--muted-foreground); font-size: 13px; line-height: 1.5;
       margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);
     }
-
-    /* Info Banner */
     .info-banner {
       background: var(--blue-bg); border: 1px solid var(--border);
       border-radius: var(--radius); padding: 12px 16px;
@@ -345,11 +329,8 @@
     .info-banner-icon { font-size: 16px; flex-shrink: 0; }
     .info-banner-text { font-size: 13px; color: var(--foreground); }
 
-    /* Footer */
     .footer {
-      padding: 20px 28px;
-      border-top: 1px solid var(--border);
-      text-align: center;
+      padding: 20px 28px; border-top: 1px solid var(--border); text-align: center;
     }
     .footer-text { color: var(--muted-foreground); font-size: 11px; line-height: 1.5; }
     .footer-brand { margin-top: 8px; }
@@ -360,44 +341,153 @@
       text-underline-offset: 2px; transition: color 0.15s;
     }
     .footer-links a:hover { color: var(--foreground); }
-
-    /* Empty state */
     .empty-state { text-align: center; padding: 60px 20px; }
     .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
     .empty-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
     .empty-sub { color: var(--muted-foreground); font-size: 14px; }
-
-    /* Refresh */
     .refresh-bar {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 4px;
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;
     }
     .refresh-timer { color: var(--muted-foreground); font-size: 12px; }
 
-    /* Responsive table scroll */
-    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeInScale {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    @keyframes slideDown {
+      from { opacity: 0; max-height: 0; }
+      to { opacity: 1; max-height: 2000px; }
+    }
+    .fade-in { animation: fadeIn 0.35s ease-out both; }
+    .fade-in-scale { animation: fadeInScale 0.3s ease-out both; }
+    .stats-grid .stat-card { animation: fadeInScale 0.35s ease-out both; }
+    .stats-grid .stat-card:nth-child(1) { animation-delay: 0.05s; }
+    .stats-grid .stat-card:nth-child(2) { animation-delay: 0.1s; }
+    .stats-grid .stat-card:nth-child(3) { animation-delay: 0.15s; }
+    .stats-grid .stat-card:nth-child(4) { animation-delay: 0.2s; }
+    .chart-row { animation: fadeIn 0.3s ease-out both; }
+    .chart-container .chart-row:nth-child(1) { animation-delay: 0.05s; }
+    .chart-container .chart-row:nth-child(2) { animation-delay: 0.08s; }
+    .chart-container .chart-row:nth-child(3) { animation-delay: 0.11s; }
+    .chart-container .chart-row:nth-child(4) { animation-delay: 0.14s; }
+    .chart-container .chart-row:nth-child(5) { animation-delay: 0.17s; }
+    .chart-container .chart-row:nth-child(6) { animation-delay: 0.20s; }
+    .chart-container .chart-row:nth-child(7) { animation-delay: 0.23s; }
+    .chart-container .chart-row:nth-child(8) { animation-delay: 0.26s; }
+    .chart-container .chart-row:nth-child(9) { animation-delay: 0.29s; }
+    .chart-container .chart-row:nth-child(10) { animation-delay: 0.32s; }
+    .morning-card { animation: fadeIn 0.3s ease-out both; }
+    .morning-card:nth-child(1) { animation-delay: 0.05s; }
+    .morning-card:nth-child(2) { animation-delay: 0.08s; }
+    .morning-card:nth-child(3) { animation-delay: 0.11s; }
+    .morning-card:nth-child(4) { animation-delay: 0.14s; }
+    .morning-card:nth-child(5) { animation-delay: 0.17s; }
+    .week-day-row { animation: fadeIn 0.3s ease-out both; }
+    .week-day-row:nth-child(1) { animation-delay: 0.05s; }
+    .week-day-row:nth-child(2) { animation-delay: 0.1s; }
+    .week-day-row:nth-child(3) { animation-delay: 0.15s; }
+    .week-day-row:nth-child(4) { animation-delay: 0.2s; }
+    .week-day-row:nth-child(5) { animation-delay: 0.25s; }
+    .week-day-detail {
+      overflow: hidden;
+      transition: max-height 0.3s ease-out, opacity 0.25s ease-out;
+      max-height: 0; opacity: 0;
+    }
+    .week-day-detail.open {
+      max-height: 2000px; opacity: 1;
+    }
+    .week-trade-row { animation: fadeIn 0.2s ease-out both; }
+    .trade-detail-row td { animation: fadeIn 0.25s ease-out; }
+    .stat-card { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .mode-btn { transition: all 0.2s ease; }
+    .date-nav-btn { transition: all 0.2s ease; }
+
+    /* Text overflow prevention */
+    .chart-symbol, .trade-table-symbol, .morning-symbol, .week-trade-symbol, .week-day-name {
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .morning-thesis, .detail-thesis, .detail-eod-notes {
+      overflow-wrap: break-word; word-break: break-word;
+    }
+    .morning-specs { overflow: hidden; }
+    .morning-specs span { white-space: nowrap; }
+    .trade-table td { overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+    .trade-table td:first-child, .trade-table td:last-child { max-width: none; }
+    .stat-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .week-trade-spec { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Mobile responsive overrides */
+    @media (max-width: 640px) {
+      .page { padding: 0; }
+      body { padding: 12px 8px; }
+      .header { padding: 12px 16px; gap: 8px; }
+      .header-right { gap: 6px; width: 100%; justify-content: flex-end; }
+      .content { padding: 16px; }
+      .logo { font-size: 20px; }
+      .date-nav-label { min-width: 110px; font-size: 12px; padding: 6px 10px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .stat-value { font-size: 22px; }
+      .chart-label { width: 80px; }
+      .chart-symbol { font-size: 12px; }
+      .chart-type { font-size: 8px; padding: 1px 4px; }
+      .chart-pnl { width: 65px; font-size: 12px; }
+      .chart-pnl-pct { font-size: 10px; }
+      .trade-table th, .trade-table td { padding: 8px 6px; font-size: 12px; }
+      .trade-table-symbol { font-size: 13px; }
+      .morning-header { flex-direction: column; align-items: flex-start; }
+      .morning-specs { gap: 10px; font-size: 11px; }
+      .week-day-row { gap: 6px; padding: 8px 0; }
+      .week-day-label { width: 60px; }
+      .week-day-name { font-size: 13px; }
+      .week-day-date { font-size: 10px; }
+      .week-day-stats { width: 65px; font-size: 10px; }
+      .week-day-pnl { width: 55px; font-size: 13px; }
+      .week-trade-row { flex-wrap: wrap; gap: 4px; padding: 8px 10px; }
+      .week-trade-pnl { width: auto; }
+      .footer { padding: 16px; }
+      .detail-grid { gap: 10px; }
+      .detail-col { min-width: 90px; }
+      .section-title { font-size: 14px; }
+      .mode-btn { padding: 5px 10px; font-size: 11px; }
+    }
+    @media (max-width: 400px) {
+      .header-right { flex-wrap: wrap; }
+      .chart-label { width: 65px; }
+      .chart-pnl { width: 55px; font-size: 11px; }
+      .stats-grid { gap: 6px; }
+      .stat-card { padding: 12px 8px; }
+      .stat-value { font-size: 20px; }
+    }
   </style>
 </head>
 <body>
   <div class="page">
     <div class="main-card">
-      <!-- Header -->
       <div class="header">
         <a href="/" style="text-decoration: none;">
           <span class="logo"><span class="logo-jayce">Jayce</span><span class="logo-trades">Trades</span></span>
         </a>
         <div class="header-right">
           <a href="/" class="nav-link">Subscribe</a>
+          <div class="mode-toggle">
+            <button class="mode-btn active" id="dayModeBtn" onclick="setMode('day')">Day</button>
+            <button class="mode-btn" id="weekModeBtn" onclick="setMode('week')">Week</button>
+          </div>
           <div class="date-nav">
-            <button class="date-nav-btn" id="prevBtn" onclick="navDate(-1)" title="Previous day">&#9664;</button>
+            <button class="date-nav-btn" id="prevBtn" onclick="navPrev()" title="Older">&#9664;</button>
             <span class="date-nav-label" id="dateLabel">Loading...</span>
-            <button class="date-nav-btn" id="nextBtn" onclick="navDate(1)" title="Next day">&#9654;</button>
+            <button class="date-nav-btn" id="nextBtn" onclick="navNext()" title="Newer">&#9654;</button>
           </div>
           <div class="live-dot" id="liveDot" title="Auto-refreshing"></div>
         </div>
       </div>
 
-      <!-- Content -->
       <div class="content" id="mainContent">
         <div class="empty-state">
           <div class="empty-icon">&#9203;</div>
@@ -405,7 +495,6 @@
         </div>
       </div>
 
-      <!-- Footer -->
       <div class="footer">
         <p class="footer-text">
           <strong>Disclaimer:</strong> Not financial advice. Options trading involves substantial risk. Trade responsibly.
@@ -423,92 +512,192 @@
   <script>
     var REFRESH_SECONDS = 60;
     var countdown = REFRESH_SECONDS;
-    var availableDates = [];
-    var currentDateIdx = 0;
-    var currentData = null;
 
+    // State
+    var mode = 'day'; // 'day' or 'week'
+    var availableDates = []; // newest-first
+    var dayIndex = 0; // index into availableDates (0 = newest)
+    var weekOffset = 0; // 0 = current week, 1 = last week, etc.
+
+    // Helpers
     function fmt(n, d) { return Number(n).toFixed(d === undefined ? 2 : d); }
     function fmtPct(n) { return (n > 0 ? '+' : '') + fmt(n, 0) + '%'; }
     function fmtMoney(n) { return '$' + fmt(n); }
-    function fmtPnl(n) { return (n > 0 ? '+$' : n < 0 ? '-$' : '$') + fmt(Math.abs(n)); }
     function fmtPnlInt(n) { return (n > 0 ? '+$' : n < 0 ? '-$' : '$') + fmt(Math.abs(n), 0); }
-
-    function sentimentLabel(score) {
-      if (score > 0.3) return 'Bullish';
-      if (score < -0.3) return 'Bearish';
-      return 'Neutral';
-    }
-    function riskClass(level) {
-      if (level === 'LOW') return 'badge-low';
-      if (level === 'HIGH') return 'badge-high';
-      return 'badge-medium';
-    }
     function pnlColor(v) {
       if (v > 0) return 'color-green';
       if (v < 0) return 'color-red';
       return 'color-muted';
     }
-
+    function sentimentLabel(s) { return s > 0.3 ? 'Bullish' : s < -0.3 ? 'Bearish' : 'Neutral'; }
+    function riskClass(l) { return l === 'LOW' ? 'badge-low' : l === 'HIGH' ? 'badge-high' : 'badge-medium'; }
     function escapeHtml(text) {
       var d = document.createElement('div');
       d.appendChild(document.createTextNode(text));
       return d.innerHTML;
     }
-
-    function formatDateDisplay(dateStr) {
-      if (!dateStr) return 'No data';
-      var parts = dateStr.split('-');
-      var d = new Date(parts[0], parts[1] - 1, parts[2]);
+    function formatDateShort(dateStr) {
+      if (!dateStr) return '';
+      var p = dateStr.split('-');
+      var d = new Date(p[0], p[1] - 1, p[2]);
       var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
       var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       return days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate();
     }
-
-    // Date navigation
-    function navDate(dir) {
-      var newIdx = currentDateIdx + dir;
-      if (newIdx < 0 || newIdx >= availableDates.length) return;
-      currentDateIdx = newIdx;
-      fetchData(availableDates[currentDateIdx]);
-      updateNavButtons();
+    function formatDayName(dateStr) {
+      var p = dateStr.split('-');
+      var d = new Date(p[0], p[1] - 1, p[2]);
+      return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+    }
+    function formatMonthDay(dateStr) {
+      var p = dateStr.split('-');
+      var d = new Date(p[0], p[1] - 1, p[2]);
+      var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return months[d.getMonth()] + ' ' + d.getDate();
     }
 
-    function updateNavButtons() {
-      var prev = document.getElementById('prevBtn');
-      var next = document.getElementById('nextBtn');
-      // dates are newest-first, so "prev" goes to older (higher index), "next" goes to newer (lower index)
-      if (next) next.disabled = currentDateIdx <= 0;
-      if (prev) prev.disabled = currentDateIdx >= availableDates.length - 1;
+    // Get Monday and Friday of a week containing refDate, shifted by weekOffset
+    function getWeekBounds(weekOff) {
+      var now = new Date();
+      // shift by weekOff weeks
+      now.setDate(now.getDate() - weekOff * 7);
+      var day = now.getDay();
+      var diffToMon = (day === 0) ? -6 : 1 - day;
+      var mon = new Date(now);
+      mon.setDate(now.getDate() + diffToMon);
+      var fri = new Date(mon);
+      fri.setDate(mon.getDate() + 4);
+      function pad(n) { return n < 10 ? '0' + n : '' + n; }
+      function toStr(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+      return { start: toStr(mon), end: toStr(fri) };
     }
 
-    function loadDates() {
-      fetch('/api/trades/dates')
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (data.dates && data.dates.length > 0) {
-            availableDates = data.dates;
-            currentDateIdx = 0;
-            updateNavButtons();
-          }
-        });
+    function getWeekLabel(weekOff) {
+      var b = getWeekBounds(weekOff);
+      return formatMonthDay(b.start) + ' - ' + formatMonthDay(b.end);
     }
 
-    // Toggle trade detail expansion
-    function toggleDetail(idx) {
-      var row = document.getElementById('detail-' + idx);
-      var icon = document.getElementById('icon-' + idx);
-      if (row) {
-        row.classList.toggle('open');
-        if (icon) icon.classList.toggle('open');
+    // Oldest available week offset
+    function maxWeekOffset() {
+      if (availableDates.length === 0) return 0;
+      var oldest = availableDates[availableDates.length - 1];
+      var p = oldest.split('-');
+      var oldestDate = new Date(p[0], p[1] - 1, p[2]);
+      var now = new Date();
+      var diffMs = now.getTime() - oldestDate.getTime();
+      return Math.ceil(diffMs / (7 * 24 * 60 * 60 * 1000));
+    }
+
+    // Mode switching
+    function setMode(m) {
+      mode = m;
+      document.getElementById('dayModeBtn').className = 'mode-btn' + (m === 'day' ? ' active' : '');
+      document.getElementById('weekModeBtn').className = 'mode-btn' + (m === 'week' ? ' active' : '');
+      if (m === 'day') {
+        updateDayNav();
+        loadDay();
+      } else {
+        weekOffset = 0;
+        updateWeekNav();
+        loadWeek();
       }
     }
 
-    function renderDashboard(data) {
-      var el = document.getElementById('mainContent');
-      var dateEl = document.getElementById('dateLabel');
-      dateEl.textContent = formatDateDisplay(data.date);
-      currentData = data;
+    // Day navigation - left arrow = older (higher index), right arrow = newer (lower index)
+    function navPrev() {
+      if (mode === 'day') {
+        if (dayIndex < availableDates.length - 1) {
+          dayIndex++;
+          updateDayNav();
+          loadDay();
+        }
+      } else {
+        if (weekOffset < maxWeekOffset()) {
+          weekOffset++;
+          updateWeekNav();
+          loadWeek();
+        }
+      }
+    }
+    function navNext() {
+      if (mode === 'day') {
+        if (dayIndex > 0) {
+          dayIndex--;
+          updateDayNav();
+          loadDay();
+        }
+      } else {
+        if (weekOffset > 0) {
+          weekOffset--;
+          updateWeekNav();
+          loadWeek();
+        }
+      }
+    }
 
+    function updateDayNav() {
+      var label = document.getElementById('dateLabel');
+      var prev = document.getElementById('prevBtn');
+      var next = document.getElementById('nextBtn');
+      if (availableDates.length > 0 && dayIndex < availableDates.length) {
+        label.textContent = formatDateShort(availableDates[dayIndex]);
+      } else {
+        label.textContent = 'No data';
+      }
+      prev.disabled = dayIndex >= availableDates.length - 1;
+      next.disabled = dayIndex <= 0;
+    }
+
+    function updateWeekNav() {
+      var label = document.getElementById('dateLabel');
+      var prev = document.getElementById('prevBtn');
+      var next = document.getElementById('nextBtn');
+      label.textContent = getWeekLabel(weekOffset);
+      prev.disabled = weekOffset >= maxWeekOffset();
+      next.disabled = weekOffset <= 0;
+    }
+
+    function loadDay() {
+      var date = availableDates[dayIndex] || null;
+      var url = '/api/trades/today';
+      if (date) url += '?date=' + date;
+      fetch(url)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          renderDayView(data);
+          countdown = REFRESH_SECONDS;
+        })
+        .catch(function() { countdown = REFRESH_SECONDS; });
+    }
+
+    function loadWeek() {
+      var b = getWeekBounds(weekOffset);
+      fetch('/api/trades/week?start=' + b.start + '&end=' + b.end)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          renderWeekView(data);
+          countdown = REFRESH_SECONDS;
+        })
+        .catch(function() { countdown = REFRESH_SECONDS; });
+    }
+
+    // Toggle for trade detail rows
+    function toggleDetail(idx) {
+      var row = document.getElementById('detail-' + idx);
+      var icon = document.getElementById('icon-' + idx);
+      if (row) { row.classList.toggle('open'); }
+      if (icon) { icon.classList.toggle('open'); }
+    }
+    function toggleWeekDay(idx) {
+      var el = document.getElementById('weekday-detail-' + idx);
+      if (el) { el.classList.toggle('open'); }
+    }
+
+    //
+    // RENDER: Day View
+    //
+    function renderDayView(data) {
+      var el = document.getElementById('mainContent');
       if (!data.trades || data.trades.length === 0) {
         el.innerHTML =
           '<div class="empty-state">' +
@@ -519,321 +708,312 @@
         return;
       }
 
-      // Compute stats
       var hasSummaries = false;
-      var winners = 0, losers = 0, flat = 0, totalPnl = 0;
-      var bestPnl = -Infinity, worstPnl = Infinity;
-      var bestSymbol = '', worstSymbol = '';
-      var sortedTrades = [];
+      var winners = 0, losers = 0, totalPnl = 0;
+      var bestPnl = -Infinity, worstPnl = Infinity, bestSym = '', worstSym = '';
 
       for (var i = 0; i < data.trades.length; i++) {
-        var t = data.trades[i].trade;
         var s = data.trades[i].summary;
-        var pnl = 0;
-        var pctChange = 0;
         if (s) {
           hasSummaries = true;
-          pnl = (s.closing_price - s.entry_price) * 100;
-          pctChange = s.entry_price > 0 ? ((s.closing_price - s.entry_price) / s.entry_price * 100) : 0;
+          var pnl = (s.closing_price - s.entry_price) * 100;
           totalPnl += pnl;
           if (pnl > 0.5) winners++;
           else if (pnl < -0.5) losers++;
-          else flat++;
-          if (pnl > bestPnl) { bestPnl = pnl; bestSymbol = t.symbol; }
-          if (pnl < worstPnl) { worstPnl = pnl; worstSymbol = t.symbol; }
+          if (pnl > bestPnl) { bestPnl = pnl; bestSym = data.trades[i].trade.symbol; }
+          if (pnl < worstPnl) { worstPnl = pnl; worstSym = data.trades[i].trade.symbol; }
         }
-        sortedTrades.push({ trade: t, summary: s, pnl: pnl, pctChange: pctChange, idx: i });
       }
-
-      var totalTrades = data.trades.length;
       var winRate = (winners + losers) > 0 ? (winners / (winners + losers) * 100) : 0;
 
       var html = '';
-
-      // Refresh bar
       html += '<div class="refresh-bar">' +
-        '<div><h1 style="font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">' +
-        (hasSummaries ? 'End of Day Results' : "Today's Plays") + '</h1></div>' +
-        '<span class="refresh-timer" id="timer">Refreshes in ' + REFRESH_SECONDS + 's</span>' +
-      '</div>';
+        '<h1 style="font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">' +
+        (hasSummaries ? 'End of Day Results' : "Today's Plays") + '</h1>' +
+        '<span class="refresh-timer" id="timer">Refreshes in ' + REFRESH_SECONDS + 's</span></div>';
       html += '<p style="color: var(--muted-foreground); font-size: 13px; margin-bottom: 20px;">' +
-        totalTrades + ' options picks' +
+        data.trades.length + ' options picks' +
         (hasSummaries ? '' : ' &middot; 0-7 DTE &middot; Under $200/contract') + '</p>';
 
       if (hasSummaries) {
-        // Stats Grid
-        var pnlClass = totalPnl > 0 ? 'color-green' : totalPnl < 0 ? 'color-red' : 'color-muted';
-        html += '<div class="stats-grid">';
-
-        // Net P&L
-        html += '<div class="stat-card">' +
-          '<div class="stat-value ' + pnlClass + '">' + fmtPnlInt(totalPnl) + '</div>' +
-          '<div class="stat-label">Net P&amp;L</div>' +
-        '</div>';
-
-        // Win Rate
-        html += '<div class="stat-card">' +
-          '<div class="stat-value">' + fmt(winRate, 0) + '%</div>' +
-          '<div class="stat-label">Win Rate</div>' +
-          '<div class="win-bar-container"><div class="win-bar-fill" style="width: ' + winRate + '%;"></div></div>' +
-        '</div>';
-
-        // Best Trade
-        html += '<div class="stat-card">' +
-          '<div class="stat-value color-green" style="font-size: 22px;">' + fmtPnlInt(bestPnl) + '</div>' +
-          '<div class="stat-label">Best Trade</div>' +
-          '<div class="stat-sub">$' + bestSymbol + '</div>' +
-        '</div>';
-
-        // Worst Trade
-        html += '<div class="stat-card">' +
-          '<div class="stat-value color-red" style="font-size: 22px;">' + fmtPnlInt(worstPnl) + '</div>' +
-          '<div class="stat-label">Worst Trade</div>' +
-          '<div class="stat-sub">$' + worstSymbol + '</div>' +
-        '</div>';
-
-        html += '</div>'; // stats-grid
-
-        // P&L Bar Chart
-        html += '<div class="section-header">' +
-          '<div class="section-title">P&amp;L by Trade</div>' +
-          '<div class="section-subtitle">Sorted by performance</div>' +
-        '</div>';
-
-        // Sort trades by P&L descending for the chart
-        var chartTrades = sortedTrades.slice().sort(function(a, b) { return b.pnl - a.pnl; });
-        var maxAbsPnl = 0;
-        for (var i = 0; i < chartTrades.length; i++) {
-          var absPnl = Math.abs(chartTrades[i].pnl);
-          if (absPnl > maxAbsPnl) maxAbsPnl = absPnl;
-        }
-        if (maxAbsPnl === 0) maxAbsPnl = 1;
-
-        html += '<div class="chart-container">';
-        for (var i = 0; i < chartTrades.length; i++) {
-          var ct = chartTrades[i];
-          var barWidth = Math.max(2, Math.abs(ct.pnl) / maxAbsPnl * 100);
-          var barClass = ct.pnl >= 0 ? 'chart-bar-profit' : 'chart-bar-loss';
-          var typeClass = ct.trade.contract_type === 'CALL' ? 'chart-type-call' : 'chart-type-put';
-
-          html += '<div class="chart-row">' +
-            '<div class="chart-label">' +
-              '<span class="chart-symbol">$' + ct.trade.symbol + '</span>' +
-              '<span class="chart-type ' + typeClass + '">' + ct.trade.contract_type + '</span>' +
-            '</div>' +
-            '<div class="chart-bar-wrapper">' +
-              '<div class="chart-bar ' + barClass + '" style="width: ' + barWidth + '%;"></div>' +
-            '</div>' +
-            '<div class="chart-pnl">' +
-              '<span class="' + pnlColor(ct.pnl) + '">' + fmtPnlInt(ct.pnl) + '</span>' +
-              '<span class="chart-pnl-pct ' + pnlColor(ct.pctChange) + '">' + fmtPct(ct.pctChange) + '</span>' +
-            '</div>' +
-          '</div>';
-        }
-        html += '</div>';
-
+        html += renderStatsGrid(totalPnl, winRate, bestPnl, bestSym, worstPnl, worstSym);
+        html += renderPnlChart(data.trades);
         html += '<div class="divider"></div>';
-
-        // Trade Details Table
-        html += '<div class="section-header">' +
-          '<div class="section-title">Trade Details</div>' +
-          '<div class="section-subtitle">Click to expand</div>' +
-        '</div>';
-
-        html += '<div class="table-scroll"><table class="trade-table">';
-        html += '<thead><tr>' +
-          '<th style="width: 30px;">#</th>' +
-          '<th>Trade</th>' +
-          '<th>Entry</th>' +
-          '<th>Close</th>' +
-          '<th>Stock</th>' +
-          '<th>P&amp;L</th>' +
-        '</tr></thead><tbody>';
-
-        for (var i = 0; i < data.trades.length; i++) {
-          var t = data.trades[i].trade;
-          var s = data.trades[i].summary;
-          var pnl = s ? (s.closing_price - s.entry_price) * 100 : 0;
-          var pct = (s && s.entry_price > 0) ? ((s.closing_price - s.entry_price) / s.entry_price * 100) : 0;
-          var stockPct = (s && s.stock_open > 0) ? ((s.stock_close - s.stock_open) / s.stock_open * 100) : 0;
-          var typeClass = t.contract_type === 'CALL' ? 'badge-call' : 'badge-put';
-          var resultBadge = '';
-          if (s) {
-            var res = pnl > 0.5 ? 'PROFIT' : pnl < -0.5 ? 'LOSS' : 'FLAT';
-            var resClass = res === 'PROFIT' ? 'badge-profit' : res === 'LOSS' ? 'badge-loss' : 'badge-flat';
-            resultBadge = ' <span class="badge ' + resClass + '" style="font-size: 9px; padding: 2px 5px;">' + res + '</span>';
-          }
-
-          // Main row
-          html += '<tr class="clickable" onclick="toggleDetail(' + i + ')">' +
-            '<td><span class="expand-icon" id="icon-' + i + '">&#9654;</span>' + (i + 1) + '</td>' +
-            '<td>' +
-              '<span class="trade-table-symbol">$' + t.symbol + '</span> ' +
-              '<span class="badge ' + typeClass + '" style="font-size: 9px; padding: 2px 5px;">' + t.contract_type + '</span>' +
-              resultBadge +
-              '<div class="trade-table-detail">$' + fmt(t.strike_price, 0) + ' ' + t.expiration + ' &middot; ' + t.dte + ' DTE</div>' +
-            '</td>' +
-            '<td>' + fmtMoney(s ? s.entry_price : t.estimated_price) + '</td>' +
-            '<td>' + (s ? fmtMoney(s.closing_price) : '&mdash;') + '</td>' +
-            '<td>' + (s ? '<span class="' + pnlColor(stockPct) + '">' + fmtPct(stockPct) + '</span>' : fmtMoney(t.current_price)) + '</td>' +
-            '<td><span class="' + pnlColor(pnl) + '" style="font-weight: 800;">' + (s ? fmtPnlInt(pnl) : '&mdash;') + '</span>' +
-              (s ? '<div class="trade-table-detail ' + pnlColor(pct) + '">' + fmtPct(pct) + '</div>' : '') +
-            '</td>' +
-          '</tr>';
-
-          // Expandable detail row
-          html += '<tr class="trade-detail-row" id="detail-' + i + '">' +
-            '<td colspan="6" class="trade-detail-cell">' +
-              '<div class="trade-detail-inner">';
-
-          // Detail grid
-          html += '<div class="detail-grid">' +
-            '<div class="detail-col">' +
-              '<div class="detail-label">Strike</div>' +
-              '<div class="detail-value">$' + fmt(t.strike_price, 0) + '</div>' +
-            '</div>' +
-            '<div class="detail-col">' +
-              '<div class="detail-label">Expiration</div>' +
-              '<div class="detail-value-sm">' + t.expiration + '</div>' +
-            '</div>' +
-            '<div class="detail-col">' +
-              '<div class="detail-label">Stock Price</div>' +
-              '<div class="detail-value">$' + fmt(t.current_price, 2) + '</div>' +
-            '</div>' +
-            '<div class="detail-col">' +
-              '<div class="detail-label">Target</div>' +
-              '<div class="detail-value color-green">$' + fmt(t.target_price, 2) + '</div>' +
-            '</div>' +
-            '<div class="detail-col">' +
-              '<div class="detail-label">Risk</div>' +
-              '<div style="margin-top: 2px;"><span class="badge ' + riskClass(t.risk_level) + '">' + t.risk_level + '</span></div>' +
-            '</div>' +
-            '<div class="detail-col">' +
-              '<div class="detail-label">Sentiment</div>' +
-              '<div style="margin-top: 2px;">' + sentimentLabel(t.sentiment_score) +
-              (t.mention_count > 0 ? ' &middot; ' + t.mention_count + ' mentions' : '') + '</div>' +
-            '</div>' +
-          '</div>';
-
-          if (t.catalyst) {
-            html += '<div style="font-size: 12px; color: var(--muted-foreground); margin-bottom: 4px;">' +
-              '<strong>Catalyst:</strong> ' + escapeHtml(t.catalyst) + '</div>';
-          }
-
-          // EOD result
-          if (s) {
-            var eodClass = pnl > 0.5 ? 'profit' : pnl < -0.5 ? 'loss' : '';
-            html += '<div class="detail-eod ' + eodClass + '">' +
-              '<div class="detail-grid">' +
-                '<div class="detail-col">' +
-                  '<div class="detail-label">Contract</div>' +
-                  '<div style="margin-top: 4px;">' +
-                    '<span style="color: var(--muted-foreground); font-size: 13px;">' + fmtMoney(s.entry_price) + '</span>' +
-                    ' <span style="color: var(--accent);">&#8594;</span> ' +
-                    '<span style="font-weight: 700;">' + fmtMoney(s.closing_price) + '</span>' +
-                    ' <span class="' + pnlColor(pct) + '" style="font-size: 11px; font-weight: 700;">' + fmtPct(pct) + '</span>' +
-                  '</div>' +
-                '</div>' +
-                '<div class="detail-col">' +
-                  '<div class="detail-label">Stock Movement</div>' +
-                  '<div style="margin-top: 4px;">' +
-                    '<span style="color: var(--muted-foreground); font-size: 13px;">' + fmtMoney(s.stock_open) + '</span>' +
-                    ' <span style="color: var(--accent);">&#8594;</span> ' +
-                    '<span style="font-weight: 700;">' + fmtMoney(s.stock_close) + '</span>' +
-                    ' <span class="' + pnlColor(stockPct) + '" style="font-size: 11px; font-weight: 700;">' + fmtPct(stockPct) + '</span>' +
-                  '</div>' +
-                '</div>' +
-              '</div>';
-            if (s.notes) {
-              html += '<div class="detail-eod-notes">' + escapeHtml(s.notes) + '</div>';
-            }
-            html += '</div>';
-          }
-
-          // Thesis
-          if (t.thesis) {
-            html += '<div class="detail-thesis">' + escapeHtml(t.thesis) + '</div>';
-          }
-
-          html += '</div></td></tr>';
-        }
-
-        html += '</tbody></table></div>';
-
+        html += renderTradeTable(data.trades);
       } else {
-        // Morning only - no EOD data yet
-        html += '<div class="info-banner">' +
-          '<span class="info-banner-icon">&#9202;</span>' +
-          '<span class="info-banner-text">End-of-day results will be available after 4:05 PM ET.</span>' +
-        '</div>';
-
-        // Morning trade cards
-        for (var i = 0; i < data.trades.length; i++) {
-          var t = data.trades[i].trade;
-          var typeClass = t.contract_type === 'CALL' ? 'badge-call' : 'badge-put';
-          var profitPct = t.estimated_price > 0 ? ((t.profit_target - t.estimated_price) / t.estimated_price * 100) : 0;
-
-          html += '<div class="morning-card">';
-
-          // Header
-          html += '<div class="morning-header">' +
-            '<div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">' +
-              '<span style="width: 26px; height: 26px; border-radius: 6px; background: var(--primary); color: var(--primary-foreground); font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center;">' + (i + 1) + '</span>' +
-              '<span class="morning-symbol">$' + t.symbol + '</span>' +
-              '<span class="badge ' + typeClass + '">' + t.contract_type + '</span>' +
-              '<span class="badge ' + riskClass(t.risk_level) + '">' + t.risk_level + '</span>' +
-            '</div>' +
-            '<div class="morning-price">' + fmtMoney(t.estimated_price) + '<span style="font-size: 11px; color: var(--muted-foreground); font-weight: 500; margin-left: 4px;">($' + fmt(t.estimated_price * 100, 0) + '/contract)</span></div>' +
-          '</div>';
-
-          // Specs
-          html += '<div class="morning-specs">' +
-            '<span><strong>$' + fmt(t.strike_price, 0) + '</strong> strike</span>' +
-            '<span>' + t.expiration + ' <strong>(' + t.dte + ' DTE)</strong></span>' +
-            '<span>Stock: <strong>$' + fmt(t.current_price, 2) + '</strong></span>' +
-            '<span>Target: <strong style="color: var(--green);">$' + fmt(t.target_price, 2) + '</strong></span>' +
-            '<span>Profit: <strong style="color: var(--green);">' + fmtMoney(t.profit_target) + ' (+' + fmt(profitPct, 0) + '%)</strong></span>' +
-          '</div>';
-
-          // Sentiment + Catalyst
-          if (t.catalyst || t.sentiment_score !== 0) {
-            html += '<div style="margin-top: 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--muted-foreground);">';
-            html += '<span>' + sentimentLabel(t.sentiment_score) + '</span>';
-            if (t.mention_count > 0) html += '<span>' + t.mention_count + ' WSB mentions</span>';
-            if (t.catalyst) html += '<span>' + escapeHtml(t.catalyst) + '</span>';
-            html += '</div>';
-          }
-
-          // Thesis
-          if (t.thesis) {
-            html += '<div class="morning-thesis">' + escapeHtml(t.thesis) + '</div>';
-          }
-
-          html += '</div>';
-        }
+        html += '<div class="info-banner"><span class="info-banner-icon">&#9202;</span>' +
+          '<span class="info-banner-text">End-of-day results will be available after 4:05 PM ET.</span></div>';
+        html += renderMorningCards(data.trades);
       }
-
-      el.innerHTML = html;
+      el.innerHTML = '<div class="fade-in">' + html + '</div>';
     }
 
-    function fetchData(date) {
-      var url = '/api/trades/today';
-      if (date) url += '?date=' + date;
+    function renderStatsGrid(totalPnl, winRate, bestPnl, bestSym, worstPnl, worstSym) {
+      return '<div class="stats-grid">' +
+        '<div class="stat-card"><div class="stat-value ' + pnlColor(totalPnl) + '">' + fmtPnlInt(totalPnl) + '</div><div class="stat-label">Net P&amp;L</div></div>' +
+        '<div class="stat-card"><div class="stat-value">' + fmt(winRate, 0) + '%</div><div class="stat-label">Win Rate</div>' +
+          '<div class="win-bar-container"><div class="win-bar-fill" style="width: ' + winRate + '%;"></div></div></div>' +
+        '<div class="stat-card"><div class="stat-value color-green" style="font-size: 22px;">' + fmtPnlInt(bestPnl) + '</div><div class="stat-label">Best Trade</div><div class="stat-sub">$' + bestSym + '</div></div>' +
+        '<div class="stat-card"><div class="stat-value color-red" style="font-size: 22px;">' + fmtPnlInt(worstPnl) + '</div><div class="stat-label">Worst Trade</div><div class="stat-sub">$' + worstSym + '</div></div>' +
+      '</div>';
+    }
 
-      fetch(url)
+    function renderPnlChart(trades) {
+      var items = [];
+      for (var i = 0; i < trades.length; i++) {
+        var t = trades[i].trade, s = trades[i].summary;
+        if (!s) continue;
+        var pnl = (s.closing_price - s.entry_price) * 100;
+        var pct = s.entry_price > 0 ? ((s.closing_price - s.entry_price) / s.entry_price * 100) : 0;
+        items.push({ symbol: t.symbol, type: t.contract_type, pnl: pnl, pct: pct });
+      }
+      items.sort(function(a, b) { return b.pnl - a.pnl; });
+      var maxAbs = 1;
+      for (var i = 0; i < items.length; i++) {
+        if (Math.abs(items[i].pnl) > maxAbs) maxAbs = Math.abs(items[i].pnl);
+      }
+      var html = '<div class="section-header"><div class="section-title">P&amp;L by Trade</div>' +
+        '<div class="section-subtitle">Sorted by performance</div></div><div class="chart-container">';
+      for (var i = 0; i < items.length; i++) {
+        var it = items[i];
+        var w = Math.max(2, Math.abs(it.pnl) / maxAbs * 100);
+        var bc = it.pnl >= 0 ? 'chart-bar-profit' : 'chart-bar-loss';
+        var tc = it.type === 'CALL' ? 'chart-type-call' : 'chart-type-put';
+        html += '<div class="chart-row"><div class="chart-label"><span class="chart-symbol">$' + it.symbol + '</span>' +
+          '<span class="chart-type ' + tc + '">' + it.type + '</span></div>' +
+          '<div class="chart-bar-wrapper"><div class="chart-bar ' + bc + '" style="width: ' + w + '%;"></div></div>' +
+          '<div class="chart-pnl"><span class="' + pnlColor(it.pnl) + '">' + fmtPnlInt(it.pnl) + '</span>' +
+          '<span class="chart-pnl-pct ' + pnlColor(it.pct) + '">' + fmtPct(it.pct) + '</span></div></div>';
+      }
+      return html + '</div>';
+    }
+
+    function renderTradeTable(trades) {
+      var html = '<div class="section-header"><div class="section-title">Trade Details</div>' +
+        '<div class="section-subtitle">Click to expand</div></div>' +
+        '<div class="table-scroll"><table class="trade-table"><thead><tr>' +
+        '<th style="width: 30px;">#</th><th>Trade</th><th>Entry</th><th>Close</th><th>Stock</th><th>P&amp;L</th></tr></thead><tbody>';
+      for (var i = 0; i < trades.length; i++) {
+        var t = trades[i].trade, s = trades[i].summary;
+        var pnl = s ? (s.closing_price - s.entry_price) * 100 : 0;
+        var pct = (s && s.entry_price > 0) ? ((s.closing_price - s.entry_price) / s.entry_price * 100) : 0;
+        var stockPct = (s && s.stock_open > 0) ? ((s.stock_close - s.stock_open) / s.stock_open * 100) : 0;
+        var tc = t.contract_type === 'CALL' ? 'badge-call' : 'badge-put';
+        var rb = '';
+        if (s) {
+          var res = pnl > 0.5 ? 'PROFIT' : pnl < -0.5 ? 'LOSS' : 'FLAT';
+          rb = ' <span class="badge badge-' + res.toLowerCase() + '" style="font-size:9px;padding:2px 5px;">' + res + '</span>';
+        }
+        html += '<tr class="clickable" onclick="toggleDetail(' + i + ')">' +
+          '<td><span class="expand-icon" id="icon-' + i + '">&#9654;</span>' + (i+1) + '</td>' +
+          '<td><span class="trade-table-symbol">$' + t.symbol + '</span> ' +
+            '<span class="badge ' + tc + '" style="font-size:9px;padding:2px 5px;">' + t.contract_type + '</span>' + rb +
+            '<div class="trade-table-detail">$' + fmt(t.strike_price, 0) + ' ' + t.expiration + ' &middot; ' + t.dte + ' DTE</div></td>' +
+          '<td>' + fmtMoney(s ? s.entry_price : t.estimated_price) + '</td>' +
+          '<td>' + (s ? fmtMoney(s.closing_price) : '&mdash;') + '</td>' +
+          '<td>' + (s ? '<span class="' + pnlColor(stockPct) + '">' + fmtPct(stockPct) + '</span>' : fmtMoney(t.current_price)) + '</td>' +
+          '<td><span class="' + pnlColor(pnl) + '" style="font-weight:800;">' + (s ? fmtPnlInt(pnl) : '&mdash;') + '</span>' +
+            (s ? '<div class="trade-table-detail ' + pnlColor(pct) + '">' + fmtPct(pct) + '</div>' : '') + '</td></tr>';
+        // Detail row
+        html += '<tr class="trade-detail-row" id="detail-' + i + '"><td colspan="6" class="trade-detail-cell"><div class="trade-detail-inner">';
+        html += '<div class="detail-grid">' +
+          '<div class="detail-col"><div class="detail-label">Strike</div><div class="detail-value">$' + fmt(t.strike_price, 0) + '</div></div>' +
+          '<div class="detail-col"><div class="detail-label">Expiration</div><div class="detail-value-sm">' + t.expiration + '</div></div>' +
+          '<div class="detail-col"><div class="detail-label">Stock Price</div><div class="detail-value">$' + fmt(t.current_price, 2) + '</div></div>' +
+          '<div class="detail-col"><div class="detail-label">Target</div><div class="detail-value color-green">$' + fmt(t.target_price, 2) + '</div></div>' +
+          '<div class="detail-col"><div class="detail-label">Risk</div><div style="margin-top:2px;"><span class="badge ' + riskClass(t.risk_level) + '">' + t.risk_level + '</span></div></div>' +
+          '<div class="detail-col"><div class="detail-label">Sentiment</div><div style="margin-top:2px;">' + sentimentLabel(t.sentiment_score) +
+            (t.mention_count > 0 ? ' &middot; ' + t.mention_count + ' mentions' : '') + '</div></div></div>';
+        if (t.catalyst) html += '<div style="font-size:12px;color:var(--muted-foreground);margin-bottom:4px;"><strong>Catalyst:</strong> ' + escapeHtml(t.catalyst) + '</div>';
+        if (s) {
+          var eodClass = pnl > 0.5 ? 'profit' : pnl < -0.5 ? 'loss' : '';
+          html += '<div class="detail-eod ' + eodClass + '"><div class="detail-grid">' +
+            '<div class="detail-col"><div class="detail-label">Contract</div><div style="margin-top:4px;">' +
+              '<span style="color:var(--muted-foreground);font-size:13px;">' + fmtMoney(s.entry_price) + '</span>' +
+              ' <span style="color:var(--accent);">&#8594;</span> <span style="font-weight:700;">' + fmtMoney(s.closing_price) + '</span>' +
+              ' <span class="' + pnlColor(pct) + '" style="font-size:11px;font-weight:700;">' + fmtPct(pct) + '</span></div></div>' +
+            '<div class="detail-col"><div class="detail-label">Stock Movement</div><div style="margin-top:4px;">' +
+              '<span style="color:var(--muted-foreground);font-size:13px;">' + fmtMoney(s.stock_open) + '</span>' +
+              ' <span style="color:var(--accent);">&#8594;</span> <span style="font-weight:700;">' + fmtMoney(s.stock_close) + '</span>' +
+              ' <span class="' + pnlColor(stockPct) + '" style="font-size:11px;font-weight:700;">' + fmtPct(stockPct) + '</span></div></div></div>';
+          if (s.notes) html += '<div class="detail-eod-notes">' + escapeHtml(s.notes) + '</div>';
+          html += '</div>';
+        }
+        if (t.thesis) html += '<div class="detail-thesis">' + escapeHtml(t.thesis) + '</div>';
+        html += '</div></td></tr>';
+      }
+      return html + '</tbody></table></div>';
+    }
+
+    function renderMorningCards(trades) {
+      var html = '';
+      for (var i = 0; i < trades.length; i++) {
+        var t = trades[i].trade;
+        var tc = t.contract_type === 'CALL' ? 'badge-call' : 'badge-put';
+        var profitPct = t.estimated_price > 0 ? ((t.profit_target - t.estimated_price) / t.estimated_price * 100) : 0;
+        html += '<div class="morning-card"><div class="morning-header">' +
+          '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+            '<span style="width:26px;height:26px;border-radius:6px;background:var(--primary);color:var(--primary-foreground);font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;">' + (i+1) + '</span>' +
+            '<span class="morning-symbol">$' + t.symbol + '</span>' +
+            '<span class="badge ' + tc + '">' + t.contract_type + '</span>' +
+            '<span class="badge ' + riskClass(t.risk_level) + '">' + t.risk_level + '</span></div>' +
+          '<div class="morning-price">' + fmtMoney(t.estimated_price) + '<span style="font-size:11px;color:var(--muted-foreground);font-weight:500;margin-left:4px;">($' + fmt(t.estimated_price*100,0) + '/contract)</span></div></div>';
+        html += '<div class="morning-specs">' +
+          '<span><strong>$' + fmt(t.strike_price, 0) + '</strong> strike</span>' +
+          '<span>' + t.expiration + ' <strong>(' + t.dte + ' DTE)</strong></span>' +
+          '<span>Stock: <strong>$' + fmt(t.current_price, 2) + '</strong></span>' +
+          '<span>Target: <strong style="color:var(--green);">$' + fmt(t.target_price, 2) + '</strong></span>' +
+          '<span>Profit: <strong style="color:var(--green);">' + fmtMoney(t.profit_target) + ' (+' + fmt(profitPct, 0) + '%)</strong></span></div>';
+        if (t.catalyst || t.sentiment_score !== 0) {
+          html += '<div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted-foreground);">';
+          html += '<span>' + sentimentLabel(t.sentiment_score) + '</span>';
+          if (t.mention_count > 0) html += '<span>' + t.mention_count + ' WSB mentions</span>';
+          if (t.catalyst) html += '<span>' + escapeHtml(t.catalyst) + '</span>';
+          html += '</div>';
+        }
+        if (t.thesis) html += '<div class="morning-thesis">' + escapeHtml(t.thesis) + '</div>';
+        html += '</div>';
+      }
+      return html;
+    }
+
+    //
+    // RENDER: Week View
+    //
+    function renderWeekView(data) {
+      var el = document.getElementById('mainContent');
+
+      if (!data.days || data.days.length === 0) {
+        el.innerHTML = '<div class="empty-state"><div class="empty-icon">&#128200;</div>' +
+          '<div class="empty-title">No trades this week</div>' +
+          '<div class="empty-sub">Navigate to a week with trading activity.</div></div>';
+        return;
+      }
+
+      // Aggregate week stats
+      var totalPnl = 0, totalWinners = 0, totalLosers = 0, totalTrades = 0;
+      var bestPnl = -Infinity, worstPnl = Infinity, bestSym = '', worstSym = '';
+      var totalInvested = 0, totalReturn = 0;
+      var dayStats = []; // per-day aggregates
+
+      for (var d = 0; d < data.days.length; d++) {
+        var day = data.days[d];
+        var dayPnl = 0, dayW = 0, dayL = 0, dayHasSummaries = false;
+        var dayInvested = 0, dayReturned = 0;
+        var dayTradeDetails = [];
+
+        for (var i = 0; i < day.trades.length; i++) {
+          var t = day.trades[i].trade, s = day.trades[i].summary;
+          totalTrades++;
+          if (s) {
+            dayHasSummaries = true;
+            var pnl = (s.closing_price - s.entry_price) * 100;
+            var pct = s.entry_price > 0 ? ((s.closing_price - s.entry_price) / s.entry_price * 100) : 0;
+            dayPnl += pnl;
+            totalPnl += pnl;
+            dayInvested += s.entry_price * 100;
+            dayReturned += s.closing_price * 100;
+            totalInvested += s.entry_price * 100;
+            totalReturn += s.closing_price * 100;
+            if (pnl > 0.5) { dayW++; totalWinners++; }
+            else if (pnl < -0.5) { dayL++; totalLosers++; }
+            if (pnl > bestPnl) { bestPnl = pnl; bestSym = t.symbol; }
+            if (pnl < worstPnl) { worstPnl = pnl; worstSym = t.symbol; }
+            dayTradeDetails.push({
+              symbol: t.symbol, type: t.contract_type,
+              strike: t.strike_price, entry: s.entry_price,
+              close: s.closing_price, pnl: pnl, pct: pct,
+              result: pnl > 0.5 ? 'profit' : pnl < -0.5 ? 'loss' : 'flat'
+            });
+          }
+        }
+        dayStats.push({
+          date: day.date, pnl: dayPnl, winners: dayW, losers: dayL,
+          trades: day.trades.length, hasSummaries: dayHasSummaries,
+          invested: dayInvested, returned: dayReturned, details: dayTradeDetails
+        });
+      }
+
+      var winRate = (totalWinners + totalLosers) > 0 ? (totalWinners / (totalWinners + totalLosers) * 100) : 0;
+
+      var html = '';
+      html += '<div class="refresh-bar"><h1 style="font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">Weekly Performance</h1>' +
+        '<span class="refresh-timer" id="timer">Refreshes in ' + REFRESH_SECONDS + 's</span></div>';
+      html += '<p style="color: var(--muted-foreground); font-size: 13px; margin-bottom: 20px;">' +
+        totalTrades + ' trades across ' + data.days.length + ' trading days</p>';
+
+      // Stats
+      if (totalWinners + totalLosers > 0) {
+        html += renderStatsGrid(totalPnl, winRate, bestPnl, bestSym, worstPnl, worstSym);
+
+        // Hypothetical performance box
+        html += '<div style="background:var(--muted);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:24px;">' +
+          '<div style="font-size:14px;font-weight:700;margin-bottom:8px;">Hypothetical Buy-at-Open, Sell-at-Close</div>' +
+          '<div style="font-size:12px;color:var(--muted-foreground);margin-bottom:12px;">If you bought every recommended contract at market open and sold right before close each day:</div>' +
+          '<div style="display:flex;gap:24px;flex-wrap:wrap;">' +
+            '<div><div class="detail-label">Invested</div><div style="font-size:18px;font-weight:800;">$' + fmt(totalInvested, 0) + '</div></div>' +
+            '<div><div class="detail-label">Returned</div><div style="font-size:18px;font-weight:800;">$' + fmt(totalReturn, 0) + '</div></div>' +
+            '<div><div class="detail-label">Net P&amp;L</div><div style="font-size:18px;font-weight:800;" class="' + pnlColor(totalPnl) + '">' + fmtPnlInt(totalPnl) + '</div></div>' +
+          '</div></div>';
+      }
+
+      // Daily P&L bars
+      html += '<div class="section-header"><div class="section-title">Daily Breakdown</div>' +
+        '<div class="section-subtitle">Click day to expand trades</div></div>';
+
+      var maxDayPnl = 1;
+      for (var d = 0; d < dayStats.length; d++) {
+        if (Math.abs(dayStats[d].pnl) > maxDayPnl) maxDayPnl = Math.abs(dayStats[d].pnl);
+      }
+
+      for (var d = 0; d < dayStats.length; d++) {
+        var ds = dayStats[d];
+        var barW = Math.max(2, Math.abs(ds.pnl) / maxDayPnl * 100);
+        var barC = ds.pnl >= 0 ? 'chart-bar-profit' : 'chart-bar-loss';
+
+        html += '<div class="week-day-row" onclick="toggleWeekDay(' + d + ')">' +
+          '<div class="week-day-label"><div class="week-day-name">' + formatDayName(ds.date) + '</div>' +
+            '<div class="week-day-date">' + formatMonthDay(ds.date) + '</div></div>' +
+          '<div class="week-day-stats">' + ds.trades + ' trades' +
+            (ds.hasSummaries ? '<br>' + ds.winners + 'W / ' + ds.losers + 'L' : '') + '</div>' +
+          '<div class="week-day-bar"><div class="chart-bar ' + barC + '" style="width: ' + barW + '%;"></div></div>' +
+          '<div class="week-day-pnl ' + pnlColor(ds.pnl) + '">' + (ds.hasSummaries ? fmtPnlInt(ds.pnl) : '&mdash;') + '</div></div>';
+
+        // Expandable trade list
+        html += '<div class="week-day-detail" id="weekday-detail-' + d + '">';
+        if (ds.details.length > 0) {
+          for (var j = 0; j < ds.details.length; j++) {
+            var td = ds.details[j];
+            html += '<div class="week-trade-row ' + td.result + '">' +
+              '<div class="week-trade-symbol">$' + td.symbol + ' <span class="chart-type ' +
+                (td.type === 'CALL' ? 'chart-type-call' : 'chart-type-put') + '">' + td.type + '</span></div>' +
+              '<div class="week-trade-spec">$' + fmt(td.strike, 0) + ' strike</div>' +
+              '<div class="week-trade-prices">' + fmtMoney(td.entry) + ' &#8594; ' + fmtMoney(td.close) + '</div>' +
+              '<div class="week-trade-pnl ' + pnlColor(td.pnl) + '">' + fmtPnlInt(td.pnl) + ' <span style="font-size:10px;">' + fmtPct(td.pct) + '</span></div></div>';
+          }
+        } else {
+          html += '<div style="font-size:12px;color:var(--muted-foreground);padding:8px 0;">No EOD data available for this day.</div>';
+        }
+        html += '</div>';
+      }
+
+      el.innerHTML = '<div class="fade-in">' + html + '</div>';
+    }
+
+    // Startup: load dates, then render
+    function init() {
+      fetch('/api/trades/dates')
         .then(function(r) { return r.json(); })
         .then(function(data) {
-          renderDashboard(data);
-          countdown = REFRESH_SECONDS;
-          // Update date index if we loaded latest
-          if (!date && data.date && availableDates.length > 0) {
-            var idx = availableDates.indexOf(data.date);
-            if (idx >= 0) currentDateIdx = idx;
-            updateNavButtons();
+          if (data.dates && data.dates.length > 0) {
+            availableDates = data.dates;
           }
+          dayIndex = 0;
+          updateDayNav();
+          loadDay();
         })
         .catch(function() {
-          countdown = REFRESH_SECONDS;
+          loadDay();
         });
     }
 
@@ -841,11 +1021,13 @@
       countdown--;
       var timerEl = document.getElementById('timer');
       if (timerEl) timerEl.textContent = 'Refreshes in ' + countdown + 's';
-      if (countdown <= 0) fetchData(availableDates[currentDateIdx] || null);
+      if (countdown <= 0) {
+        if (mode === 'day') loadDay();
+        else loadWeek();
+      }
     }
 
-    loadDates();
-    fetchData();
+    init();
     setInterval(tick, 1000);
   </script>
 </body>

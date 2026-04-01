@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"sort"
 	"strings"
 
 	"jaycetrades.com/internal/store"
@@ -54,6 +55,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/dashboard", s.handleDashboard)
 	s.mux.HandleFunc("/api/trades/today", s.handleTradesToday)
 	s.mux.HandleFunc("/api/trades/dates", s.handleTradeDates)
+	s.mux.HandleFunc("/api/trades/week", s.handleTradesWeek)
 	s.mux.HandleFunc("/health", s.handleHealth)
 	s.mux.HandleFunc("/robots.txt", s.handleRobots)
 	s.mux.HandleFunc("/sitemap.xml", s.handleSitemap)
@@ -99,6 +101,17 @@ type dashboardTrade struct {
 type dashboardResponse struct {
 	Date   string           `json:"date"`
 	Trades []dashboardTrade `json:"trades"`
+}
+
+type weekDay struct {
+	Date   string           `json:"date"`
+	Trades []dashboardTrade `json:"trades"`
+}
+
+type weekResponse struct {
+	Start string    `json:"start"`
+	End   string    `json:"end"`
+	Days  []weekDay `json:"days"`
 }
 
 func (s *Server) handleTradeDates(w http.ResponseWriter, r *http.Request) {
@@ -148,6 +161,58 @@ func (s *Server) handleTradesToday(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Cache-Control", "public, max-age=30")
 	writeJSON(w, http.StatusOK, dashboardResponse{Date: date, Trades: result})
+}
+
+func (s *Server) handleTradesWeek(w http.ResponseWriter, r *http.Request) {
+	start := r.URL.Query().Get("start")
+	end := r.URL.Query().Get("end")
+
+	if start == "" || end == "" {
+		writeJSON(w, http.StatusBadRequest, apiResponse{OK: false, Message: "start and end query params required"})
+		return
+	}
+
+	tradesMap, err := s.db.GetTradesForDateRange(start, end)
+	if err != nil {
+		writeJSON(w, http.StatusOK, weekResponse{Start: start, End: end})
+		return
+	}
+
+	summariesMap, _ := s.db.GetSummariesForDateRange(start, end)
+
+	// Collect all dates that have trades
+	dateSet := make(map[string]bool)
+	for d := range tradesMap {
+		dateSet[d] = true
+	}
+	var dates []string
+	for d := range dateSet {
+		dates = append(dates, d)
+	}
+	sort.Strings(dates)
+
+	var days []weekDay
+	for _, date := range dates {
+		dayTrades := tradesMap[date]
+		daySummaries := summariesMap[date]
+
+		summaryMap := make(map[string]*trades.TradeSummary)
+		for i := range daySummaries {
+			key := daySummaries[i].Symbol + "|" + daySummaries[i].ContractType + "|" + fmt.Sprintf("%.2f", daySummaries[i].StrikePrice)
+			summaryMap[key] = &daySummaries[i]
+		}
+
+		result := make([]dashboardTrade, len(dayTrades))
+		for i, t := range dayTrades {
+			key := t.Symbol + "|" + t.ContractType + "|" + fmt.Sprintf("%.2f", t.StrikePrice)
+			result[i] = dashboardTrade{Trade: t, Summary: summaryMap[key]}
+		}
+
+		days = append(days, weekDay{Date: date, Trades: result})
+	}
+
+	w.Header().Set("Cache-Control", "public, max-age=30")
+	writeJSON(w, http.StatusOK, weekResponse{Start: start, End: end, Days: days})
 }
 
 func (s *Server) handleSubscribe(w http.ResponseWriter, r *http.Request) {

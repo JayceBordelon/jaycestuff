@@ -310,6 +310,37 @@ func (s *Store) GetTradeDates(limit int) ([]string, error) {
 	return dates, rows.Err()
 }
 
+func (s *Store) GetTradesForDateRange(startDate, endDate string) (map[string][]trades.Trade, error) {
+	rows, err := s.db.Query(`
+		SELECT date, symbol, contract_type, strike_price, expiration, dte,
+			estimated_price, thesis, sentiment_score, current_price,
+			target_price, stop_loss, profit_target, risk_level,
+			catalyst, mention_count
+		FROM trades WHERE date >= $1 AND date <= $2 ORDER BY date, id
+	`, startDate, endDate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query trades range: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	result := make(map[string][]trades.Trade)
+	for rows.Next() {
+		var date string
+		var t trades.Trade
+		err := rows.Scan(
+			&date, &t.Symbol, &t.ContractType, &t.StrikePrice, &t.Expiration, &t.DTE,
+			&t.EstimatedPrice, &t.Thesis, &t.SentimentScore, &t.CurrentPrice,
+			&t.TargetPrice, &t.StopLoss, &t.ProfitTarget, &t.RiskLevel,
+			&t.Catalyst, &t.MentionCount,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan trade row: %w", err)
+		}
+		result[date] = append(result[date], t)
+	}
+	return result, rows.Err()
+}
+
 func (s *Store) GetSummariesForDateRange(startDate, endDate string) (map[string][]trades.TradeSummary, error) {
 	rows, err := s.db.Query(`
 		SELECT date, symbol, contract_type, strike_price, expiration,
