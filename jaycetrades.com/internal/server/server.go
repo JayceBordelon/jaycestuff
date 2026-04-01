@@ -53,6 +53,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/unsubscribe", s.handleUnsubscribe)
 	s.mux.HandleFunc("/dashboard", s.handleDashboard)
 	s.mux.HandleFunc("/api/trades/today", s.handleTradesToday)
+	s.mux.HandleFunc("/api/trades/dates", s.handleTradeDates)
 	s.mux.HandleFunc("/health", s.handleHealth)
 	s.mux.HandleFunc("/robots.txt", s.handleRobots)
 	s.mux.HandleFunc("/sitemap.xml", s.handleSitemap)
@@ -100,11 +101,30 @@ type dashboardResponse struct {
 	Trades []dashboardTrade `json:"trades"`
 }
 
-func (s *Server) handleTradesToday(w http.ResponseWriter, r *http.Request) {
-	date, err := s.db.GetLatestTradeDate()
+func (s *Server) handleTradeDates(w http.ResponseWriter, r *http.Request) {
+	dates, err := s.db.GetTradeDates(30)
 	if err != nil {
-		writeJSON(w, http.StatusOK, dashboardResponse{})
+		writeJSON(w, http.StatusOK, map[string]any{"dates": []string{}})
 		return
+	}
+	w.Header().Set("Cache-Control", "public, max-age=60")
+	writeJSON(w, http.StatusOK, map[string]any{"dates": dates})
+}
+
+func (s *Server) handleTradesToday(w http.ResponseWriter, r *http.Request) {
+	// Accept optional ?date= query param for historical browsing
+	requestDate := r.URL.Query().Get("date")
+
+	var date string
+	var err error
+	if requestDate != "" {
+		date = requestDate
+	} else {
+		date, err = s.db.GetLatestTradeDate()
+		if err != nil {
+			writeJSON(w, http.StatusOK, dashboardResponse{})
+			return
+		}
 	}
 
 	morningTrades, err := s.db.GetMorningTrades(date)

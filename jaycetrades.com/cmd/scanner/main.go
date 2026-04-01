@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sort"
 	"syscall"
 	"time"
 
@@ -115,6 +116,10 @@ func main() {
 		runEndOfDayAnalysis(cfg, db, analyzer, emailClient)
 	}
 
+	weeklyJob := func() {
+		runWeeklyEmail(cfg, db, emailClient)
+	}
+
 	loc, err := time.LoadLocation("America/New_York")
 	if err != nil {
 		log.Fatalf("Failed to load timezone: %v", err)
@@ -132,6 +137,11 @@ func main() {
 		log.Fatalf("Failed to add market close cron job: %v", err)
 	}
 
+	_, err = c.AddFunc(cfg.CronScheduleWeekly, weeklyJob)
+	if err != nil {
+		log.Fatalf("Failed to add weekly email cron job: %v", err)
+	}
+
 	c.Start()
 
 	// Start HTTP API server in background
@@ -143,6 +153,7 @@ func main() {
 	log.Printf("API server: :%s", cfg.ServerPort)
 	log.Printf("Market open schedule: %s (ET)", cfg.CronScheduleOpen)
 	log.Printf("Market close schedule: %s (ET)", cfg.CronScheduleClose)
+	log.Printf("Weekly email schedule: %s (ET)", cfg.CronScheduleWeekly)
 
 	// Log current subscriber count
 	if subs, err := db.GetActiveSubscribers(); err == nil {
@@ -316,6 +327,194 @@ func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Sc
 	}
 
 	log.Println("Trade analysis complete and email sent!")
+}
+
+func currentWeekRange() (string, string) {
+	loc, _ := time.LoadLocation("America/New_York")
+	now := time.Now().In(loc)
+	weekday := now.Weekday()
+	daysFromMonday := int(weekday - time.Monday)
+	if daysFromMonday < 0 {
+		daysFromMonday += 7
+	}
+	monday := now.AddDate(0, 0, -daysFromMonday)
+	friday := monday.AddDate(0, 0, 4)
+	return monday.Format("2006-01-02"), friday.Format("2006-01-02")
+}
+
+func runWeeklyEmail(cfg *config.Config, db *store.Store, emailClient *email.Client) {
+	loc, _ := time.LoadLocation("America/New_York")
+	startDate, endDate := currentWeekRange()
+
+	summariesMap, err := db.GetSummariesForDateRange(startDate, endDate)
+	if err != nil {
+		log.Printf("Error getting weekly summaries: %v", err)
+		sendErrorNotification(cfg, db, emailClient, fmt.Sprintf("Weekly email failed: %v", err))
+		return
+	}
+
+	// Get sorted dates
+	var dates []string
+	for d := range summariesMap {
+		dates = append(dates, d)
+	}
+	sort.Strings(dates)
+
+	var days []templates.WeeklyDayData
+	totalTrades, totalWinners, totalLosers := 0, 0, 0
+	totalPnL, totalInvested, totalReturn := 0.0, 0.0, 0.0
+	bestTrade, worstTrade := "", ""
+	bestPnL, worstPnL := 0.0, 0.0
+	firstTrade := true
+
+	for _, date := range dates {
+		summaries := summariesMap[date]
+		if len(summaries) == 0 {
+			continue
+		}
+
+		dayTrades := make([]templates.SummaryTrade, len(summaries))
+		dayWinners, dayLosers := 0, 0
+		dayPnL := 0.0
+		dayBest, dayWorst := "", ""
+		dayBestPnL, dayWorstPnL := 0.0, 0.0
+		dayFirstTrade := true
+
+		for i, s := range summaries {
+			pnlPerContract := (s.ClosingPrice - s.EntryPrice) * 100
+			pctChange := 0.0
+			if s.EntryPrice > 0 {
+				pctChange = ((s.ClosingPrice - s.EntryPrice) / s.EntryPrice) * 100
+			}
+			stockPct := 0.0
+			if s.StockOpen > 0 {
+				stockPct = ((s.StockClose - s.StockOpen) / s.StockOpen) * 100
+			}
+
+			result := "FLAT"
+			if pnlPerContract > 0 {
+				result = "PROFIT"
+				dayWinners++
+			} else if pnlPerContract < 0 {
+				result = "LOSS"
+				dayLosers++
+			}
+
+			dayTrades[i] = templates.SummaryTrade{
+				Symbol: s.Symbol, ContractType: s.ContractType,
+				StrikePrice: s.StrikePrice, Expiration: s.Expiration,
+				EntryPrice: s.EntryPrice, ClosingPrice: s.ClosingPrice,
+				PriceChange:    s.ClosingPrice - s.EntryPrice,
+				PctChange:      pctChange,
+				StockOpen:      s.StockOpen,
+				StockClose:     s.StockClose,
+				StockPctChange: stockPct,
+				Result:         result,
+				Notes:          s.Notes,
+			}
+
+			dayPnL += pnlPerContract
+			totalInvested += s.EntryPrice * 100
+			totalReturn += s.ClosingPrice * 100
+
+			if dayFirstTrade || pnlPerContract > dayBestPnL {
+				dayBest = s.Symbol
+				dayBestPnL = pnlPerContract
+			}
+			if dayFirstTrade || pnlPerContract < dayWorstPnL {
+				dayWorst = s.Symbol
+				dayWorstPnL = pnlPerContract
+			}
+			dayFirstTrade = false
+		}
+
+		t, _ := time.ParseInLocation("2006-01-02", date, loc)
+
+		days = append(days, templates.WeeklyDayData{
+			Date:        date,
+			DayName:     t.Format("Monday"),
+			TotalTrades: len(summaries),
+			Winners:     dayWinners,
+			Losers:      dayLosers,
+			DayPnL:      dayPnL,
+			BestTrade:   dayBest,
+			BestPnL:     dayBestPnL,
+			WorstTrade:  dayWorst,
+			WorstPnL:    dayWorstPnL,
+			Trades:      dayTrades,
+		})
+
+		totalTrades += len(summaries)
+		totalWinners += dayWinners
+		totalLosers += dayLosers
+		totalPnL += dayPnL
+
+		if firstTrade || dayBestPnL > bestPnL {
+			bestTrade = dayBest
+			bestPnL = dayBestPnL
+		}
+		if firstTrade || dayWorstPnL < worstPnL {
+			worstTrade = dayWorst
+			worstPnL = dayWorstPnL
+		}
+		firstTrade = false
+	}
+
+	if totalTrades == 0 {
+		log.Println("No completed trades this week, skipping weekly email")
+		return
+	}
+
+	startTime, _ := time.ParseInLocation("2006-01-02", startDate, loc)
+	endTime, _ := time.ParseInLocation("2006-01-02", endDate, loc)
+	weekRange := fmt.Sprintf("%s - %s", startTime.Format("Jan 2"), endTime.Format("Jan 2, 2006"))
+
+	winRate := 0.0
+	if totalWinners+totalLosers > 0 {
+		winRate = float64(totalWinners) / float64(totalWinners+totalLosers) * 100
+	}
+
+	data := templates.WeeklyEmailData{
+		Subject:       "Weekly Trading Report",
+		WeekRange:     weekRange,
+		Days:          days,
+		TotalTrades:   totalTrades,
+		TotalWinners:  totalWinners,
+		TotalLosers:   totalLosers,
+		TotalPnL:      totalPnL,
+		WinRate:       winRate,
+		TotalInvested: totalInvested,
+		TotalReturn:   totalReturn,
+		BestTrade:     bestTrade,
+		BestPnL:       bestPnL,
+		WorstTrade:    worstTrade,
+		WorstPnL:      worstPnL,
+		DashboardURL:  "https://jaycetrades.com/dashboard",
+	}
+
+	htmlContent, err := templates.RenderWeeklyEmail(data)
+	if err != nil {
+		log.Printf("Error rendering weekly email: %v", err)
+		sendErrorNotification(cfg, db, emailClient, fmt.Sprintf("Weekly email rendering failed: %v", err))
+		return
+	}
+
+	subject := fmt.Sprintf("Weekly Report: %s", weekRange)
+
+	recipients := getRecipients(db)
+	if len(recipients) == 0 {
+		log.Println("No active subscribers, skipping weekly email")
+		return
+	}
+
+	log.Printf("Sending weekly email to %d subscribers...", len(recipients))
+	if err := emailClient.SendTradeEmail(cfg.EmailFrom, recipients, subject, htmlContent); err != nil {
+		log.Printf("Error sending weekly email: %v", err)
+		sendErrorNotification(cfg, db, emailClient, fmt.Sprintf("Weekly email delivery failed: %v", err))
+		return
+	}
+
+	log.Println("Weekly email sent!")
 }
 
 func runEndOfDayAnalysis(cfg *config.Config, db *store.Store, analyzer *trades.Analyzer, emailClient *email.Client) {

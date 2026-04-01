@@ -6,14 +6,15 @@ import (
 )
 
 type Config struct {
-	CronScheduleOpen  string
-	CronScheduleClose string
-	ResendAPIKey      string
-	OpenAIAPIKey      string
-	EmailRecipients   []string // Fallback: seed subscribers from env on first run
-	EmailFrom         string
-	DatabaseURL       string
-	ServerPort        string
+	CronScheduleOpen   string
+	CronScheduleClose  string
+	CronScheduleWeekly string
+	ResendAPIKey       string
+	OpenAIAPIKey       string
+	EmailRecipients    []string // Fallback: seed subscribers from env on first run
+	EmailFrom          string
+	DatabaseURL        string
+	ServerPort         string
 }
 
 func Load() *Config {
@@ -25,6 +26,11 @@ func Load() *Config {
 	cronClose := os.Getenv("CRON_SCHEDULE_CLOSE")
 	if cronClose == "" {
 		cronClose = "5 16 * * 1-5"
+	}
+
+	cronWeekly := os.Getenv("CRON_SCHEDULE_WEEKLY")
+	if cronWeekly == "" {
+		cronWeekly = "30 16 * * 5" // Friday 4:30 PM ET (after EOD analysis at 4:05)
 	}
 
 	emailFrom := os.Getenv("EMAIL_FROM")
@@ -52,13 +58,14 @@ func Load() *Config {
 	}
 
 	return &Config{
-		CronScheduleOpen:  cronOpen,
-		CronScheduleClose: cronClose,
-		ResendAPIKey:      os.Getenv("RESEND_API_KEY"),
-		OpenAIAPIKey:      os.Getenv("OPENAI_API_KEY"),
-		EmailRecipients:   recipients,
-		EmailFrom:         emailFrom,
-		DatabaseURL:       databaseURL,
-		ServerPort:        serverPort,
+		CronScheduleOpen:   cronOpen,
+		CronScheduleClose:  cronClose,
+		CronScheduleWeekly: cronWeekly,
+		ResendAPIKey:       os.Getenv("RESEND_API_KEY"),
+		OpenAIAPIKey:       os.Getenv("OPENAI_API_KEY"),
+		EmailRecipients:    recipients,
+		EmailFrom:          emailFrom,
+		DatabaseURL:        databaseURL,
+		ServerPort:         serverPort,
 	}
 }

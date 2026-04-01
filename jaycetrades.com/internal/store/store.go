@@ -290,6 +290,53 @@ func (s *Store) GetLatestTradeDate() (string, error) {
 	return date, nil
 }
 
+func (s *Store) GetTradeDates(limit int) ([]string, error) {
+	rows, err := s.db.Query(`
+		SELECT DISTINCT date FROM trades ORDER BY date DESC LIMIT $1
+	`, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query trade dates: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var dates []string
+	for rows.Next() {
+		var d string
+		if err := rows.Scan(&d); err != nil {
+			return nil, fmt.Errorf("failed to scan date: %w", err)
+		}
+		dates = append(dates, d)
+	}
+	return dates, rows.Err()
+}
+
+func (s *Store) GetSummariesForDateRange(startDate, endDate string) (map[string][]trades.TradeSummary, error) {
+	rows, err := s.db.Query(`
+		SELECT date, symbol, contract_type, strike_price, expiration,
+			entry_price, closing_price, stock_open, stock_close, notes
+		FROM summaries WHERE date >= $1 AND date <= $2 ORDER BY date, id
+	`, startDate, endDate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query summaries range: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	result := make(map[string][]trades.TradeSummary)
+	for rows.Next() {
+		var date string
+		var ts trades.TradeSummary
+		err := rows.Scan(
+			&date, &ts.Symbol, &ts.ContractType, &ts.StrikePrice, &ts.Expiration,
+			&ts.EntryPrice, &ts.ClosingPrice, &ts.StockOpen, &ts.StockClose, &ts.Notes,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan summary row: %w", err)
+		}
+		result[date] = append(result[date], ts)
+	}
+	return result, rows.Err()
+}
+
 func (s *Store) GetEODSummaries(date string) ([]trades.TradeSummary, error) {
 	rows, err := s.db.Query(`
 		SELECT symbol, contract_type, strike_price, expiration,

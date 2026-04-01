@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-//go:embed email.html summary.html test.html error.html
+//go:embed email.html summary.html test.html error.html weekly.html
 var templateFS embed.FS
 
 type Trade struct {
@@ -59,6 +59,38 @@ type SummaryEmailData struct {
 	Winners     int
 	Losers      int
 	TotalPnL    float64
+}
+
+type WeeklyDayData struct {
+	Date        string
+	DayName     string
+	TotalTrades int
+	Winners     int
+	Losers      int
+	DayPnL      float64
+	BestTrade   string
+	BestPnL     float64
+	WorstTrade  string
+	WorstPnL    float64
+	Trades      []SummaryTrade
+}
+
+type WeeklyEmailData struct {
+	Subject       string
+	WeekRange     string
+	Days          []WeeklyDayData
+	TotalTrades   int
+	TotalWinners  int
+	TotalLosers   int
+	TotalPnL      float64
+	WinRate       float64
+	TotalInvested float64
+	TotalReturn   float64
+	BestTrade     string
+	BestPnL       float64
+	WorstTrade    string
+	WorstPnL      float64
+	DashboardURL  string
 }
 
 var funcMap = template.FuncMap{
@@ -178,6 +210,27 @@ func RenderTestEmail() (string, error) {
 		return "", fmt.Errorf("summary template verification failed: %w", err)
 	}
 
+	// Exercise the weekly template
+	sampleWeekly := WeeklyEmailData{
+		Subject: "Weekly Report", WeekRange: "Mar 25 - Mar 29, 2026",
+		Days: []WeeklyDayData{
+			{
+				Date: "2026-03-25", DayName: "Monday",
+				TotalTrades: 1, Winners: 1, DayPnL: 60.0,
+				BestTrade: "SPY", BestPnL: 60.0,
+				WorstTrade: "SPY", WorstPnL: 60.0,
+				Trades: sampleSummaries,
+			},
+		},
+		TotalTrades: 1, TotalWinners: 1, TotalPnL: 60.0,
+		WinRate: 100.0, TotalInvested: 150.0, TotalReturn: 210.0,
+		BestTrade: "SPY", BestPnL: 60.0, WorstTrade: "SPY", WorstPnL: 60.0,
+		DashboardURL: "https://jaycetrades.com/dashboard",
+	}
+	if _, err := RenderWeeklyEmail(sampleWeekly); err != nil {
+		return "", fmt.Errorf("weekly template verification failed: %w", err)
+	}
+
 	// Render the startup notification email
 	tmpl, err := template.New("test.html").Funcs(funcMap).ParseFS(templateFS, "test.html")
 	if err != nil {
@@ -209,6 +262,20 @@ func RenderErrorEmail(errMsg string) (string, error) {
 		Subject: "System Alert",
 		Date:    time.Now().Format("Monday, Jan 2, 2006 3:04 PM"),
 		Error:   errMsg,
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
+}
+
+func RenderWeeklyEmail(data WeeklyEmailData) (string, error) {
+	tmpl, err := template.New("weekly.html").Funcs(funcMap).ParseFS(templateFS, "weekly.html")
+	if err != nil {
+		return "", err
 	}
 
 	var buf bytes.Buffer
