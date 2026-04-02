@@ -15,9 +15,6 @@ import (
 	"jaycetrades.com/internal/trades"
 )
 
-//go:embed subscribe.html
-var subscribeHTML embed.FS
-
 //go:embed dashboard.html
 var dashboardHTML embed.FS
 
