@@ -94,6 +94,15 @@ func migrate(db *sql.DB) error {
 		);
 
 		CREATE INDEX IF NOT EXISTS idx_subscribers_active ON subscribers(active);
+
+		CREATE TABLE IF NOT EXISTS oauth_tokens (
+			id SERIAL PRIMARY KEY,
+			provider TEXT NOT NULL UNIQUE,
+			access_token TEXT NOT NULL,
+			refresh_token TEXT NOT NULL,
+			expires_at TIMESTAMPTZ NOT NULL,
+			updated_at TIMESTAMPTZ DEFAULT NOW()
+		);
 	`)
 	return err
 }
@@ -367,6 +376,31 @@ func (s *Store) GetSummariesForDateRange(startDate, endDate string) (map[string]
 	}
 	return result, rows.Err()
 }
+
+// --- OAuth token methods ---
+
+func (s *Store) SaveOAuthToken(provider, accessToken, refreshToken string, expiresAt time.Time) error {
+	_, err := s.db.Exec(`
+		INSERT INTO oauth_tokens (provider, access_token, refresh_token, expires_at, updated_at)
+		VALUES ($1, $2, $3, $4, NOW())
+		ON CONFLICT (provider) DO UPDATE SET
+			access_token = EXCLUDED.access_token,
+			refresh_token = EXCLUDED.refresh_token,
+			expires_at = EXCLUDED.expires_at,
+			updated_at = NOW()
+	`, provider, accessToken, refreshToken, expiresAt)
+	return err
+}
+
+func (s *Store) GetOAuthToken(provider string) (accessToken, refreshToken string, expiresAt time.Time, err error) {
+	err = s.db.QueryRow(`
+		SELECT access_token, refresh_token, expires_at
+		FROM oauth_tokens WHERE provider = $1
+	`, provider).Scan(&accessToken, &refreshToken, &expiresAt)
+	return
+}
+
+// --- EOD summary methods ---
 
 func (s *Store) GetEODSummaries(date string) ([]trades.TradeSummary, error) {
 	rows, err := s.db.Query(`

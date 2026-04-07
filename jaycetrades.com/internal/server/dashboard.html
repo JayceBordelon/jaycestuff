@@ -52,19 +52,20 @@
   <style>
     :root {
       color-scheme: light dark;
-      --background: #f8fafc;
+      --background: #fafafa;
       --foreground: #0f172a;
       --card: #ffffff;
       --card-elevated: #f1f5f9;
       --card-foreground: #0f172a;
-      --primary: #2563eb;
+      --primary: #475569;
       --primary-foreground: #ffffff;
+      --secondary: #4b5563;
       --muted: #f1f5f9;
-      --muted-foreground: #6b7280;
+      --muted-foreground: #4b5563;
       --accent: #94a3b8;
       --border: #e2e8f0;
       --input: #e2e8f0;
-      --ring: #2563eb;
+      --ring: #475569;
       --radius: 0.5rem;
       --green: #10b981;
       --green-bg: #d1fae5;
@@ -74,29 +75,30 @@
       --red-bg: #fee2e2;
       --red-light: #fef2f2;
       --red-border: #fecaca;
-      --blue: #2563eb;
-      --blue-bg: #dbeafe;
+      --blue: #475569;
+      --blue-bg: #e2e8f0;
       --amber: #b45309;
       --amber-bg: #fef3c7;
       --chart-grid: #e2e8f0;
-      --chart-text: #6b7280;
+      --chart-text: #4b5563;
       --surface: #f1f5f9;
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --background: #0a0e17;
-        --foreground: #e2e8f0;
-        --card: #111827;
-        --card-elevated: #1a2332;
-        --card-foreground: #e2e8f0;
-        --primary: #3b82f6;
-        --primary-foreground: #0a0e17;
-        --muted: #151c28;
-        --muted-foreground: #6b7280;
-        --accent: #94a3b8;
-        --border: #1e293b;
-        --input: #1e293b;
-        --ring: #3b82f6;
+        --background: #0f172a;
+        --foreground: #f1f5f9;
+        --card: #1e293b;
+        --card-elevated: #283548;
+        --card-foreground: #f1f5f9;
+        --primary: #94a3b8;
+        --primary-foreground: #0f172a;
+        --secondary: #64748b;
+        --muted: #1e293b;
+        --muted-foreground: #94a3b8;
+        --accent: #cbd5e1;
+        --border: #334155;
+        --input: #334155;
+        --ring: #94a3b8;
         --green: #10b981;
         --green-bg: rgba(16,185,129,0.15);
         --green-light: rgba(16,185,129,0.08);
@@ -105,13 +107,13 @@
         --red-bg: rgba(239,68,68,0.15);
         --red-light: rgba(239,68,68,0.08);
         --red-border: rgba(239,68,68,0.3);
-        --blue: #3b82f6;
-        --blue-bg: rgba(59,130,246,0.15);
+        --blue: #94a3b8;
+        --blue-bg: rgba(148,163,184,0.15);
         --amber: #f59e0b;
         --amber-bg: rgba(245,158,11,0.15);
-        --chart-grid: #1e293b;
-        --chart-text: #6b7280;
-        --surface: #151c28;
+        --chart-grid: #334155;
+        --chart-text: #94a3b8;
+        --surface: #1e293b;
       }
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -299,6 +301,20 @@
       border-color: var(--accent);
     }
     .symbol-tab .tab-pnl { font-size: 10px; margin-left: 6px; font-weight: 600; }
+    .chart-controls {
+      display: flex; gap: 4px; margin-bottom: 10px;
+    }
+    .chart-tf-btn {
+      background: var(--muted); border: 1px solid var(--border); cursor: pointer;
+      padding: 4px 12px; font-size: 11px; font-weight: 600;
+      color: var(--muted-foreground); font-family: 'Inter', sans-serif;
+      border-radius: 4px; transition: all 0.15s;
+    }
+    .chart-tf-btn:hover { color: var(--foreground); border-color: var(--accent); }
+    .chart-tf-btn.active {
+      color: var(--primary-foreground); background: var(--primary);
+      border-color: var(--primary);
+    }
     .tv-chart-wrap {
       height: 480px; background: var(--muted);
       border: 1px solid var(--border);
@@ -306,7 +322,6 @@
       position: relative;
       overflow: hidden;
     }
-    .tv-chart-wrap iframe { border: none !important; }
     .chart-loading {
       position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
       color: var(--muted-foreground); font-size: 13px; z-index: 0;
@@ -560,6 +575,35 @@
       font-style: italic; font-family: 'Inter', sans-serif;
     }
 
+    .morning-live-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; font-size: 11px; color: var(--muted-foreground);
+      font-family: 'Inter', sans-serif; margin-top: 6px;
+    }
+    .morning-live-row strong { color: var(--foreground); font-weight: 700; }
+
+    .live-banner {
+      background: linear-gradient(135deg, var(--green-light) 0%, var(--green-bg) 100%);
+      border: 1px solid var(--green-border);
+      border-radius: var(--radius); padding: 8px 14px;
+      margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+      font-family: 'Inter', sans-serif; font-size: 12px;
+    }
+    .live-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+      animation: livePulse 1.5s ease-in-out infinite;
+    }
+    .live-text { font-weight: 800; color: var(--green); font-size: 10px; letter-spacing: 1px; }
+    .live-time { color: var(--muted-foreground); font-size: 11px; }
+    .live-closed {
+      margin-left: auto; font-size: 10px; font-weight: 600; color: var(--amber);
+      background: var(--amber-bg); padding: 2px 8px; border-radius: 4px;
+    }
+    @keyframes livePulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
     .info-banner {
       background: var(--blue-bg); border: 1px solid var(--border);
       border-radius: var(--radius); padding: 10px 14px;
@@ -696,9 +740,16 @@
 
     <div class="chart-section" id="chartSection" style="display: none;">
       <div class="symbol-tabs" id="symbolTabs"></div>
+      <div class="chart-controls">
+        <button class="chart-tf-btn active" data-period="1" data-ptype="day" data-ftype="minute" data-freq="5" onclick="changeTimeframe(this)">1D</button>
+        <button class="chart-tf-btn" data-period="5" data-ptype="day" data-ftype="minute" data-freq="5" onclick="changeTimeframe(this)">5D</button>
+        <button class="chart-tf-btn" data-period="1" data-ptype="month" data-ftype="daily" data-freq="1" onclick="changeTimeframe(this)">1M</button>
+        <button class="chart-tf-btn" data-period="3" data-ptype="month" data-ftype="daily" data-freq="1" onclick="changeTimeframe(this)">3M</button>
+        <button class="chart-tf-btn" data-period="1" data-ptype="year" data-ftype="daily" data-freq="1" onclick="changeTimeframe(this)">1Y</button>
+      </div>
       <div class="tv-chart-wrap" id="tvChartWrap">
-        <div class="chart-loading">Loading chart...</div>
-        <div id="tv_chart" style="width:100%;height:100%;"></div>
+        <div class="chart-loading" id="chartLoading">Loading chart...</div>
+        <div id="chart_container" style="width:100%;height:100%;"></div>
       </div>
     </div>
 
@@ -757,14 +808,17 @@
     </div>
   </div>
 
-  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+  <script type="text/javascript" src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
   <script>
     var REFRESH_SECONDS = 60;
+    var LIVE_POLL_SECONDS = 15;
     var countdown = REFRESH_SECONDS;
     var availableDates = [];
     var dayIndex = 0;
     var currentSymbol = '';
     var currentTrades = null;
+    var liveQuotes = null;
+    var liveTimer = null;
 
     // ── Helpers ──
     function fmt(n, d) { return Number(n).toFixed(d === undefined ? 2 : d); }
@@ -872,45 +926,133 @@
       return null;
     }
 
-    // ── TradingView Chart ──
+    // ── Lightweight Chart ──
+    var chartInstance = null;
+    var candleSeries = null;
+    var volumeSeries = null;
+    var currentTimeframe = { period: 5, ptype: 'day', ftype: 'minute', freq: 5 };
+
     function loadChart(symbol) {
-      if (!symbol || !window.TradingView) return;
+      if (!symbol || !window.LightweightCharts) return;
       currentSymbol = symbol;
-      // Update tab state
       var tabs = document.querySelectorAll('.symbol-tab');
       tabs.forEach(function(t) { t.classList.toggle('active', t.dataset.symbol === symbol); });
-      // Recreate widget
-      var container = document.getElementById('tv_chart');
-      container.innerHTML = '';
-      var inner = document.createElement('div');
-      inner.id = 'tv_inner_' + Date.now();
-      inner.style.width = '100%';
-      inner.style.height = '100%';
-      container.appendChild(inner);
-      try {
-        new TradingView.widget({
-          container_id: inner.id,
-          autosize: true,
-          symbol: symbol,
-          interval: 'D',
-          timezone: 'America/New_York',
-          theme: isDark() ? 'dark' : 'light',
-          style: '1',
-          locale: 'en',
-          toolbar_bg: isDark() ? '#1e293b' : '#f1f5f9',
-          enable_publishing: false,
-          allow_symbol_change: true,
-          hide_side_toolbar: true,
-          save_image: false,
-          studies: ['MASimple@tv-basicstudies', 'Volume@tv-basicstudies'],
-          withdateranges: true,
-          details: false,
-          calendar: false,
-          loading_screen: { backgroundColor: isDark() ? '#1e293b' : '#ffffff' }
+      fetchChartData(symbol, currentTimeframe);
+    }
+
+    function changeTimeframe(btn) {
+      document.querySelectorAll('.chart-tf-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      currentTimeframe = {
+        period: parseInt(btn.dataset.period),
+        ptype: btn.dataset.ptype,
+        ftype: btn.dataset.ftype,
+        freq: parseInt(btn.dataset.freq)
+      };
+      if (currentSymbol) fetchChartData(currentSymbol, currentTimeframe);
+    }
+
+    function fetchChartData(symbol, tf) {
+      var loading = document.getElementById('chartLoading');
+      if (loading) loading.style.display = 'flex';
+
+      var url = '/api/chart/' + symbol + '?periodType=' + tf.ptype +
+        '&period=' + tf.period + '&frequencyType=' + tf.ftype + '&frequency=' + tf.freq;
+
+      fetch(url)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (loading) loading.style.display = 'none';
+          if (!data.candles || data.candles.length === 0) {
+            var container = document.getElementById('chart_container');
+            container.innerHTML = '<div class="chart-loading">No chart data available</div>';
+            return;
+          }
+          renderLightweightChart(data.candles, symbol);
+        })
+        .catch(function() {
+          if (loading) loading.style.display = 'none';
+          var container = document.getElementById('chart_container');
+          container.innerHTML = '<div class="chart-loading">Chart unavailable</div>';
         });
-      } catch (e) {
-        container.innerHTML = '<div class="chart-loading">Chart unavailable</div>';
-      }
+    }
+
+    function renderLightweightChart(candles, symbol) {
+      var container = document.getElementById('chart_container');
+      container.innerHTML = '';
+
+      var dark = isDark();
+      var bgColor = dark ? '#111827' : '#ffffff';
+      var textColor = dark ? '#9ca3af' : '#6b7280';
+      var gridColor = dark ? '#1e293b' : '#f1f5f9';
+      var borderColor = dark ? '#1e293b' : '#e2e8f0';
+
+      chartInstance = LightweightCharts.createChart(container, {
+        width: container.clientWidth,
+        height: container.clientHeight,
+        layout: {
+          background: { type: 'solid', color: bgColor },
+          textColor: textColor,
+          fontFamily: "'Inter', -apple-system, sans-serif",
+          fontSize: 11
+        },
+        grid: {
+          vertLines: { color: gridColor },
+          horzLines: { color: gridColor }
+        },
+        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        rightPriceScale: { borderColor: borderColor },
+        timeScale: {
+          borderColor: borderColor,
+          timeVisible: true,
+          secondsVisible: false
+        },
+        localization: {
+          priceFormatter: function(p) { return '$' + p.toFixed(2); }
+        }
+      });
+
+      candleSeries = chartInstance.addSeries(LightweightCharts.CandlestickSeries, {
+        upColor: '#10b981',
+        downColor: '#ef4444',
+        borderVisible: false,
+        wickUpColor: '#10b981',
+        wickDownColor: '#ef4444'
+      });
+
+      var candleData = candles.map(function(c) {
+        return { time: c.time, open: c.open, high: c.high, low: c.low, close: c.close };
+      });
+      candleSeries.setData(candleData);
+
+      volumeSeries = chartInstance.addSeries(LightweightCharts.HistogramSeries, {
+        priceFormat: { type: 'volume' },
+        priceScaleId: 'volume'
+      });
+      chartInstance.priceScale('volume').applyOptions({
+        scaleMargins: { top: 0.8, bottom: 0 }
+      });
+
+      var volumeData = candles.map(function(c) {
+        return {
+          time: c.time,
+          value: c.volume,
+          color: c.close >= c.open
+            ? (dark ? 'rgba(16,185,129,0.3)' : 'rgba(16,185,129,0.4)')
+            : (dark ? 'rgba(239,68,68,0.3)' : 'rgba(239,68,68,0.4)')
+        };
+      });
+      volumeSeries.setData(volumeData);
+
+      chartInstance.timeScale().fitContent();
+
+      // Resize handler
+      var ro = new ResizeObserver(function() {
+        if (chartInstance) {
+          chartInstance.applyOptions({ width: container.clientWidth, height: container.clientHeight });
+        }
+      });
+      ro.observe(container);
     }
 
     function buildSymbolTabs(trades) {
@@ -955,6 +1097,7 @@
           buildSymbolTabs(data.trades);
           renderDayView(data);
           countdown = REFRESH_SECONDS;
+          startLivePolling();
         })
         .catch(function() { countdown = REFRESH_SECONDS; });
     }
@@ -1097,6 +1240,7 @@
         html += '<div class="divider"></div>';
         html += renderTradeTable(data.trades);
       } else {
+        html += '<div id="liveBanner" class="live-banner" style="display:none;"></div>';
         html += '<div class="info-banner"><span class="info-banner-icon">&#9202;</span>' +
           '<span class="info-banner-text">End-of-day results will be available after 4:05 PM ET. ' +
           'Stock charts above show real-time price action for each pick.</span></div>';
@@ -1247,8 +1391,11 @@
         html += '<div class="morning-specs">' +
           '<span>Strike: <strong class="mono">$' + fmt(t.strike_price, 0) + '</strong></span>' +
           '<span>Exp: <strong>' + t.expiration + ' (' + t.dte + ' DTE)</strong></span>' +
-          '<span>Stock: <strong class="mono">$' + fmt(t.current_price, 2) + '</strong></span>' +
+          '<span>Stock: <span id="live-stock-' + i + '"><strong class="mono">$' + fmt(t.current_price, 2) + '</strong></span></span>' +
           '<span>Target: <strong class="mono color-green">$' + fmt(t.target_price, 2) + '</strong></span></div>';
+        html += '<div class="morning-live-row">' +
+          '<span>Option: <span id="live-option-' + i + '"><strong class="mono">' + fmtMoney(t.estimated_price) + '</strong> <span style="font-size:9px;color:var(--muted-foreground);">(estimated)</span></span></span>' +
+          '<span id="live-pnl-' + i + '" style="display:none;"></span></div>';
 
         // Technical metrics
         html += '<div class="morning-technicals">';
@@ -1287,6 +1434,80 @@
         html += '</div>';
       }
       return html;
+    }
+
+    // ── Live Quotes ──
+    function pollLiveQuotes() {
+      if (!currentTrades || !currentTrades.trades || currentTrades.trades.length === 0) return;
+      // Only poll if viewing the latest date and no EOD summaries yet.
+      var hasSummaries = false;
+      for (var i = 0; i < currentTrades.trades.length; i++) {
+        if (currentTrades.trades[i].summary) { hasSummaries = true; break; }
+      }
+      if (hasSummaries) { clearLiveBanner(); return; }
+
+      fetch('/api/quotes/live')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          liveQuotes = data;
+          applyLiveQuotes();
+        })
+        .catch(function() {});
+    }
+
+    function applyLiveQuotes() {
+      if (!liveQuotes || !liveQuotes.connected || !currentTrades || !currentTrades.trades) return;
+
+      // Update live banner
+      var banner = document.getElementById('liveBanner');
+      if (!banner) return;
+      banner.style.display = 'flex';
+      var timeStr = new Date(liveQuotes.as_of).toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'});
+      banner.innerHTML = '<span class="live-dot"></span><span class="live-text">LIVE</span>' +
+        '<span class="live-time">Updated ' + timeStr + ' ET</span>' +
+        (liveQuotes.market_open ? '' : '<span class="live-closed">Market Closed</span>');
+
+      // Update each trade card's live values.
+      for (var i = 0; i < currentTrades.trades.length; i++) {
+        var t = currentTrades.trades[i].trade;
+        var stockEl = document.getElementById('live-stock-' + i);
+        var optionEl = document.getElementById('live-option-' + i);
+        var pnlEl = document.getElementById('live-pnl-' + i);
+
+        if (stockEl && liveQuotes.quotes[t.symbol]) {
+          var q = liveQuotes.quotes[t.symbol];
+          var chgClass = q.net_change >= 0 ? 'color-green' : 'color-red';
+          stockEl.innerHTML = '<span class="mono">$' + fmt(q.last_price, 2) + '</span> ' +
+            '<span class="' + chgClass + '" style="font-size:10px;">' + fmtPct(q.net_change_pct) + '</span>';
+        }
+
+        var optKey = t.symbol + '|' + t.contract_type + '|' + fmt(t.strike_price, 2) + '|' + t.expiration;
+        if (optionEl && liveQuotes.options[optKey]) {
+          var opt = liveQuotes.options[optKey];
+          optionEl.innerHTML = '<span class="mono">' + fmtMoney(opt.mark) + '</span>' +
+            '<span style="font-size:9px;color:var(--muted-foreground);"> bid ' + fmtMoney(opt.bid) + ' / ask ' + fmtMoney(opt.ask) + '</span>';
+        }
+
+        if (pnlEl && liveQuotes.options[optKey]) {
+          var opt2 = liveQuotes.options[optKey];
+          var livePnl = (opt2.mark - t.estimated_price) * 100;
+          var livePct = t.estimated_price > 0 ? ((opt2.mark - t.estimated_price) / t.estimated_price * 100) : 0;
+          pnlEl.innerHTML = '<span class="' + pnlColor(livePnl) + '" style="font-weight:800;">' + fmtPnlInt(livePnl) + '</span>' +
+            '<span class="' + pnlColor(livePct) + '" style="font-size:10px;margin-left:4px;">' + fmtPct(livePct) + '</span>';
+          pnlEl.style.display = 'inline';
+        }
+      }
+    }
+
+    function clearLiveBanner() {
+      var banner = document.getElementById('liveBanner');
+      if (banner) banner.style.display = 'none';
+    }
+
+    function startLivePolling() {
+      if (liveTimer) clearInterval(liveTimer);
+      pollLiveQuotes();
+      liveTimer = setInterval(pollLiveQuotes, LIVE_POLL_SECONDS * 1000);
     }
 
     // ── Init ──

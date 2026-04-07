@@ -15,6 +15,9 @@ type Config struct {
 	EmailFrom          string
 	DatabaseURL        string
 	ServerPort         string
+	SchwabAppKey       string
+	SchwabSecret       string
+	SchwabCallbackURL  string
 }
 
 func Load() *Config {
@@ -57,6 +60,11 @@ func Load() *Config {
 		serverPort = "8080"
 	}
 
+	schwabCallback := os.Getenv("SCHWAB_CALLBACK_URL")
+	if schwabCallback == "" {
+		schwabCallback = "https://jaycetrades.com/auth/callback"
+	}
+
 	return &Config{
 		CronScheduleOpen:   cronOpen,
 		CronScheduleClose:  cronClose,
@@ -67,5 +75,8 @@ func Load() *Config {
 		EmailFrom:          emailFrom,
 		DatabaseURL:        databaseURL,
 		ServerPort:         serverPort,
+		SchwabAppKey:       os.Getenv("SCHWAB_APP_KEY"),
+		SchwabSecret:       os.Getenv("SCHWAB_SECRET"),
+		SchwabCallbackURL:  schwabCallback,
 	}
 }

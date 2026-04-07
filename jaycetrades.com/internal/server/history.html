@@ -26,52 +26,52 @@
   <style>
     :root {
       color-scheme: light dark;
-      --background: #f8fafc;
+      --background: #fafafa;
       --foreground: #0f172a;
       --card: #ffffff;
       --card-foreground: #0f172a;
       --card-elevated: #f1f5f9;
-      --primary: #2563eb;
+      --primary: #475569;
       --primary-foreground: #ffffff;
       --muted: #f1f5f9;
-      --muted-foreground: #64748b;
-      --accent: #3b82f6;
+      --muted-foreground: #4b5563;
+      --accent: #94a3b8;
       --border: #e2e8f0;
       --input: #e2e8f0;
-      --ring: #2563eb;
-      --surface: #eef2f7;
+      --ring: #475569;
+      --surface: #f1f5f9;
       --radius: 0.375rem;
-      --green: #16a34a;
-      --green-bg: #dcfce7;
-      --green-light: #f0fdf4;
-      --green-border: #bbf7d0;
+      --green: #10b981;
+      --green-bg: #d1fae5;
+      --green-light: #ecfdf5;
+      --green-border: #a7f3d0;
       --red: #ef4444;
       --red-bg: #fee2e2;
       --red-light: #fef2f2;
       --red-border: #fecaca;
-      --blue: #2563eb;
-      --blue-bg: #dbeafe;
+      --blue: #475569;
+      --blue-bg: #e2e8f0;
       --amber: #b45309;
       --amber-bg: #fef3c7;
       --chart-grid: #e2e8f0;
-      --chart-text: #64748b;
+      --chart-text: #4b5563;
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --background: #0a0e17;
+        --background: #0f172a;
         --foreground: #f1f5f9;
-        --card: #111827;
+        --card: #1e293b;
         --card-foreground: #f1f5f9;
-        --card-elevated: #1a2332;
-        --primary: #3b82f6;
-        --primary-foreground: #ffffff;
-        --muted: #151c28;
-        --muted-foreground: #6b7280;
-        --accent: #3b82f6;
-        --border: #1e293b;
-        --input: #1e293b;
-        --ring: #3b82f6;
-        --surface: #151c28;
+        --card-elevated: #283548;
+        --primary: #94a3b8;
+        --primary-foreground: #0f172a;
+        --muted: #1e293b;
+        --muted-foreground: #94a3b8;
+        --accent: #cbd5e1;
+        --border: #334155;
+        --input: #334155;
+        --ring: #94a3b8;
+        --surface: #1e293b;
         --green: #10b981;
         --green-bg: rgba(16,185,129,0.15);
         --green-light: rgba(16,185,129,0.08);
@@ -80,11 +80,11 @@
         --red-bg: rgba(239,68,68,0.15);
         --red-light: rgba(239,68,68,0.08);
         --red-border: rgba(239,68,68,0.3);
-        --blue: #3b82f6;
-        --blue-bg: rgba(59,130,246,0.15);
+        --blue: #94a3b8;
+        --blue-bg: rgba(148,163,184,0.15);
         --amber-bg: rgba(180,83,9,0.15);
-        --chart-grid: #1e293b;
-        --chart-text: #6b7280;
+        --chart-grid: #334155;
+        --chart-text: #94a3b8;
       }
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -745,7 +745,7 @@
         text: dark ? '#6b7280' : '#64748b',
         green: dark ? '#10b981' : '#16a34a',
         red: dark ? '#ef4444' : '#dc2626',
-        blue: dark ? '#3b82f6' : '#2563eb',
+        blue: dark ? '#94a3b8' : '#475569',
         greenFill: dark ? 'rgba(16,185,129,0.15)' : 'rgba(22,163,74,0.1)',
         redFill: dark ? 'rgba(239,68,68,0.15)' : 'rgba(220,38,38,0.1)',
         zero: dark ? '#1e293b' : '#94a3b8'
@@ -1218,8 +1218,8 @@
         '<h4>Trade Selection Pipeline</h4>' +
         '<ul>' +
           '<li><strong>9:25 AM ET</strong> &mdash; Sentiment scraper fetches trending tickers from Reddit <code>r/wallstreetbets</code> and <code>r/options</code> (hot + rising posts). Each ticker receives a sentiment score from -1 (bearish) to +1 (bullish) based on post content and vote ratios.</li>' +
-          '<li><strong>AI Analysis</strong> &mdash; GPT-4o (with <code>web_search_preview</code> tool) receives the sentiment data along with current market context. It identifies 10 high-conviction options trades with short-dated expirations (0-7 DTE), each under $200/contract.</li>' +
-          '<li><strong>4:05 PM ET</strong> &mdash; A second GPT-4o call re-evaluates each morning pick against actual closing data via web search, estimating closing option premiums.</li>' +
+          '<li><strong>AI Analysis</strong> &mdash; GPT-5.4 receives the sentiment data and calls the Schwab Market Data API for real-time stock quotes and option chain pricing. It identifies 10 high-conviction options trades with short-dated expirations (0-7 DTE), each under $200/contract, using actual bid/ask/mark prices.</li>' +
+          '<li><strong>4:05 PM ET</strong> &mdash; A second GPT-5.4 call fetches closing stock prices and option marks from Schwab to calculate actual end-of-day P&amp;L for each trade.</li>' +
         '</ul>' +
 
         '<h4>Performance Metrics Explained</h4>' +
@@ -1235,16 +1235,16 @@
         '<ul>' +
           '<li>All trades are <strong>long options</strong> (buying calls or puts). Max loss is limited to the premium paid.</li>' +
           '<li>P&amp;L is calculated as <code>(Closing Premium - Entry Premium) &times; 100</code> per contract (100-share multiplier).</li>' +
-          '<li>Option premiums are <strong>AI-estimated via web search</strong>, not sourced from a real-time options data feed. Actual market execution prices will differ due to bid-ask spread, implied volatility changes, and market microstructure.</li>' +
-          '<li>Greeks (delta, gamma, theta, vega) are not directly modeled. The AI considers these implicitly through its web search of current market data.</li>' +
+          '<li>Option premiums are sourced from the <strong>Schwab Market Data API</strong> (real-time bid/ask/mark prices). Actual execution prices may still differ slightly due to bid-ask spread and market microstructure.</li>' +
+          '<li>Greeks (delta, gamma, theta, vega) are provided by Schwab&rsquo;s option chain data and available in the trade detail views.</li>' +
         '</ul>' +
 
         '<h4>Data Sources</h4>' +
         '<div style="margin:6px 0 10px;">' +
           '<span class="source-tag">Reddit r/wallstreetbets</span>' +
           '<span class="source-tag">Reddit r/options</span>' +
-          '<span class="source-tag">OpenAI GPT-4o</span>' +
-          '<span class="source-tag">OpenAI Web Search</span>' +
+          '<span class="source-tag">OpenAI GPT-5.4</span>' +
+          '<span class="source-tag">Schwab Market Data API</span>' +
         '</div>' +
 
         '<h4>Important Disclaimers</h4>' +

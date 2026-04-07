@@ -10,7 +10,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
+	"jaycetrades.com/internal/schwab"
 	"jaycetrades.com/internal/store"
 	"jaycetrades.com/internal/trades"
 )
@@ -24,9 +26,10 @@ var historyHTML embed.FS
 var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 
 type Server struct {
-	db   *store.Store
-	mux  *http.ServeMux
-	port string
+	db     *store.Store
+	schwab *schwab.Client
+	mux    *http.ServeMux
+	port   string
 }
 
 type subscribeRequest struct {
@@ -43,8 +46,8 @@ type apiResponse struct {
 	Message string `json:"message"`
 }
 
-func New(db *store.Store, port string) *Server {
-	s := &Server{db: db, mux: http.NewServeMux(), port: port}
+func New(db *store.Store, schwabClient *schwab.Client, port string) *Server {
+	s := &Server{db: db, schwab: schwabClient, mux: http.NewServeMux(), port: port}
 	s.routes()
 	return s
 }
@@ -58,6 +61,10 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/trades/today", s.handleTradesToday)
 	s.mux.HandleFunc("/api/trades/dates", s.handleTradeDates)
 	s.mux.HandleFunc("/api/trades/week", s.handleTradesWeek)
+	s.mux.HandleFunc("/api/chart/", s.handleChart)
+	s.mux.HandleFunc("/auth/schwab", s.handleSchwabAuth)
+	s.mux.HandleFunc("/auth/callback", s.handleSchwabCallback)
+	s.mux.HandleFunc("/api/quotes/live", s.handleLiveQuotes)
 	s.mux.HandleFunc("/health", s.handleHealth)
 	s.mux.HandleFunc("/robots.txt", s.handleRobots)
 	s.mux.HandleFunc("/sitemap.xml", s.handleSitemap)
@@ -315,6 +322,219 @@ func (s *Server) handleSitemap(w http.ResponseWriter, r *http.Request) {
   </url>
 </urlset>
 `))
+}
+
+// ── Chart Data ──
+
+func (s *Server) handleChart(w http.ResponseWriter, r *http.Request) {
+	// Extract symbol from /api/chart/{symbol}
+	symbol := strings.TrimPrefix(r.URL.Path, "/api/chart/")
+	symbol = strings.ToUpper(strings.TrimSpace(symbol))
+	if symbol == "" {
+		writeJSON(w, http.StatusBadRequest, apiResponse{OK: false, Message: "symbol required"})
+		return
+	}
+
+	if s.schwab == nil || !s.schwab.IsConnected() {
+		writeJSON(w, http.StatusServiceUnavailable, apiResponse{OK: false, Message: "Schwab not connected"})
+		return
+	}
+
+	// Default: 5 days of 5-min candles for intraday view
+	periodType := r.URL.Query().Get("periodType")
+	if periodType == "" {
+		periodType = "day"
+	}
+	period := 5
+	if p := r.URL.Query().Get("period"); p != "" {
+		if n, err := strconv.Atoi(p); err == nil && n > 0 {
+			period = n
+		}
+	}
+	frequencyType := r.URL.Query().Get("frequencyType")
+	if frequencyType == "" {
+		frequencyType = "minute"
+	}
+	frequency := 5
+	if f := r.URL.Query().Get("frequency"); f != "" {
+		if n, err := strconv.Atoi(f); err == nil && n > 0 {
+			frequency = n
+		}
+	}
+
+	candles, err := s.schwab.GetPriceHistory(symbol, periodType, period, frequencyType, frequency)
+	if err != nil {
+		log.Printf("Chart data error for %s: %v", symbol, err)
+		writeJSON(w, http.StatusBadGateway, apiResponse{OK: false, Message: "failed to fetch chart data"})
+		return
+	}
+
+	w.Header().Set("Cache-Control", "public, max-age=15")
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"symbol":  symbol,
+		"candles": candles,
+	})
+}
+
+// ── Schwab OAuth ──
+
+func (s *Server) handleSchwabAuth(w http.ResponseWriter, r *http.Request) {
+	if s.schwab == nil {
+		writeJSON(w, http.StatusServiceUnavailable, apiResponse{OK: false, Message: "Schwab not configured"})
+		return
+	}
+	http.Redirect(w, r, s.schwab.AuthorizationURL(), http.StatusFound)
+}
+
+func (s *Server) handleSchwabCallback(w http.ResponseWriter, r *http.Request) {
+	if s.schwab == nil {
+		http.Error(w, "Schwab not configured", http.StatusServiceUnavailable)
+		return
+	}
+
+	code := r.URL.Query().Get("code")
+	if code == "" {
+		http.Error(w, "missing authorization code", http.StatusBadRequest)
+		return
+	}
+
+	if err := s.schwab.ExchangeCode(code); err != nil {
+		log.Printf("Schwab OAuth error: %v", err)
+		http.Error(w, "OAuth token exchange failed", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/dashboard", http.StatusFound)
+}
+
+// ── Live Quotes ──
+
+type liveQuoteEntry struct {
+	LastPrice    float64 `json:"last_price"`
+	OpenPrice    float64 `json:"open_price"`
+	NetChange    float64 `json:"net_change"`
+	NetChangePct float64 `json:"net_change_pct"`
+	BidPrice     float64 `json:"bid_price"`
+	AskPrice     float64 `json:"ask_price"`
+	Volume       int64   `json:"volume"`
+}
+
+type liveOptionEntry struct {
+	Bid          float64 `json:"bid"`
+	Ask          float64 `json:"ask"`
+	Last         float64 `json:"last"`
+	Mark         float64 `json:"mark"`
+	Volume       int     `json:"volume"`
+	OpenInterest int     `json:"open_interest"`
+	Delta        float64 `json:"delta"`
+	Theta        float64 `json:"theta"`
+	ImpliedVol   float64 `json:"implied_vol"`
+}
+
+type liveQuotesResponse struct {
+	Connected  bool                       `json:"connected"`
+	MarketOpen bool                       `json:"market_open"`
+	AsOf       string                     `json:"as_of"`
+	Quotes     map[string]liveQuoteEntry  `json:"quotes"`
+	Options    map[string]liveOptionEntry `json:"options"`
+}
+
+func isMarketHours() bool {
+	loc, _ := time.LoadLocation("America/New_York")
+	now := time.Now().In(loc)
+	wd := now.Weekday()
+	if wd == time.Saturday || wd == time.Sunday {
+		return false
+	}
+	hour, min := now.Hour(), now.Minute()
+	minuteOfDay := hour*60 + min
+	return minuteOfDay >= 9*60+30 && minuteOfDay <= 16*60
+}
+
+func (s *Server) handleLiveQuotes(w http.ResponseWriter, r *http.Request) {
+	resp := liveQuotesResponse{
+		AsOf:       time.Now().UTC().Format(time.RFC3339),
+		MarketOpen: isMarketHours(),
+		Quotes:     make(map[string]liveQuoteEntry),
+		Options:    make(map[string]liveOptionEntry),
+	}
+
+	if s.schwab == nil || !s.schwab.IsConnected() {
+		w.Header().Set("Cache-Control", "public, max-age=5")
+		writeJSON(w, http.StatusOK, resp)
+		return
+	}
+	resp.Connected = true
+
+	// Get today's trades to know which symbols to fetch.
+	date, err := s.db.GetLatestTradeDate()
+	if err != nil {
+		w.Header().Set("Cache-Control", "public, max-age=5")
+		writeJSON(w, http.StatusOK, resp)
+		return
+	}
+
+	morningTrades, err := s.db.GetMorningTrades(date)
+	if err != nil || len(morningTrades) == 0 {
+		w.Header().Set("Cache-Control", "public, max-age=5")
+		writeJSON(w, http.StatusOK, resp)
+		return
+	}
+
+	// Collect unique symbols.
+	symbolSet := make(map[string]bool)
+	for _, t := range morningTrades {
+		symbolSet[t.Symbol] = true
+	}
+	symbols := make([]string, 0, len(symbolSet))
+	for sym := range symbolSet {
+		symbols = append(symbols, sym)
+	}
+
+	// Fetch stock quotes (cached 15s).
+	quotes, err := s.schwab.GetQuotes(symbols)
+	if err != nil {
+		log.Printf("Schwab quotes error: %v", err)
+	} else {
+		for sym, q := range quotes {
+			resp.Quotes[sym] = liveQuoteEntry{
+				LastPrice:    q.LastPrice,
+				OpenPrice:    q.OpenPrice,
+				NetChange:    q.NetChange,
+				NetChangePct: q.NetPercentChange,
+				BidPrice:     q.BidPrice,
+				AskPrice:     q.AskPrice,
+				Volume:       q.TotalVolume,
+			}
+		}
+	}
+
+	// Fetch option chain data for each trade's specific contract (cached 15s).
+	for _, t := range morningTrades {
+		chain, err := s.schwab.GetOptionChain(t.Symbol, t.ContractType, t.Expiration, t.Expiration, t.StrikePrice)
+		if err != nil {
+			continue
+		}
+		contract := schwab.FindContract(chain, t.ContractType, t.StrikePrice, t.Expiration)
+		if contract == nil {
+			continue
+		}
+		key := fmt.Sprintf("%s|%s|%.2f|%s", t.Symbol, t.ContractType, t.StrikePrice, t.Expiration)
+		resp.Options[key] = liveOptionEntry{
+			Bid:          contract.Bid,
+			Ask:          contract.Ask,
+			Last:         contract.Last,
+			Mark:         contract.Mark,
+			Volume:       contract.TotalVolume,
+			OpenInterest: contract.OpenInterest,
+			Delta:        contract.Delta,
+			Theta:        contract.Theta,
+			ImpliedVol:   contract.Volatility,
+		}
+	}
+
+	w.Header().Set("Cache-Control", "public, max-age=10")
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

@@ -5,11 +5,19 @@ const AnalysisPrompt = `You are an expert options trader. Today is %s (%s).
 SENTIMENT DATA FROM WALLSTREETBETS:
 %s
 
-IMPORTANT: Use web search to look up CURRENT stock prices, upcoming earnings dates, recent news, and any catalysts. Do NOT use outdated information.
+TOOLS AVAILABLE:
+- get_stock_quotes: Call this to get real-time stock prices from Schwab. Pass comma-separated symbols.
+- get_option_chain: Call this to get live option chain data (bid/ask/mark, greeks, open interest) for a symbol. Use this to find exact contract prices and validate strike/expiration combos.
+- web_search: Use ONLY for news, earnings dates, catalysts, and market context. Do NOT use web search for stock prices or option prices — use the Schwab tools instead.
 
-If the sentiment data above is empty or contains no tickers, use web search to find today's trending stocks, market movers, earnings plays, and hot options activity on your own. Check sources like r/wallstreetbets, financial news, unusual options activity, and pre-market movers.
+WORKFLOW:
+1. Identify 12-15 candidate tickers from the sentiment data and your market knowledge.
+2. Call get_stock_quotes for all candidates to get current prices.
+3. Use web search for news/catalysts/earnings context on the top candidates.
+4. Call get_option_chain for your top 10 picks to get real bid/ask/mark on specific contracts.
+5. Build your final 10 recommendations using ACTUAL option prices from the chain data.
 
-Using the sentiment data (if available) combined with your real-time web research, provide exactly 10 options trade recommendations.
+If the sentiment data is empty, use web search to find trending stocks and market movers, then follow the same workflow.
 
 REQUIREMENTS:
 - Each trade MUST be a DIFFERENT ticker symbol — no duplicate tickers allowed
@@ -17,7 +25,8 @@ REQUIREMENTS:
 - NO SINGLE CONTRACT should cost more than $200 (so strike prices should be chosen accordingly)
 - Include both CALL and PUT opportunities based on sentiment and market analysis
 - Provide a clear thesis for each trade explaining WHY it should be made
-- Include the CURRENT stock price (from your web search), a realistic price target, and identify any upcoming catalysts
+- Use REAL prices from get_stock_quotes for current_price
+- Use REAL option mark prices from get_option_chain for estimated_price — do NOT guess
 - Verify earnings dates and any major news events via web search
 
 RESPOND WITH ONLY A JSON ARRAY containing exactly 10 trades in this format:
@@ -40,7 +49,8 @@ RESPOND WITH ONLY A JSON ARRAY containing exactly 10 trades in this format:
 ]
 
 FIELD EXPLANATIONS:
-- current_price: The current trading price of the underlying stock
+- estimated_price: The REAL mark price of the option from the Schwab chain data
+- current_price: The REAL current stock price from Schwab quotes
 - target_price: Your price target for the stock by expiration
 - stop_loss: Premium level to exit if trade goes against you (typically 50%% of entry)
 - profit_target: Premium level to take profits (typically 100-200%% gain)
@@ -54,12 +64,16 @@ const EndOfDayPrompt = `You are an expert options trader. Today is %s (%s). The 
 This morning, the following options trades were recommended:
 %s
 
-IMPORTANT: Use web search to look up the CLOSING stock price for each underlying ticker listed above. Based on the stock price movement from the morning price to the closing price, estimate the current value of each options contract at market close. Consider factors like:
-- Direction and magnitude of stock price movement relative to strike
-- Time decay (theta) over the trading day
-- Any IV changes from news/events
+TOOLS AVAILABLE:
+- get_stock_quotes: Call this to get closing stock prices from Schwab. Pass all symbols from the morning trades.
+- get_option_chain: Call this to get the closing option prices (bid/ask/last/mark) for each trade's specific contract.
+- web_search: Use ONLY for news context about what drove price movement. Do NOT use for stock or option prices.
 
-For each trade, provide your best estimate of the closing contract price.
+WORKFLOW:
+1. Call get_stock_quotes with ALL symbols from the morning trades to get closing prices.
+2. For each trade, call get_option_chain with the exact symbol, contract_type, strike, and expiration to get the REAL closing option price.
+3. Use the mark price from the option chain as the closing_price.
+4. Optionally use web search if you need context on a big move.
 
 RESPOND WITH ONLY A JSON ARRAY:
 [
@@ -77,10 +91,10 @@ RESPOND WITH ONLY A JSON ARRAY:
 ]
 
 FIELD EXPLANATIONS:
-- entry_price: The estimated contract price from this morning (provided above as estimated_price)
-- closing_price: Your best estimate of the contract's value at market close
+- entry_price: The contract price from this morning (provided above as estimated_price)
+- closing_price: The REAL closing mark price from Schwab option chain data
 - stock_open: The stock's opening price today (use current_price from morning data as proxy)
-- stock_close: The stock's actual closing price today (look this up via web search)
+- stock_close: The stock's REAL closing price from Schwab quotes
 - notes: Brief explanation of what happened (e.g. "Stock rallied 3%% on earnings beat, contract gained value")
 
 Only respond with the JSON array, no other text.`

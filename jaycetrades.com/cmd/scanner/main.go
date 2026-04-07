@@ -13,6 +13,7 @@ import (
 
 	"jaycetrades.com/internal/config"
 	"jaycetrades.com/internal/email"
+	"jaycetrades.com/internal/schwab"
 	"jaycetrades.com/internal/sentiment"
 	"jaycetrades.com/internal/server"
 	"jaycetrades.com/internal/store"
@@ -97,8 +98,21 @@ func main() {
 		log.Printf("Seeded %d subscribers from EMAIL_RECIPIENTS", len(cfg.EmailRecipients))
 	}
 
+	// Initialize Schwab client (optional — live data features degrade gracefully).
+	var schwabClient *schwab.Client
+	if cfg.SchwabAppKey != "" && cfg.SchwabSecret != "" {
+		schwabClient = schwab.NewClient(cfg.SchwabAppKey, cfg.SchwabSecret, cfg.SchwabCallbackURL, db)
+		if schwabClient.IsConnected() {
+			log.Println("Schwab: connected (tokens loaded)")
+		} else {
+			log.Printf("Schwab: configured but not authorized — visit https://jaycetrades.com/auth/schwab to connect")
+		}
+	} else {
+		log.Println("Schwab: not configured (SCHWAB_APP_KEY / SCHWAB_SECRET not set)")
+	}
+
 	scraper := sentiment.NewScraper()
-	analyzer := trades.NewAnalyzer(cfg.OpenAIAPIKey)
+	analyzer := trades.NewAnalyzer(cfg.OpenAIAPIKey, schwabClient)
 	emailClient := email.NewClient(cfg.ResendAPIKey)
 
 	openJob := func() {
@@ -146,7 +160,7 @@ func main() {
 	c.Start()
 
 	// Start HTTP API server in background
-	srv := server.New(db, cfg.ServerPort)
+	srv := server.New(db, schwabClient, cfg.ServerPort)
 	go srv.Start()
 
 	log.Printf("Options trade scanner started")
@@ -163,7 +177,7 @@ func main() {
 
 	// Startup e2e verification: render all templates with sample data and send a test email
 	log.Println("Running startup verification...")
-	if err := sendStartupTestEmail(cfg, db, emailClient); err != nil {
+	if err := sendStartupTestEmail(cfg, db, schwabClient, emailClient); err != nil {
 		log.Printf("Startup verification FAILED: %v", err)
 		sendErrorNotification(cfg, db, emailClient, fmt.Sprintf("Startup verification failed: %v", err))
 	} else {
@@ -201,7 +215,7 @@ func checkHealth(name string, fn func() error) templates.HealthCheck {
 	return templates.HealthCheck{Name: name, Status: "ok", Detail: "Connected", Latency: lat}
 }
 
-func sendStartupTestEmail(cfg *config.Config, db *store.Store, emailClient *email.Client) error {
+func sendStartupTestEmail(cfg *config.Config, db *store.Store, schwabClient *schwab.Client, emailClient *email.Client) error {
 	var checks []templates.HealthCheck
 
 	// 1. Database connectivity
@@ -262,7 +276,24 @@ func sendStartupTestEmail(cfg *config.Config, db *store.Store, emailClient *emai
 	}
 	checks = append(checks, c)
 
-	// 5. Resend email API (verified by actually sending this email)
+	// 5. Schwab Market Data API
+	if schwabClient != nil {
+		c = checkHealth("Schwab Market Data", func() error {
+			if !schwabClient.IsConnected() {
+				return fmt.Errorf("not authorized — visit /auth/schwab")
+			}
+			_, err := schwabClient.ValidToken()
+			return err
+		})
+		if c.Status == "ok" {
+			c.Detail = "Authenticated"
+		}
+	} else {
+		c = templates.HealthCheck{Name: "Schwab Market Data", Status: "warn", Detail: "Not configured", Latency: "-"}
+	}
+	checks = append(checks, c)
+
+	// 6. Resend email API (verified by actually sending this email)
 	checks = append(checks, templates.HealthCheck{
 		Name: "Resend Email API", Status: "ok", Detail: "Delivering this email", Latency: "-",
 	})
