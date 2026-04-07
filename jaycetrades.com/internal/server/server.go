@@ -394,15 +394,18 @@ func (s *Server) handleSchwabCallback(w http.ResponseWriter, r *http.Request) {
 
 	code := r.URL.Query().Get("code")
 	if code == "" {
+		log.Printf("Schwab callback: no code param. Full query: %s", r.URL.RawQuery)
 		http.Error(w, "missing authorization code", http.StatusBadRequest)
 		return
 	}
 
+	log.Printf("Schwab callback: received code (%d chars), exchanging for tokens...", len(code))
 	if err := s.schwab.ExchangeCode(code); err != nil {
 		log.Printf("Schwab OAuth error: %v", err)
-		http.Error(w, "OAuth token exchange failed", http.StatusInternalServerError)
+		http.Error(w, "OAuth token exchange failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+	log.Println("Schwab OAuth: successfully connected")
 
 	http.Redirect(w, r, "/dashboard", http.StatusFound)
 }

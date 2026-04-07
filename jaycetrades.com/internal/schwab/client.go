@@ -72,7 +72,7 @@ func (c *Client) IsConnected() bool {
 
 // AuthorizationURL returns the URL to redirect the user to for OAuth authorization.
 func (c *Client) AuthorizationURL() string {
-	return fmt.Sprintf("%s%s?client_id=%s&redirect_uri=%s",
+	return fmt.Sprintf("%s%s?response_type=code&client_id=%s&redirect_uri=%s",
 		baseURL, authPath,
 		url.QueryEscape(c.appKey),
 		url.QueryEscape(c.callbackURL),
