@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 const tabs = [
 	{ href: "/", label: "Live Dashboard" },
 	{ href: "/history", label: "Historical Analytics" },
+	{ href: "/models", label: "Models" },
 ] as const;
 
 export function NavBar() {

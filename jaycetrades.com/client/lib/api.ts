@@ -4,6 +4,7 @@ import type {
 	ChartResponse,
 	DashboardResponse,
 	LiveQuotesResponse,
+	ModelComparisonResponse,
 	WeekResponse,
 } from "@/types/trade";
 
@@ -50,6 +51,11 @@ export const api = {
 		),
 
 	getLiveQuotes: () => clientFetch<LiveQuotesResponse>("/api/quotes/live"),
+
+	getModelComparison: (range: "week" | "month" | "year" | "all" = "all") =>
+		clientFetch<ModelComparisonResponse>(
+			`/api/model-comparison?range=${range}`,
+		),
 
 	getChartData: (symbol: string, params: ChartParams) =>
 		clientFetch<ChartResponse>(
