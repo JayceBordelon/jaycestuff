@@ -16,11 +16,15 @@ export function MethodologySection() {
 						Every trading day follows a fixed automated pipeline. At 9:25 AM
 						ET, the system scrapes social-media sentiment from multiple
 						sources, identifies the most-discussed tickers, and feeds them
-						into a GPT-5.4 analysis layer. The model scores each ticker on
-						sentiment strength, catalyst quality, and risk profile, then
-						selects the top-ranked option contracts for the day. All
-						positions are opened at the market open and closed at 4:05 PM
-						ET&mdash;no trades are held overnight.
+						into a GPT-5.4 analysis layer. GPT-5.4 has proven to be
+						particularly effective at sentiment analysis and market context
+						synthesis. The model scores each ticker on sentiment strength,
+						catalyst quality, and risk profile, then selects the top-ranked
+						option contracts for the day. All positions are opened at the
+						market open and closed at 4:05 PM ET&mdash;no trades are held
+						overnight. A migration to Anthropic&apos;s Claude is planned for
+						the analysis layer to further improve reasoning and trade
+						selection quality.
 					</p>
 				</section>
 

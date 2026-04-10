@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"jaycetrades.com/internal/schwab"
 	"jaycetrades.com/internal/email"
+	"jaycetrades.com/internal/schwab"
 	"jaycetrades.com/internal/store"
 	"jaycetrades.com/internal/templates"
 	"jaycetrades.com/internal/trades"
@@ -602,12 +602,12 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 // ── Admin: Broadcast Announcement ──
 
 type announceRequest struct {
-	Subject  string                        `json:"subject"`
-	Badge    string                        `json:"badge"`
-	Headline string                        `json:"headline"`
+	Subject  string                          `json:"subject"`
+	Badge    string                          `json:"badge"`
+	Headline string                          `json:"headline"`
 	Sections []templates.AnnouncementSection `json:"sections"`
-	CTAText  string                        `json:"cta_text"`
-	CTAURL   string                        `json:"cta_url"`
+	CTAText  string                          `json:"cta_text"`
+	CTAURL   string                          `json:"cta_url"`
 }
 
 func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {

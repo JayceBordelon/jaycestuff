@@ -14,11 +14,14 @@ const faqs = [
 		from Reddit communities like r/wallstreetbets and r/options, capturing
 		sentiment scores and mention counts. This data — along with real-time stock
 		quotes and live option chain pricing from the Schwab Market Data API — is
-		fed into OpenAI's GPT-5.4 model. The model identifies 10 high-conviction
-		short-dated options trades (0–7 DTE, under $200 per contract), ranks them
-		1–10 by conviction, and returns specific contract details including strike
-		price, expiration, entry price, target, and stop loss. Every price in the
-		pick is sourced from real market data — nothing is guessed.`,
+		fed into OpenAI's GPT-5.4 model. GPT-5.4 has proven particularly strong at
+		sentiment analysis and market context synthesis. The model identifies 10
+		high-conviction short-dated options trades (0–7 DTE, under $200 per
+		contract), ranks them 1–10 by conviction, and returns specific contract
+		details including strike price, expiration, entry price, target, and stop
+		loss. Every price in the pick is sourced from real market data — nothing is
+		guessed. We are planning a migration to Anthropic's Claude for the analysis
+		layer in the near future.`,
 	},
 	{
 		question: "What do the rankings (Top 1, Top 3, Top 5, Top 10) mean?",
@@ -48,10 +51,13 @@ const faqs = [
 		answer: `Stock quotes and option chain data (bid, ask, mark, greeks, open
 		interest) come from the Schwab Market Data API via an authenticated OAuth
 		connection. Sentiment data is scraped from Reddit's public JSON feeds. The
-		AI analysis is powered by OpenAI's GPT-5.4 model using the Responses API
-		with function calling — the model can query Schwab for real-time quotes and
-		option chains, and use web search for news and catalyst context, all within
-		a single analysis session.`,
+		AI analysis is currently powered by OpenAI's GPT-5.4 model using the
+		Responses API with function calling — the model can query Schwab for
+		real-time quotes and option chains, and use web search for news and catalyst
+		context, all within a single analysis session. GPT-5.4 has been the backbone
+		of sentiment analysis here and has delivered solid results, but we will be
+		migrating to Anthropic's Claude in an upcoming release for enhanced
+		reasoning and trade analysis capabilities.`,
 	},
 	{
 		question: "How often are emails sent, and what do they contain?",
