@@ -1,23 +1,30 @@
 "use client";
 
+// NavBar moved to app/(app)/layout.tsx — see top of file
+import { CalendarX } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+
+import { DashboardSkeleton } from "@/components/layout/dashboard-skeleton";
+import { DataFreshness } from "@/components/layout/data-freshness";
+import { PageToolbar } from "@/components/layout/page-toolbar";
+import { Section } from "@/components/layout/section";
+import { Separator } from "@/components/ui/separator";
 import { api } from "@/lib/api";
 import type {
 	DashboardResponse,
 	DashboardTrade,
 	LiveQuotesResponse,
 } from "@/types/trade";
-import { NavBar } from "@/components/layout/nav-bar";
-import { TopNFilter } from "./top-n-filter";
+
 import { DateNavigator } from "./date-navigator";
-import { SymbolTabs } from "./symbol-tabs";
-import { StockChart } from "./stock-chart";
-import { StatsGrid } from "./stats-grid";
 import { ExposurePanel } from "./exposure-panel";
-import { PnlChart } from "./pnl-chart";
-import { TradeTable } from "./trade-table";
 import { MorningCards } from "./morning-cards";
-import { LiveBanner } from "./live-banner";
+import { PnlChart } from "./pnl-chart";
+import { StatsGrid } from "./stats-grid";
+import { StockChart } from "./stock-chart";
+import { SymbolTabs } from "./symbol-tabs";
+import { TopNFilter } from "./top-n-filter";
+import { TradeTable } from "./trade-table";
 
 const STORAGE_KEY = "jt_dash_v3";
 const REFRESH_SECONDS = 60;
@@ -86,7 +93,7 @@ export function DashboardShell() {
 		null,
 	);
 	const [activeSymbol, setActiveSymbol] = useState("");
-	const [chartTimeframe, setChartTimeframe] = useState({
+	const [chartTimeframe] = useState({
 		period: 5,
 		ptype: "day",
 		ftype: "minute",
@@ -176,57 +183,54 @@ export function DashboardShell() {
 		}
 	}, [filtered, activeSymbol]);
 
+	const freshnessState: "loading" | "live" | "market-closed" | "pre-market" =
+		!rawData
+			? "loading"
+			: !liveQuotes
+				? stats?.hasSummaries
+					? "market-closed"
+					: "pre-market"
+				: liveQuotes.market_open
+					? "live"
+					: "market-closed";
+
+	const title = stats?.hasSummaries ? "End of Day Results" : "Today's Plays";
+	const subtitle = filtered?.trades?.length
+		? `${filtered.trades.length} options picks${
+				topFilter < 10 ? ` · Top ${topFilter}` : ""
+			}${stats?.hasSummaries ? "" : " · 0–7 DTE · Under $200/contract"}`
+		: "Loading…";
+
 	return (
-		<>
-			<NavBar>
-				<TopNFilter value={topFilter} onChange={setTopFilter} />
-				<DateNavigator
-					dates={dates}
-					index={dayIndex}
-					onChange={setDayIndex}
-				/>
-			</NavBar>
-
-			{/* Stock chart section */}
-			{filtered?.trades && filtered.trades.length > 0 && (
-				<div className="bg-card px-7 py-5">
-					<SymbolTabs
-						trades={filtered.trades}
-						activeSymbol={activeSymbol}
-						onSelect={setActiveSymbol}
+		<div className="animate-in fade-in duration-300">
+			<PageToolbar
+				title={title}
+				subtitle={subtitle}
+				primaryControls={
+					<TopNFilter value={topFilter} onChange={setTopFilter} />
+				}
+				secondaryControls={
+					<DateNavigator
+						dates={dates}
+						index={dayIndex}
+						onChange={setDayIndex}
 					/>
-					<div className="mt-3 h-[480px] overflow-hidden rounded-lg border bg-muted max-sm:h-[360px]">
-						{activeSymbol && (
-							<StockChart
-								symbol={activeSymbol}
-								timeframe={chartTimeframe}
-							/>
-						)}
-					</div>
-				</div>
-			)}
+				}
+				rightSlot={
+					<DataFreshness
+						state={freshnessState}
+						asOf={liveQuotes?.as_of}
+					/>
+				}
+			/>
 
-			{/* Main content */}
-			<div className="mx-auto max-w-[1200px] p-5 sm:px-7">
-				{!filtered || !filtered.trades?.length ? (
-					<div className="py-12 text-center">
-						<div className="mb-3 text-4xl opacity-40">&#128200;</div>
-						<div className="text-base font-bold">
-							{rawData ? "No trades for this date" : "Loading trades..."}
-						</div>
-						<div className="text-sm text-muted-foreground">
-							Trades are published at 9:25 AM ET on market days.
-						</div>
-					</div>
+			<div className="mx-auto max-w-[1200px] px-4 py-6 sm:px-7">
+				{!rawData ? (
+					<DashboardSkeleton />
+				) : !filtered?.trades?.length ? (
+					<EmptyState />
 				) : stats?.hasSummaries ? (
 					<>
-						<h1 className="mb-1 text-xs font-bold uppercase tracking-widest">
-							End of Day Results
-						</h1>
-						<p className="mb-5 text-xs text-muted-foreground">
-							{filtered.trades.length} options picks
-							{topFilter < 10 ? ` (Top ${topFilter})` : ""}
-						</p>
 						<StatsGrid
 							totalPnl={stats.totalPnl}
 							winRate={stats.winRate}
@@ -234,49 +238,96 @@ export function DashboardShell() {
 							bestPnl={stats.bestPnl}
 							bestSym={stats.bestSym}
 						/>
-						<div className="mt-5">
+						<Section title="Price Chart" className="mt-8">
+							<SymbolTabs
+								trades={filtered.trades}
+								activeSymbol={activeSymbol}
+								onSelect={setActiveSymbol}
+							/>
+							<div className="mt-3 h-[280px] overflow-hidden rounded-lg border bg-muted sm:h-[360px] lg:h-[420px]">
+								{activeSymbol && (
+									<StockChart
+										symbol={activeSymbol}
+										timeframe={chartTimeframe}
+									/>
+								)}
+							</div>
+						</Section>
+						<Section
+							title="Exposure Analysis"
+							subtitle="How capital was deployed today"
+						>
 							<ExposurePanel
 								trades={filtered.trades}
 								hasSummaries
 							/>
-						</div>
-						<div className="mt-5">
+						</Section>
+						<Section
+							title="P&L by Trade"
+							subtitle="Per-contract performance, sorted"
+						>
 							<PnlChart trades={filtered.trades} />
-						</div>
-						<div className="my-5 h-px bg-border" />
-						<TradeTable trades={filtered.trades} />
+						</Section>
+						<Separator />
+						<Section
+							title="Trade Details"
+							subtitle="Click any row to expand"
+						>
+							<TradeTable trades={filtered.trades} />
+						</Section>
 					</>
 				) : (
 					<>
-						<h1 className="mb-1 text-xs font-bold uppercase tracking-widest">
-							Today&apos;s Plays
-						</h1>
-						<p className="mb-5 text-xs text-muted-foreground">
-							{filtered.trades.length} options picks
-							{topFilter < 10 ? ` (Top ${topFilter})` : ""}{" "}
-							&middot; 0-7 DTE &middot; Under $200/contract
-						</p>
-						<LiveBanner quotes={liveQuotes} />
-						<div className="mb-4 flex items-center gap-2 rounded-md border bg-muted/50 p-3 text-xs">
-							<span>&#9202;</span>
-							<span>
-								End-of-day results will be available after 4:05
-								PM ET.
-							</span>
-						</div>
-						<ExposurePanel
-							trades={filtered.trades}
-							hasSummaries={false}
-						/>
-						<div className="mt-5">
+						<Section title="Price Chart">
+							<SymbolTabs
+								trades={filtered.trades}
+								activeSymbol={activeSymbol}
+								onSelect={setActiveSymbol}
+							/>
+							<div className="mt-3 h-[280px] overflow-hidden rounded-lg border bg-muted sm:h-[360px] lg:h-[420px]">
+								{activeSymbol && (
+									<StockChart
+										symbol={activeSymbol}
+										timeframe={chartTimeframe}
+									/>
+								)}
+							</div>
+						</Section>
+						<Section
+							title="Exposure"
+							subtitle="Capital at risk for today's picks"
+						>
+							<ExposurePanel
+								trades={filtered.trades}
+								hasSummaries={false}
+							/>
+						</Section>
+						<Section
+							title="Today's Picks"
+							subtitle={`${filtered.trades.length} ranked plays`}
+						>
 							<MorningCards
 								trades={filtered.trades}
 								liveQuotes={liveQuotes}
 							/>
-						</div>
+						</Section>
 					</>
 				)}
 			</div>
-		</>
+		</div>
+	);
+}
+
+function EmptyState() {
+	return (
+		<div className="flex flex-col items-center justify-center py-16 text-center">
+			<CalendarX className="h-12 w-12 text-muted-foreground/50" />
+			<h3 className="mt-4 text-base font-semibold">
+				No trades for this date
+			</h3>
+			<p className="mt-1 text-sm text-muted-foreground">
+				Trades publish at 9:25 AM ET on market days.
+			</p>
+		</div>
 	);
 }

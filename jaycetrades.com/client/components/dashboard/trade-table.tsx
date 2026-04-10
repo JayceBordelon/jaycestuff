@@ -1,7 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { Fragment, useState } from "react";
+
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Metric } from "@/components/ui/metric";
 import {
 	Table,
 	TableBody,
@@ -10,165 +19,306 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
-import { fmtMoney, fmtPnlInt, fmtPctDec, pnlColor } from "@/lib/format";
 import {
-	calcMoneyness,
 	calcBreakeven,
 	calcMaxLoss,
+	calcMoneyness,
 	calcRiskReward,
-	sentimentLabel,
 	sentimentColor,
+	sentimentLabel,
 } from "@/lib/calculations";
+import {
+	fmt,
+	fmtMoney,
+	fmtPctDec,
+	fmtPnlInt,
+	pnlColor,
+} from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { DashboardTrade } from "@/types/trade";
 
 interface TradeTableProps {
 	trades: DashboardTrade[];
 }
 
+// ---- Computed values for a single DashboardTrade ----
+interface RowComputed {
+	hasSummary: boolean;
+	pnl: number;
+	pnlPct: number;
+	stockMove: number;
+	resultLabel: string;
+	resultVariant: "default" | "destructive" | "outline" | "secondary";
+	accentBorder: string;
+	entry: string;
+	close: string;
+}
+
+function computeRow(dt: DashboardTrade): RowComputed {
+	const { trade, summary } = dt;
+	const hasSummary = !!summary;
+	const pnl = hasSummary
+		? (summary.closing_price - summary.entry_price) * 100
+		: 0;
+	const pnlPct = hasSummary
+		? ((summary.closing_price - summary.entry_price) /
+				summary.entry_price) *
+			100
+		: 0;
+	const stockMove = hasSummary
+		? ((summary.stock_close - summary.stock_open) / summary.stock_open) *
+			100
+		: 0;
+
+	const resultLabel = hasSummary
+		? pnl > 0
+			? "PROFIT"
+			: pnl < 0
+				? "LOSS"
+				: "FLAT"
+		: "OPEN";
+	const resultVariant: RowComputed["resultVariant"] = hasSummary
+		? pnl > 0
+			? "default"
+			: pnl < 0
+				? "destructive"
+				: "outline"
+		: "secondary";
+
+	const accentBorder = !hasSummary
+		? "border-l-transparent"
+		: pnlPct > 1
+			? "border-l-green/40"
+			: pnlPct < -1
+				? "border-l-red/40"
+				: "border-l-transparent";
+
+	return {
+		hasSummary,
+		pnl,
+		pnlPct,
+		stockMove,
+		resultLabel,
+		resultVariant,
+		accentBorder,
+		entry: hasSummary
+			? fmtMoney(summary.entry_price)
+			: fmtMoney(trade.estimated_price),
+		close: hasSummary ? fmtMoney(summary.closing_price) : "—",
+	};
+}
+
 export function TradeTable({ trades }: TradeTableProps) {
-	const [expanded, setExpanded] = useState<number | null>(null);
-
-	function toggle(rank: number) {
-		setExpanded((prev) => (prev === rank ? null : rank));
-	}
-
 	return (
-		<Table>
-			<TableHeader>
-				<TableRow>
-					<TableHead className="w-10 text-center">#</TableHead>
-					<TableHead>Trade</TableHead>
-					<TableHead className="text-right">Entry</TableHead>
-					<TableHead className="text-right">Close</TableHead>
-					<TableHead className="text-right">Stock</TableHead>
-					<TableHead className="text-right">P&L</TableHead>
-				</TableRow>
-			</TableHeader>
-			<TableBody>
-				{trades.map((dt) => {
-					const { trade, summary } = dt;
-					const moneyness = calcMoneyness(trade);
-					const hasSummary = !!summary;
-					const pnl = hasSummary
-						? (summary.closing_price - summary.entry_price) * 100
-						: 0;
-					const isExpanded = expanded === trade.rank;
+		<div>
+			{/* Desktop table */}
+			<div className="hidden md:block">
+				<Table>
+					<TableHeader>
+						<TableRow>
+							<TableHead className="w-10" />
+							<TableHead className="w-10 text-center">#</TableHead>
+							<TableHead>Trade</TableHead>
+							<TableHead className="text-right">Entry</TableHead>
+							<TableHead className="text-right">Close</TableHead>
+							<TableHead className="text-right">Stock</TableHead>
+							<TableHead className="text-right">P&amp;L</TableHead>
+						</TableRow>
+					</TableHeader>
+					<TableBody>
+						{trades.map((dt) => (
+							<DesktopTradeRow key={dt.trade.rank} dt={dt} />
+						))}
+					</TableBody>
+				</Table>
+			</div>
 
-					const resultLabel = hasSummary
-						? pnl > 0
-							? "WIN"
-							: pnl < 0
-								? "LOSS"
-								: "FLAT"
-						: "OPEN";
-					const resultVariant = hasSummary
-						? pnl > 0
-							? "default"
-							: pnl < 0
-								? "destructive"
-								: "outline"
-						: ("secondary" as const);
-
-					const stockMove = hasSummary
-						? ((summary.stock_close - summary.stock_open) /
-								summary.stock_open) *
-							100
-						: 0;
-
-					return (
-						<>
-							<TableRow
-								key={trade.rank}
-								className="cursor-pointer"
-								onClick={() => toggle(trade.rank)}
-								aria-expanded={isExpanded}
-							>
-								<TableCell className="text-center font-mono text-xs text-muted-foreground">
-									{trade.rank}
-								</TableCell>
-								<TableCell>
-									<div className="flex flex-wrap items-center gap-1.5">
-										<span className="font-semibold">
-											${trade.symbol}
-										</span>
-										<Badge
-											variant="outline"
-											className={cn(
-												"text-[10px]",
-												trade.contract_type === "CALL"
-													? "border-green/30 text-green"
-													: "border-red/30 text-red",
-											)}
-										>
-											{trade.contract_type}
-										</Badge>
-										<Badge
-											variant={resultVariant}
-											className="text-[10px]"
-										>
-											{resultLabel}
-										</Badge>
-										<Badge
-											variant={moneyness.variant}
-											className="text-[10px]"
-										>
-											{moneyness.label}
-										</Badge>
-									</div>
-								</TableCell>
-								<TableCell className="text-right font-mono text-sm">
-									{hasSummary
-										? fmtMoney(summary.entry_price)
-										: fmtMoney(trade.estimated_price)}
-								</TableCell>
-								<TableCell className="text-right font-mono text-sm">
-									{hasSummary
-										? fmtMoney(summary.closing_price)
-										: "—"}
-								</TableCell>
-								<TableCell
-									className={cn(
-										"text-right font-mono text-sm",
-										hasSummary
-											? stockMove >= 0
-												? "text-green"
-												: "text-red"
-											: "text-muted-foreground",
-									)}
-								>
-									{hasSummary
-										? fmtPctDec(stockMove)
-										: "—"}
-								</TableCell>
-								<TableCell
-									className={cn(
-										"text-right font-mono text-sm font-semibold",
-										hasSummary
-											? pnlColor(pnl)
-											: "text-muted-foreground",
-									)}
-								>
-									{hasSummary ? fmtPnlInt(pnl) : "—"}
-								</TableCell>
-							</TableRow>
-
-							{isExpanded && (
-								<TableRow key={`${trade.rank}-detail`}>
-									<TableCell colSpan={6} className="bg-muted/30 p-0">
-										<TradeDetail dt={dt} />
-									</TableCell>
-								</TableRow>
-							)}
-						</>
-					);
-				})}
-			</TableBody>
-		</Table>
+			{/* Mobile cards */}
+			<div className="space-y-3 md:hidden">
+				{trades.map((dt, index) => (
+					<TradeRowCard key={dt.trade.rank} dt={dt} index={index} />
+				))}
+			</div>
+		</div>
 	);
 }
 
-function TradeDetail({ dt }: { dt: DashboardTrade }) {
+// ---- Desktop row ----
+// We cannot wrap <Collapsible> around multiple <TableRow>s (it renders a div
+// which would break table structure), so we manage state locally and scope the
+// Collapsible to a single cell in the detail row for smooth animation.
+function DesktopTradeRow({ dt }: { dt: DashboardTrade }) {
+	const [open, setOpen] = useState(false);
+	const { trade } = dt;
+	const moneyness = calcMoneyness(trade);
+	const row = computeRow(dt);
+
+	return (
+		<Fragment>
+			<TableRow
+				className={cn(
+					"cursor-pointer border-l-2 transition-colors hover:bg-muted/50",
+					row.accentBorder,
+				)}
+				aria-expanded={open}
+				onClick={() => setOpen((v) => !v)}
+			>
+				<TableCell className="w-10">
+					{open ? (
+						<ChevronDown className="h-4 w-4 text-muted-foreground" />
+					) : (
+						<ChevronRight className="h-4 w-4 text-muted-foreground" />
+					)}
+				</TableCell>
+				<TableCell className="text-center text-sm tabular-nums text-muted-foreground">
+					{trade.rank}
+				</TableCell>
+				<TableCell>
+					<div className="flex flex-wrap items-center gap-1.5">
+						<span className="font-mono text-sm font-semibold">
+							${trade.symbol}
+						</span>
+						<Badge
+							variant="outline"
+							className={cn(
+								trade.contract_type === "CALL"
+									? "border-green-border text-green"
+									: "border-red-border text-red",
+							)}
+						>
+							{trade.contract_type}
+						</Badge>
+						<Badge variant={row.resultVariant}>
+							{row.resultLabel}
+						</Badge>
+						<Badge variant={moneyness.variant}>
+							{moneyness.label}
+						</Badge>
+					</div>
+				</TableCell>
+				<TableCell className="text-right font-mono text-sm tabular-nums">
+					{row.entry}
+				</TableCell>
+				<TableCell className="text-right font-mono text-sm tabular-nums">
+					{row.close}
+				</TableCell>
+				<TableCell
+					className={cn(
+						"text-right font-mono text-sm tabular-nums",
+						row.hasSummary
+							? row.stockMove >= 0
+								? "text-green"
+								: "text-red"
+							: "text-muted-foreground",
+					)}
+				>
+					{row.hasSummary ? fmtPctDec(row.stockMove) : "—"}
+				</TableCell>
+				<TableCell
+					className={cn(
+						"text-right text-base font-semibold tabular-nums",
+						row.hasSummary
+							? pnlColor(row.pnl)
+							: "text-muted-foreground",
+					)}
+				>
+					{row.hasSummary ? fmtPnlInt(row.pnl) : "—"}
+				</TableCell>
+			</TableRow>
+			{open && (
+				<TableRow className="hover:bg-transparent">
+					<TableCell colSpan={7} className="bg-muted/30 p-0">
+						<div className="animate-in fade-in slide-in-from-top-1 duration-200">
+							<TradeDetail dt={dt} />
+						</div>
+					</TableCell>
+				</TableRow>
+			)}
+		</Fragment>
+	);
+}
+
+// ---- Mobile card ----
+function TradeRowCard({ dt, index }: { dt: DashboardTrade; index: number }) {
+	const [open, setOpen] = useState(false);
+	const { trade } = dt;
+	const moneyness = calcMoneyness(trade);
+	const row = computeRow(dt);
+
+	return (
+		<Card
+			className={cn(
+				"animate-in fade-in slide-in-from-bottom-1 duration-300 border-l-2",
+				row.accentBorder,
+			)}
+			style={{ animationDelay: `${index * 40}ms` }}
+		>
+			<CardContent className="space-y-3 p-4">
+				<div className="flex flex-wrap items-center gap-1.5">
+					<Badge variant="secondary">#{trade.rank}</Badge>
+					<span className="font-mono text-base font-semibold">
+						${trade.symbol}
+					</span>
+					<Badge
+						variant="outline"
+						className={cn(
+							trade.contract_type === "CALL"
+								? "border-green-border text-green"
+								: "border-red-border text-red",
+						)}
+					>
+						{trade.contract_type}
+					</Badge>
+					<Badge variant={row.resultVariant}>{row.resultLabel}</Badge>
+					<Badge variant={moneyness.variant}>{moneyness.label}</Badge>
+				</div>
+
+				<div
+					className={cn(
+						"text-2xl font-semibold tabular-nums",
+						row.hasSummary
+							? pnlColor(row.pnl)
+							: "text-muted-foreground",
+					)}
+				>
+					{row.hasSummary ? fmtPnlInt(row.pnl) : "—"}
+				</div>
+
+				<div className="grid grid-cols-3 gap-3 text-sm">
+					<Metric label="Entry" value={row.entry} />
+					<Metric label="Close" value={row.close} />
+					<Metric label="DTE" value={`${trade.dte}d`} />
+				</div>
+
+				<Collapsible open={open} onOpenChange={setOpen}>
+					<CollapsibleTrigger asChild>
+						<button
+							type="button"
+							className="group/card flex w-full items-center justify-between rounded-md border bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted"
+						>
+							<span>View full details</span>
+							<ChevronDown className="h-3.5 w-3.5 transition-transform group-data-[state=open]/card:rotate-180" />
+						</button>
+					</CollapsibleTrigger>
+					<CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+						<div className="pt-3">
+							<TradeDetail dt={dt} compact />
+						</div>
+					</CollapsibleContent>
+				</Collapsible>
+			</CardContent>
+		</Card>
+	);
+}
+
+// ---- Shared detail content ----
+function TradeDetail({
+	dt,
+	compact = false,
+}: {
+	dt: DashboardTrade;
+	compact?: boolean;
+}) {
 	const { trade, summary } = dt;
 	const moneyness = calcMoneyness(trade);
 	const breakeven = calcBreakeven(trade);
@@ -176,105 +326,89 @@ function TradeDetail({ dt }: { dt: DashboardTrade }) {
 	const riskReward = calcRiskReward(trade);
 
 	return (
-		<div className="space-y-3 px-6 py-4">
-			<div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3 md:grid-cols-4">
-				<DetailItem
-					label="Strike"
-					value={fmtMoney(trade.strike_price)}
+		<div className={cn("space-y-4", compact ? "" : "p-4")}>
+			<div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3 md:grid-cols-4">
+				<Metric label="Strike" value={fmtMoney(trade.strike_price)} />
+				<Metric
+					label="Expiration"
+					value={`${trade.expiration} (${trade.dte}d)`}
 				/>
-				<DetailItem label="Expiration" value={trade.expiration} />
-				<DetailItem label="DTE" value={`${trade.dte}d`} />
-				<DetailItem
+				<Metric label="Breakeven" value={fmtMoney(breakeven)} />
+				<Metric
+					label="Max Loss"
+					value={
+						<span className="text-sm font-semibold tabular-nums text-red">
+							{fmtPnlInt(-maxLoss)}
+						</span>
+					}
+				/>
+				<Metric
+					label="Risk / Reward"
+					value={
+						riskReward ? `1:${riskReward.toFixed(1)}` : "N/A"
+					}
+				/>
+				<Metric label="Moneyness" value={moneyness.label} />
+				<Metric
+					label="Sentiment"
+					value={
+						<span
+							className={cn(
+								"text-sm font-semibold tabular-nums",
+								sentimentColor(trade.sentiment_score),
+							)}
+						>
+							{sentimentLabel(trade.sentiment_score)} (
+							{fmt(trade.sentiment_score, 2)})
+						</span>
+					}
+				/>
+				<Metric
 					label="Stock at Entry"
 					value={fmtMoney(trade.current_price)}
 				/>
-				<DetailItem label="Moneyness" value={moneyness.label} />
-				<DetailItem label="Breakeven" value={fmtMoney(breakeven)} />
-				<DetailItem label="Max Loss" value={fmtPnlInt(-maxLoss)} />
-				<DetailItem
-					label="Risk / Reward"
-					value={
-						riskReward
-							? `1:${riskReward.toFixed(1)}`
-							: "N/A"
-					}
-				/>
-				<DetailItem label="Risk Level">
-					<Badge
-						variant={
-							trade.risk_level === "HIGH"
-								? "destructive"
-								: trade.risk_level === "MEDIUM"
-									? "outline"
-									: "secondary"
-						}
-						className="text-[10px]"
-					>
-						{trade.risk_level}
-					</Badge>
-				</DetailItem>
-				<DetailItem label="Sentiment">
-					<span
-						className={cn(
-							"font-semibold",
-							sentimentColor(trade.sentiment_score),
-						)}
-					>
-						{sentimentLabel(trade.sentiment_score)} (
-						{trade.sentiment_score.toFixed(2)})
-					</span>
-				</DetailItem>
 			</div>
 
 			{trade.catalyst && (
-				<div className="rounded-md bg-amber-bg px-3 py-2 text-xs">
-					<span className="font-semibold text-amber">Catalyst: </span>
+				<div className="rounded-md bg-amber-bg px-3 py-2 text-sm">
+					<span className="font-semibold text-amber">Catalyst:</span>{" "}
 					{trade.catalyst}
 				</div>
 			)}
 
+			{trade.thesis && (
+				<p className="text-sm leading-relaxed text-muted-foreground">
+					<span className="font-semibold text-foreground">
+						Thesis:
+					</span>{" "}
+					{trade.thesis}
+				</p>
+			)}
+
 			{summary && (
-				<div className="rounded-md bg-muted/50 px-3 py-2 text-xs">
-					<span className="font-semibold">EOD Results: </span>
-					Entry {fmtMoney(summary.entry_price)} → Close{" "}
-					{fmtMoney(summary.closing_price)} | Stock{" "}
-					{fmtMoney(summary.stock_open)} → {fmtMoney(summary.stock_close)}
+				<div className="rounded-md bg-card-elevated px-3 py-2 text-sm">
+					<span className="font-semibold">EOD Result:</span> Entry{" "}
+					<span className="font-mono tabular-nums">
+						{fmtMoney(summary.entry_price)}
+					</span>{" "}
+					&rarr; Close{" "}
+					<span className="font-mono tabular-nums">
+						{fmtMoney(summary.closing_price)}
+					</span>{" "}
+					&middot; Stock{" "}
+					<span className="font-mono tabular-nums">
+						{fmtMoney(summary.stock_open)}
+					</span>{" "}
+					&rarr;{" "}
+					<span className="font-mono tabular-nums">
+						{fmtMoney(summary.stock_close)}
+					</span>
 					{summary.notes && (
 						<span className="ml-1 text-muted-foreground">
 							— {summary.notes}
 						</span>
 					)}
 				</div>
-			)}
-
-			{trade.thesis && (
-				<div className="text-xs leading-relaxed text-muted-foreground">
-					<span className="font-semibold text-foreground">
-						Thesis:{" "}
-					</span>
-					{trade.thesis}
-				</div>
-			)}
-		</div>
-	);
-}
-
-function DetailItem({
-	label,
-	value,
-	children,
-}: {
-	label: string;
-	value?: string;
-	children?: React.ReactNode;
-}) {
-	return (
-		<div>
-			<div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-				{label}
-			</div>
-			{children ?? (
-				<div className="font-mono text-sm font-medium">{value}</div>
 			)}
 		</div>
 	);

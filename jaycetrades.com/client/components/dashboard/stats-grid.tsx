@@ -1,40 +1,17 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-import { fmtPnlInt, pnlColor } from "@/lib/format";
+"use client";
 
-interface StatCardProps {
-	label: string;
-	value: string;
-	sub?: string;
-	colorClass?: string;
-	accent?: "green" | "red" | "neutral";
-}
+import { Percent, Target, TrendingDown, TrendingUp, Trophy } from "lucide-react";
 
-function StatCard({ label, value, sub, colorClass, accent = "neutral" }: StatCardProps) {
-	const borderColor =
-		accent === "green"
-			? "border-l-green"
-			: accent === "red"
-				? "border-l-red"
-				: "border-l-primary";
+import { StatCard } from "@/components/ui/stat-card";
+import { useCountUp } from "@/hooks/use-count-up";
+import { fmtPnlInt } from "@/lib/format";
 
-	return (
-		<Card className={cn("border-l-3 text-center transition-transform hover:-translate-y-0.5", borderColor)}>
-			<CardContent className="p-3.5">
-				<div className={cn("font-mono text-2xl font-extrabold leading-tight", colorClass)}>
-					{value}
-				</div>
-				<div className="mt-1 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">
-					{label}
-				</div>
-				{sub && (
-					<div className="mt-0.5 text-[10px] text-muted-foreground">
-						{sub}
-					</div>
-				)}
-			</CardContent>
-		</Card>
-	);
+interface StatsGridProps {
+	totalPnl: number;
+	winRate: number;
+	profitFactor: number;
+	bestPnl: number;
+	bestSym: string;
 }
 
 export function StatsGrid({
@@ -43,40 +20,51 @@ export function StatsGrid({
 	profitFactor,
 	bestPnl,
 	bestSym,
-}: {
-	totalPnl: number;
-	winRate: number;
-	profitFactor: number;
-	bestPnl: number;
-	bestSym: string;
-}) {
-	const pnlAccent = totalPnl > 0 ? "green" : totalPnl < 0 ? "red" : "neutral";
+}: StatsGridProps) {
+	const animatedPnl = useCountUp(totalPnl);
+
+	const pnlTone: "positive" | "negative" | "neutral" =
+		totalPnl > 0 ? "positive" : totalPnl < 0 ? "negative" : "neutral";
+
+	const pnlIcon = totalPnl >= 0 ? TrendingUp : TrendingDown;
+
+	const isInfinite = profitFactor === Number.POSITIVE_INFINITY;
+	const profitFactorValue = isInfinite ? "\u221E" : `${profitFactor.toFixed(2)}x`;
+	const profitFactorSub = isInfinite ? "(no losses yet)" : undefined;
 
 	return (
-		<div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+		<div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
 			<StatCard
 				label="Net P&L"
-				value={fmtPnlInt(totalPnl)}
-				colorClass={pnlColor(totalPnl)}
-				accent={pnlAccent}
+				value={fmtPnlInt(animatedPnl)}
+				tone={pnlTone}
+				icon={pnlIcon}
+				index={0}
 			/>
 			<StatCard
 				label="Win Rate"
 				value={`${winRate.toFixed(0)}%`}
-				accent="neutral"
+				tone="neutral"
+				icon={Target}
+				tooltip="Winning trades / total closed trades"
+				index={1}
 			/>
 			<StatCard
 				label="Profit Factor"
-				value={profitFactor === Number.POSITIVE_INFINITY ? "\u221E" : `${profitFactor.toFixed(2)}x`}
-				sub="gross wins / losses"
-				accent="neutral"
+				value={profitFactorValue}
+				sub={profitFactorSub}
+				tone="neutral"
+				icon={Percent}
+				tooltip="Profit Factor = gross wins / gross losses"
+				index={2}
 			/>
 			<StatCard
 				label="Best Trade"
 				value={fmtPnlInt(bestPnl)}
 				sub={`$${bestSym}`}
-				colorClass="text-green"
-				accent="green"
+				tone="positive"
+				icon={Trophy}
+				index={3}
 			/>
 		</div>
 	);

@@ -18,9 +18,13 @@ export function ModeToggle({
 }) {
 	return (
 		<Tabs value={mode} onValueChange={onChange}>
-			<TabsList>
+			<TabsList className="h-auto p-1">
 				{OPTIONS.map((o) => (
-					<TabsTrigger key={o.value} value={o.value}>
+					<TabsTrigger
+						key={o.value}
+						value={o.value}
+						className="min-h-[36px] px-4 text-sm font-medium"
+					>
 						{o.label}
 					</TabsTrigger>
 				))}

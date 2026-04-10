@@ -1,45 +1,46 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import { formatDateShort } from "@/lib/date-utils";
 
-export function DateNavigator({
-	dates,
-	index,
-	onChange,
-}: {
+interface DateNavigatorProps {
 	dates: string[];
 	index: number;
 	onChange: (i: number) => void;
-}) {
+}
+
+export function DateNavigator({ dates, index, onChange }: DateNavigatorProps) {
 	const label =
 		dates.length > 0 && index < dates.length
 			? formatDateShort(dates[index])
 			: "No data";
 
 	return (
-		<div className="flex items-center overflow-hidden rounded-md border bg-muted">
+		<div className="flex items-center overflow-hidden rounded-md border bg-card">
 			<Button
 				variant="ghost"
 				size="icon"
-				className="h-7 w-7 rounded-none"
+				className="h-9 w-9 rounded-none"
 				disabled={index >= dates.length - 1}
 				onClick={() => onChange(index + 1)}
+				aria-label="Previous day"
 			>
-				<ChevronLeft className="h-3.5 w-3.5" />
+				<ChevronLeft className="h-4 w-4" />
 			</Button>
-			<span className="min-w-[130px] border-x px-3 py-1 text-center text-xs font-semibold">
+			<span className="min-w-[140px] border-x px-3 py-1.5 text-center text-sm font-medium">
 				{label}
 			</span>
 			<Button
 				variant="ghost"
 				size="icon"
-				className="h-7 w-7 rounded-none"
+				className="h-9 w-9 rounded-none"
 				disabled={index <= 0}
 				onClick={() => onChange(index - 1)}
+				aria-label="Next day"
 			>
-				<ChevronRight className="h-3.5 w-3.5" />
+				<ChevronRight className="h-4 w-4" />
 			</Button>
 		</div>
 	);

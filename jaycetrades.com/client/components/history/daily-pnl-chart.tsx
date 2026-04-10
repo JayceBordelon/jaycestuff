@@ -1,25 +1,33 @@
 "use client";
 
 import {
+	Bar,
+	BarChart,
+	CartesianGrid,
+	Cell,
+	ReferenceLine,
+	XAxis,
+	YAxis,
+} from "recharts";
+
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import {
 	ChartContainer,
 	ChartTooltip,
 	ChartTooltipContent,
 	type ChartConfig,
 } from "@/components/ui/chart";
-import {
-	BarChart,
-	Bar,
-	XAxis,
-	YAxis,
-	CartesianGrid,
-	ReferenceLine,
-	Cell,
-} from "recharts";
 import { formatMonthDay } from "@/lib/date-utils";
 import { fmtPnlInt } from "@/lib/format";
 
-const GREEN = "var(--color-green, #22c55e)";
-const RED = "var(--color-red, #ef4444)";
+const GREEN = "var(--green)";
+const RED = "var(--red)";
 
 export function DailyPnlChart({
 	data,
@@ -34,45 +42,53 @@ export function DailyPnlChart({
 	};
 
 	return (
-		<ChartContainer config={chartConfig} className="min-h-[240px] w-full">
-			<BarChart data={data} accessibilityLayer>
-				<CartesianGrid vertical={false} />
-				<XAxis
-					dataKey="date"
-					tickLine={false}
-					axisLine={false}
-					tickMargin={8}
-					tickFormatter={(v: string) => formatMonthDay(v)}
-				/>
-				<YAxis
-					tickLine={false}
-					axisLine={false}
-					tickMargin={8}
-					tickFormatter={(v: number) => fmtPnlInt(v)}
-				/>
-				<ReferenceLine y={0} stroke="hsl(var(--border))" />
-				<ChartTooltip
-					content={
-						<ChartTooltipContent
-							labelFormatter={(_, payload) => {
-								const item = payload?.[0]?.payload as
-									| { date: string }
-									| undefined;
-								return item ? formatMonthDay(item.date) : "";
-							}}
-							formatter={(value) => fmtPnlInt(value as number)}
+		<Card>
+			<CardHeader>
+				<CardTitle className="text-base">Daily P&amp;L</CardTitle>
+				<CardDescription>Net P&amp;L per trading day</CardDescription>
+			</CardHeader>
+			<CardContent>
+				<ChartContainer config={chartConfig} className="min-h-[260px] w-full">
+					<BarChart data={data} accessibilityLayer>
+						<CartesianGrid vertical={false} />
+						<XAxis
+							dataKey="date"
+							tickLine={false}
+							axisLine={false}
+							tickMargin={8}
+							tickFormatter={(v: string) => formatMonthDay(v)}
 						/>
-					}
-				/>
-				<Bar dataKey="pnl" radius={[3, 3, 0, 0]}>
-					{data.map((entry, index) => (
-						<Cell
-							key={`cell-${index}`}
-							fill={entry.pnl >= 0 ? GREEN : RED}
+						<YAxis
+							tickLine={false}
+							axisLine={false}
+							tickMargin={8}
+							tickFormatter={(v: number) => fmtPnlInt(v)}
 						/>
-					))}
-				</Bar>
-			</BarChart>
-		</ChartContainer>
+						<ReferenceLine y={0} stroke="var(--border)" />
+						<ChartTooltip
+							content={
+								<ChartTooltipContent
+									labelFormatter={(_, payload) => {
+										const item = payload?.[0]?.payload as
+											| { date: string }
+											| undefined;
+										return item ? formatMonthDay(item.date) : "";
+									}}
+									formatter={(value) => fmtPnlInt(value as number)}
+								/>
+							}
+						/>
+						<Bar dataKey="pnl" radius={[3, 3, 0, 0]}>
+							{data.map((entry, index) => (
+								<Cell
+									key={`cell-${index}`}
+									fill={entry.pnl >= 0 ? GREEN : RED}
+								/>
+							))}
+						</Bar>
+					</BarChart>
+				</ChartContainer>
+			</CardContent>
+		</Card>
 	);
 }

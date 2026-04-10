@@ -2,15 +2,14 @@
 
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
-const OPTIONS = [1, 3, 5, 10] as const;
+const OPTIONS = ["1", "3", "5", "10"] as const;
 
-export function TopNFilter({
-	value,
-	onChange,
-}: {
+interface TopNFilterProps {
 	value: number;
 	onChange: (n: number) => void;
-}) {
+}
+
+export function TopNFilter({ value, onChange }: TopNFilterProps) {
 	return (
 		<ToggleGroup
 			type="single"
@@ -20,7 +19,11 @@ export function TopNFilter({
 			size="sm"
 		>
 			{OPTIONS.map((n) => (
-				<ToggleGroupItem key={n} value={String(n)} className="text-xs font-semibold">
+				<ToggleGroupItem
+					key={n}
+					value={n}
+					className="h-9 px-3 text-sm font-semibold"
+				>
 					Top {n}
 				</ToggleGroupItem>
 			))}

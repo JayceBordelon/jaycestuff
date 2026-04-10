@@ -1,7 +1,8 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 
 export function DateRangeNav({
 	label,
@@ -17,27 +18,29 @@ export function DateRangeNav({
 	onNext: () => void;
 }) {
 	return (
-		<div className="flex items-center overflow-hidden rounded-md border bg-muted">
+		<div className="flex items-center overflow-hidden rounded-md border bg-card">
 			<Button
 				variant="ghost"
 				size="icon"
-				className="h-7 w-7 rounded-none"
+				className="h-9 w-9 rounded-none"
 				disabled={!canPrev}
 				onClick={onPrev}
+				aria-label="Previous period"
 			>
-				<ChevronLeft className="h-3.5 w-3.5" />
+				<ChevronLeft className="h-4 w-4" />
 			</Button>
-			<span className="min-w-[150px] border-x px-3 py-1 text-center text-xs font-semibold">
+			<span className="min-w-[140px] border-x px-3 py-1.5 text-center text-sm font-medium">
 				{label}
 			</span>
 			<Button
 				variant="ghost"
 				size="icon"
-				className="h-7 w-7 rounded-none"
+				className="h-9 w-9 rounded-none"
 				disabled={!canNext}
 				onClick={onNext}
+				aria-label="Next period"
 			>
-				<ChevronRight className="h-3.5 w-3.5" />
+				<ChevronRight className="h-4 w-4" />
 			</Button>
 		</div>
 	);

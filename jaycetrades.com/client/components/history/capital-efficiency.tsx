@@ -1,38 +1,17 @@
-import { Card, CardContent } from "@/components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardHeader,
+} from "@/components/ui/card";
+import { Metric } from "@/components/ui/metric";
+import { fmtMoneyInt, fmtPctDec, fmtPnlInt, pnlColor } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { fmtMoneyInt, fmtPnlInt, fmtPctDec, pnlColor } from "@/lib/format";
 
 interface CapitalEfficiencyProps {
 	totalInvested: number;
 	totalReturn: number;
 	totalPnl: number;
 	roc: number;
-}
-
-interface MetricProps {
-	label: string;
-	value: string;
-	sub: string;
-	colorClass?: string;
-}
-
-function Metric({ label, value, sub, colorClass }: MetricProps) {
-	return (
-		<div className="text-center">
-			<div
-				className={cn(
-					"font-mono text-xl font-extrabold leading-tight",
-					colorClass,
-				)}
-			>
-				{value}
-			</div>
-			<div className="mt-1 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">
-				{label}
-			</div>
-			<div className="mt-0.5 text-[10px] text-muted-foreground">{sub}</div>
-		</div>
-	);
 }
 
 export function CapitalEfficiency({
@@ -43,28 +22,46 @@ export function CapitalEfficiency({
 }: CapitalEfficiencyProps) {
 	return (
 		<Card>
-			<CardContent className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-4">
+			<CardHeader>
+				<h3 className="text-base font-semibold">Capital Efficiency</h3>
+				<p className="text-sm text-muted-foreground">
+					How efficiently capital was deployed across this period
+				</p>
+			</CardHeader>
+			<CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
 				<Metric
 					label="Total Deployed"
 					value={fmtMoneyInt(totalInvested)}
-					sub="capital at risk"
 				/>
 				<Metric
 					label="Total Returned"
 					value={fmtMoneyInt(totalReturn)}
-					sub="closing proceeds"
 				/>
 				<Metric
 					label="Net P&L"
-					value={fmtPnlInt(totalPnl)}
-					sub="returned - invested"
-					colorClass={pnlColor(totalPnl)}
+					value={
+						<span
+							className={cn(
+								"text-sm font-semibold tabular-nums",
+								pnlColor(totalPnl),
+							)}
+						>
+							{fmtPnlInt(totalPnl)}
+						</span>
+					}
 				/>
 				<Metric
 					label="ROC"
-					value={fmtPctDec(roc)}
-					sub="return on capital"
-					colorClass={pnlColor(roc)}
+					value={
+						<span
+							className={cn(
+								"text-sm font-semibold tabular-nums",
+								pnlColor(roc),
+							)}
+						>
+							{fmtPctDec(roc)}
+						</span>
+					}
 				/>
 			</CardContent>
 		</Card>

@@ -1,6 +1,19 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-import { fmtPnlInt, fmtMoneyInt, fmtPctDec, fmt, pnlColor } from "@/lib/format";
+import {
+	Activity,
+	ArrowDown,
+	ArrowUp,
+	Percent,
+	Scale,
+	Sigma,
+	Target,
+	TrendingDown,
+	TrendingUp,
+	Trophy,
+	Wallet,
+} from "lucide-react";
+
+import { StatCard } from "@/components/ui/stat-card";
+import { fmt, fmtMoneyInt, fmtPctDec, fmtPnlInt } from "@/lib/format";
 
 interface HistoryStatsProps {
 	totalPnl: number;
@@ -19,89 +32,13 @@ interface HistoryStatsProps {
 	worstSym: string;
 	totalWinners: number;
 	totalLosers: number;
+	totalTrades: number;
 }
 
-interface StatCardProps {
-	label: string;
-	value: string;
-	sub?: string;
-	colorClass?: string;
-	accent?: "green" | "red" | "neutral";
-	children?: React.ReactNode;
-}
-
-function StatCard({
-	label,
-	value,
-	sub,
-	colorClass,
-	accent = "neutral",
-	children,
-}: StatCardProps) {
-	const borderColor =
-		accent === "green"
-			? "border-l-green"
-			: accent === "red"
-				? "border-l-red"
-				: "border-l-primary";
-
-	return (
-		<Card
-			className={cn(
-				"border-l-3 text-center transition-transform hover:-translate-y-0.5",
-				borderColor,
-			)}
-		>
-			<CardContent className="p-3.5">
-				<div
-					className={cn(
-						"font-mono text-2xl font-extrabold leading-tight",
-						colorClass,
-					)}
-				>
-					{value}
-				</div>
-				<div className="mt-1 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">
-					{label}
-				</div>
-				{sub && (
-					<div className="mt-0.5 text-[10px] text-muted-foreground">
-						{sub}
-					</div>
-				)}
-				{children}
-			</CardContent>
-		</Card>
-	);
-}
-
-function WinRateBar({
-	winRate,
-	winners,
-	losers,
-}: {
-	winRate: number;
-	winners: number;
-	losers: number;
-}) {
-	return (
-		<div className="mt-2">
-			<div className="flex h-1.5 overflow-hidden rounded-full">
-				<div
-					className="bg-green-light"
-					style={{ width: `${winRate}%` }}
-				/>
-				<div
-					className="bg-red-light"
-					style={{ width: `${100 - winRate}%` }}
-				/>
-			</div>
-			<div className="mt-0.5 flex justify-between text-[9px] text-muted-foreground">
-				<span>{winners}W</span>
-				<span>{losers}L</span>
-			</div>
-		</div>
-	);
+function signTone(v: number): "positive" | "negative" | "neutral" {
+	if (v > 0) return "positive";
+	if (v < 0) return "negative";
+	return "neutral";
 }
 
 export function HistoryStats({
@@ -121,99 +58,114 @@ export function HistoryStats({
 	worstSym,
 	totalWinners,
 	totalLosers,
+	totalTrades,
 }: HistoryStatsProps) {
-	const pnlAccent = totalPnl > 0 ? "green" : totalPnl < 0 ? "red" : "neutral";
+	const profitFactorValue =
+		profitFactor === Number.POSITIVE_INFINITY
+			? "\u221E"
+			: `${fmt(profitFactor, 2)}x`;
 
 	return (
-		<div className="space-y-2.5">
-			{/* Primary row */}
-			<div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+		<div>
+			{/* Primary stats */}
+			<div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
 				<StatCard
+					index={0}
 					label="Net P&L"
 					value={fmtPnlInt(totalPnl)}
-					colorClass={pnlColor(totalPnl)}
-					accent={pnlAccent}
+					sub={`${totalTrades} trades`}
+					tone={signTone(totalPnl)}
+					icon={totalPnl >= 0 ? TrendingUp : TrendingDown}
 				/>
 				<StatCard
+					index={1}
 					label="Win Rate"
 					value={`${winRate.toFixed(0)}%`}
-					accent="neutral"
-				>
-					<WinRateBar
-						winRate={winRate}
-						winners={totalWinners}
-						losers={totalLosers}
-					/>
-				</StatCard>
-				<StatCard
-					label="Return on Capital"
-					value={fmtPctDec(roc)}
-					sub="net / invested"
-					colorClass={pnlColor(roc)}
-					accent="neutral"
+					sub={`${totalWinners}W \u00B7 ${totalLosers}L`}
+					tone="neutral"
+					icon={Target}
 				/>
 				<StatCard
+					index={2}
+					label="Return on Capital"
+					value={fmtPctDec(roc)}
+					sub="ROC"
+					tone={signTone(roc)}
+					icon={Percent}
+					tooltip="Net P&L / total capital deployed"
+				/>
+				<StatCard
+					index={3}
 					label="Profit Factor"
-					value={
-						profitFactor === Number.POSITIVE_INFINITY
-							? "\u221E"
-							: `${profitFactor.toFixed(2)}x`
-					}
-					sub="gross wins / losses"
-					accent="neutral"
+					value={profitFactorValue}
+					tone="neutral"
+					icon={Scale}
+					tooltip="Profit Factor = gross wins \u00F7 gross losses"
 				/>
 			</div>
 
-			{/* Secondary row */}
-			<div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-8">
+			{/* Secondary stats */}
+			<div className="mt-3 grid grid-cols-2 gap-3 sm:mt-4 sm:grid-cols-4 xl:grid-cols-8">
 				<StatCard
+					index={0}
 					label="Total Deployed"
 					value={fmtMoneyInt(totalInvested)}
-					accent="neutral"
+					tone="neutral"
+					icon={Wallet}
 				/>
 				<StatCard
+					index={1}
 					label="Avg Win"
-					value={fmtPnlInt(avgWin)}
-					colorClass="text-green"
-					accent="green"
+					value={`+$${fmt(avgWin, 0)}`}
+					tone="positive"
+					icon={ArrowUp}
 				/>
 				<StatCard
+					index={2}
 					label="Avg Loss"
-					value={fmtPnlInt(avgLoss)}
-					colorClass="text-red"
-					accent="red"
+					value={`-$${fmt(avgLoss, 0)}`}
+					tone="negative"
+					icon={ArrowDown}
 				/>
 				<StatCard
+					index={3}
 					label="Expectancy"
 					value={fmtPnlInt(expectancy)}
-					sub="per trade"
-					colorClass={pnlColor(expectancy)}
-					accent="neutral"
+					tone={signTone(expectancy)}
+					icon={Sigma}
+					tooltip="Expected $ per trade = (winRate \u00D7 avgWin) \u2212 (lossRate \u00D7 avgLoss)"
 				/>
 				<StatCard
+					index={4}
 					label="Sharpe Ratio"
 					value={fmt(sharpe, 2)}
-					accent="neutral"
+					tone="neutral"
+					icon={Activity}
+					tooltip="Annualized risk-adjusted return = mean daily return / std dev \u00D7 \u221A252"
 				/>
 				<StatCard
+					index={5}
 					label="Max Drawdown"
-					value={fmtPnlInt(maxDrawdown)}
-					colorClass="text-red"
-					accent="red"
+					value={`${fmt(maxDrawdown, 1)}%`}
+					tone="negative"
+					icon={TrendingDown}
+					tooltip="Largest peak-to-trough decline"
 				/>
 				<StatCard
+					index={6}
 					label="Best Trade"
 					value={fmtPnlInt(bestPnl)}
 					sub={`$${bestSym}`}
-					colorClass="text-green"
-					accent="green"
+					tone="positive"
+					icon={Trophy}
 				/>
 				<StatCard
+					index={7}
 					label="Worst Trade"
 					value={fmtPnlInt(worstPnl)}
 					sub={`$${worstSym}`}
-					colorClass="text-red"
-					accent="red"
+					tone="negative"
+					icon={TrendingDown}
 				/>
 			</div>
 		</div>
