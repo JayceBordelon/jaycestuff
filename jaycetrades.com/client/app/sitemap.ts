@@ -12,5 +12,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
 			changeFrequency: "daily",
 			priority: 0.8,
 		},
+		{
+			url: "https://jaycetrades.com/terms",
+			changeFrequency: "monthly",
+			priority: 0.3,
+		},
+		{
+			url: "https://jaycetrades.com/faq",
+			changeFrequency: "monthly",
+			priority: 0.5,
+		},
 	];
 }
