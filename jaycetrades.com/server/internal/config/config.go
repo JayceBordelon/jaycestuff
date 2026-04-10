@@ -12,6 +12,7 @@ type Config struct {
 	CronScheduleWeekly string
 	ResendAPIKey       string
 	OpenAIAPIKey       string
+	AnthropicAPIKey    string
 	EmailRecipients    []string // Fallback: seed subscribers from env on first run
 	EmailFrom          string
 	DatabaseURL        string
@@ -73,6 +74,7 @@ func Load() *Config {
 		CronScheduleWeekly: cronWeekly,
 		ResendAPIKey:       os.Getenv("RESEND_API_KEY"),
 		OpenAIAPIKey:       os.Getenv("OPENAI_API_KEY"),
+		AnthropicAPIKey:    os.Getenv("ANTHROPIC_API_KEY"),
 		EmailRecipients:    recipients,
 		EmailFrom:          emailFrom,
 		DatabaseURL:        databaseURL,

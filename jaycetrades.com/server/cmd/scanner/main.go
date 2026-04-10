@@ -72,6 +72,23 @@ func todayDate() string {
 	return time.Now().In(loc).Format("2006-01-02")
 }
 
+// isLocalStubKey detects the placeholder API keys used by the local Docker
+// stack so the cron-driven analyzers / validators can be safely skipped.
+func isLocalStubKey(k string) bool {
+	if k == "" {
+		return false
+	}
+	switch {
+	case len(k) >= 5 && k[:5] == "stub-":
+		return true
+	case len(k) >= 8 && k[:8] == "sk_local":
+		return true
+	case len(k) >= 8 && k[:8] == "sk-local":
+		return true
+	}
+	return false
+}
+
 func main() {
 	cfg := config.Load()
 
@@ -115,12 +132,26 @@ func main() {
 	analyzer := trades.NewAnalyzer(cfg.OpenAIAPIKey, schwabClient)
 	emailClient := email.NewClient(cfg.ResendAPIKey)
 
+	// Claude validator is optional. If ANTHROPIC_API_KEY is missing or set
+	// to a local stub, validations are skipped and trades persist with
+	// claude_score = 0 and an empty rationale.
+	var validator *trades.Validator
+	switch {
+	case cfg.AnthropicAPIKey == "":
+		log.Println("Anthropic: not configured (ANTHROPIC_API_KEY not set) — Claude validation disabled")
+	case isLocalStubKey(cfg.AnthropicAPIKey):
+		log.Println("Anthropic: local stub key detected — Claude validation disabled")
+	default:
+		validator = trades.NewValidator(cfg.AnthropicAPIKey, schwabClient)
+		log.Println("Anthropic: configured — Claude validation enabled")
+	}
+
 	openJob := func() {
 		if open, reason := isMarketOpen(); !open {
 			log.Printf("Skipping morning analysis: Market closed (%s)", reason)
 			return
 		}
-		runTradeAnalysis(cfg, db, scraper, analyzer, emailClient)
+		runTradeAnalysis(cfg, db, scraper, analyzer, validator, emailClient)
 	}
 
 	closeJob := func() {
@@ -160,7 +191,7 @@ func main() {
 	c.Start()
 
 	// Start HTTP API server in background
-	srv := server.New(db, schwabClient, emailClient, cfg.EmailFrom, cfg.OpenAIAPIKey, cfg.AdminKey, cfg.ServerPort)
+	srv := server.New(db, schwabClient, emailClient, cfg.EmailFrom, cfg.OpenAIAPIKey, cfg.AnthropicAPIKey, cfg.AdminKey, cfg.ServerPort)
 	go srv.Start()
 
 	log.Printf("Options trade scanner started")
@@ -409,8 +440,8 @@ func getRecipients(db *store.Store) []string {
 	return emails
 }
 
-func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Scraper, analyzer *trades.Analyzer, emailClient *email.Client) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Scraper, analyzer *trades.Analyzer, validator *trades.Validator, emailClient *email.Client) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
 	log.Println("Starting trade analysis...")
@@ -450,6 +481,46 @@ func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Sc
 		}
 	}
 	topTrades = uniqueTrades
+
+	// Run Claude validation in parallel-friendly fashion (sequential here for
+	// simpler error handling). Claude scrutinizes each pick independently and
+	// returns a 1-10 score + rationale + concerns. We then merge those scores
+	// onto the trades, compute a combined score (simple average with Claude
+	// as the tiebreaker), and reorder ranks accordingly.
+	if validator != nil {
+		log.Println("Running Claude validation...")
+		validations, vErr := validator.ValidateTrades(ctx, topTrades)
+		if vErr != nil {
+			log.Printf("Warning: Claude validation failed: %v — continuing with GPT-only ranks", vErr)
+		} else {
+			byTicker := make(map[string]trades.Validation, len(validations))
+			for _, v := range validations {
+				byTicker[v.Symbol] = v
+			}
+			for i := range topTrades {
+				if v, ok := byTicker[topTrades[i].Symbol]; ok {
+					topTrades[i].ClaudeScore = v.Score
+					topTrades[i].ClaudeRationale = v.Rationale
+				}
+				topTrades[i].CombinedScore = float64(topTrades[i].GPTScore+topTrades[i].ClaudeScore) / 2.0
+			}
+			sort.SliceStable(topTrades, func(i, j int) bool {
+				if topTrades[i].CombinedScore != topTrades[j].CombinedScore {
+					return topTrades[i].CombinedScore > topTrades[j].CombinedScore
+				}
+				return topTrades[i].ClaudeScore > topTrades[j].ClaudeScore
+			})
+			for i := range topTrades {
+				topTrades[i].Rank = i + 1
+			}
+			log.Printf("Claude validation complete: %d trades scored and reranked", len(validations))
+		}
+	} else {
+		// Without Claude, mirror the GPT score into combined for consistency.
+		for i := range topTrades {
+			topTrades[i].CombinedScore = float64(topTrades[i].GPTScore)
+		}
+	}
 
 	// Persist to database
 	date := todayDate()

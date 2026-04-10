@@ -12,6 +12,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/anthropics/anthropic-sdk-go"
+	anthropicoption "github.com/anthropics/anthropic-sdk-go/option"
+	"github.com/openai/openai-go/v3"
+	openaioption "github.com/openai/openai-go/v3/option"
+
 	"jaycetrades.com/internal/email"
 	"jaycetrades.com/internal/schwab"
 	"jaycetrades.com/internal/store"
@@ -22,14 +27,15 @@ import (
 var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 
 type Server struct {
-	db          *store.Store
-	schwab      *schwab.Client
-	emailClient *email.Client
-	emailFrom   string
-	openaiKey   string
-	adminKey    string
-	mux         *http.ServeMux
-	port        string
+	db           *store.Store
+	schwab       *schwab.Client
+	emailClient  *email.Client
+	emailFrom    string
+	openaiKey    string
+	anthropicKey string
+	adminKey     string
+	mux          *http.ServeMux
+	port         string
 }
 
 type subscribeRequest struct {
@@ -46,8 +52,18 @@ type apiResponse struct {
 	Message string `json:"message"`
 }
 
-func New(db *store.Store, schwabClient *schwab.Client, emailClient *email.Client, emailFrom, openaiKey, adminKey, port string) *Server {
-	s := &Server{db: db, schwab: schwabClient, emailClient: emailClient, emailFrom: emailFrom, openaiKey: openaiKey, adminKey: adminKey, mux: http.NewServeMux(), port: port}
+func New(db *store.Store, schwabClient *schwab.Client, emailClient *email.Client, emailFrom, openaiKey, anthropicKey, adminKey, port string) *Server {
+	s := &Server{
+		db:           db,
+		schwab:       schwabClient,
+		emailClient:  emailClient,
+		emailFrom:    emailFrom,
+		openaiKey:    openaiKey,
+		anthropicKey: anthropicKey,
+		adminKey:     adminKey,
+		mux:          http.NewServeMux(),
+		port:         port,
+	}
 	s.routes()
 	return s
 }
@@ -301,12 +317,21 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		services["database"] = serviceHealth{Status: "ok", Detail: "PostgreSQL connected", Latency: fmtLatency(time.Since(dbStart))}
 	}
 
-	// OpenAI (LLM)
-	llmStart := time.Now()
-	llmHealth := s.checkOpenAI()
-	llmHealth.Latency = fmtLatency(time.Since(llmStart))
-	services["llm"] = llmHealth
-	if llmHealth.Status == "fail" {
+	// OpenAI (GPT analyzer)
+	openaiStart := time.Now()
+	openaiHealth := s.checkOpenAI()
+	openaiHealth.Latency = fmtLatency(time.Since(openaiStart))
+	services["openai"] = openaiHealth
+	if openaiHealth.Status == "fail" {
+		allOK = false
+	}
+
+	// Anthropic (Claude validator)
+	anthropicStart := time.Now()
+	anthropicHealth := s.checkAnthropic()
+	anthropicHealth.Latency = fmtLatency(time.Since(anthropicStart))
+	services["anthropic"] = anthropicHealth
+	if anthropicHealth.Status == "fail" {
 		allOK = false
 	}
 
@@ -344,30 +369,61 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// isStubKey returns true for the placeholder keys used by the local Docker
+// stack. The local runtime sets ANTHROPIC_API_KEY / OPENAI_API_KEY to a
+// stub value so the server boots without making real API calls.
+func isStubKey(k string) bool {
+	if k == "" {
+		return false
+	}
+	if strings.HasPrefix(k, "stub-") || strings.HasPrefix(k, "sk_local") || strings.HasPrefix(k, "sk-local") {
+		return true
+	}
+	return false
+}
+
 func (s *Server) checkOpenAI() serviceHealth {
 	if s.openaiKey == "" {
 		return serviceHealth{Status: "fail", Detail: "API key not configured"}
+	}
+	if isStubKey(s.openaiKey) {
+		return serviceHealth{Status: "warn", Detail: "Local stub key — skipping live probe"}
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.openai.com/v1/models/gpt-4o-mini", nil)
+	client := openai.NewClient(openaioption.WithAPIKey(s.openaiKey))
+	if _, err := client.Models.List(ctx); err != nil {
+		return serviceHealth{Status: "fail", Detail: err.Error()}
+	}
+	return serviceHealth{Status: "ok", Detail: "OpenAI API reachable"}
+}
+
+func (s *Server) checkAnthropic() serviceHealth {
+	if s.anthropicKey == "" {
+		return serviceHealth{Status: "fail", Detail: "API key not configured"}
+	}
+	if isStubKey(s.anthropicKey) {
+		return serviceHealth{Status: "warn", Detail: "Local stub key — skipping live probe"}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	client := anthropic.NewClient(anthropicoption.WithAPIKey(s.anthropicKey))
+	// 1 max token + 1 char prompt is the cheapest possible probe.
+	_, err := client.Messages.New(ctx, anthropic.MessageNewParams{
+		Model:     anthropic.ModelClaudeOpus4_6,
+		MaxTokens: 1,
+		Messages: []anthropic.MessageParam{
+			anthropic.NewUserMessage(anthropic.NewTextBlock("ok")),
+		},
+	})
 	if err != nil {
 		return serviceHealth{Status: "fail", Detail: err.Error()}
 	}
-	req.Header.Set("Authorization", "Bearer "+s.openaiKey)
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return serviceHealth{Status: "fail", Detail: err.Error()}
-	}
-	_ = resp.Body.Close()
-
-	if resp.StatusCode == 200 {
-		return serviceHealth{Status: "ok", Detail: "OpenAI API reachable"}
-	}
-	return serviceHealth{Status: "fail", Detail: fmt.Sprintf("HTTP %d", resp.StatusCode)}
+	return serviceHealth{Status: "ok", Detail: "Anthropic API reachable"}
 }
 
 func fmtLatency(d time.Duration) string {
