@@ -7,8 +7,8 @@ Jayce Bordelon's production monorepo. All services are deployed to a single Digi
 **Single-server monolithic deployment.** Traefik routes incoming HTTPS requests to the correct container by hostname and path:
 
 - `jaycebordelon.com` / `www.jaycebordelon.com` → Next.js portfolio (port 3000)
-- `jaycetrades.com` → `/api/*`, `/auth/*`, `/admin/*`, `/health` → Go API server (port 8080, priority 20)
-- `jaycetrades.com` → everything else → Next.js trading frontend (port 3001, priority 10)
+- `vibetradez.com` → `/api/*`, `/auth/*`, `/admin/*`, `/health` → Go API server (port 8080, priority 20)
+- `vibetradez.com` → everything else → Next.js trading frontend (port 3001, priority 10)
 
 ## Project Structure
 
@@ -22,7 +22,7 @@ personal-monorepo/
 │   ├── Dockerfile               # Multi-stage Node.js build
 │   └── package.json             # Next.js 16, React 19, Tailwind v4
 │
-├── jaycetrades.com/
+├── vibetradez.com/
 │   ├── server/                  # Go API server (trading backend)
 │   │   ├── cmd/scanner/         # Main entry point, cron jobs, workflows
 │   │   ├── internal/
@@ -67,8 +67,8 @@ personal-monorepo/
 | Project | Stack |
 |---------|-------|
 | jaycebordelon.com | Next.js 16, React 19, Tailwind CSS v4, shadcn/ui (new-york), MDX, Framer Motion |
-| jaycetrades.com/client | Next.js 16, React 19, Tailwind CSS v4, shadcn/ui (new-york), Recharts v3, TradingView Lightweight Charts |
-| jaycetrades.com/server | Go 1.23, PostgreSQL (Digital Ocean managed), OpenAI GPT-5.4, Schwab Market Data API, Resend email |
+| vibetradez.com/client | Next.js 16, React 19, Tailwind CSS v4, shadcn/ui (new-york), Recharts v3, TradingView Lightweight Charts |
+| vibetradez.com/server | Go 1.23, PostgreSQL (Digital Ocean managed), OpenAI GPT-5.4, Schwab Market Data API, Resend email |
 | Infrastructure | Docker Compose, Traefik v2.10, Let's Encrypt, Digital Ocean Droplet |
 
 ## Database
@@ -92,11 +92,11 @@ Run these checks before every push. CI will fail if they don't pass:
 
 ```bash
 # Go
-cd jaycetrades.com/server && gofmt -w . && go vet ./...
+cd vibetradez.com/server && gofmt -w . && go vet ./...
 
 # Next.js (both projects)
 cd jaycebordelon.com && npx biome check .
-cd jaycetrades.com/client && npx biome check .
+cd vibetradez.com/client && npx biome check .
 ```
 
 ### Always read the latest documentation
@@ -113,7 +113,7 @@ Both Next.js frontends share the same design tokens (CSS variables in `globals.c
 
 ## API Protection
 
-All `/api/*` routes on the trading server require the `X-JT-Source` header. Without it, requests return 403. The Next.js frontend includes this header on every fetch call. The `/admin/announce` endpoint requires `X-Admin-Key` header matching the `ADMIN_KEY` env var.
+All `/api/*` routes on the trading server require the `X-VT-Source` header. Without it, requests return 403. The Next.js frontend includes this header on every fetch call. The `/admin/announce` endpoint requires `X-Admin-Key` header matching the `ADMIN_KEY` env var.
 
 ## Trading Server Workflows
 
@@ -128,18 +128,18 @@ Market holidays are hardcoded in `cmd/scanner/main.go`. Jobs skip on holidays an
 
 ### Send announcement to all subscribers
 ```bash
-curl -X POST https://jaycetrades.com/admin/announce \
+curl -X POST https://vibetradez.com/admin/announce \
   -H "X-Admin-Key: <ADMIN_KEY>" \
   -H "Content-Type: application/json" \
   -d '{"subject": "...", "badge": "...", "headline": "...", "sections": [{"title": "...", "body": "..."}], "cta_text": "...", "cta_url": "..."}'
 ```
 
 ### Re-authorize Schwab OAuth
-Visit `https://jaycetrades.com/auth/schwab` in a browser. Tokens are stored in the `oauth_tokens` table and auto-refresh.
+Visit `https://vibetradez.com/auth/schwab` in a browser. Tokens are stored in the `oauth_tokens` table and auto-refresh.
 
 ### Check server health
 ```bash
-curl https://jaycetrades.com/health | jq
+curl https://vibetradez.com/health | jq
 ```
 Returns per-service status for database, LLM (OpenAI), Schwab, and API with latencies.
 
