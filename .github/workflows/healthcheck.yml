@@ -31,7 +31,9 @@ jobs:
             "https://jaycebordelon.com"
             "https://www.jaycebordelon.com"
             "https://vibetradez.com"
-            "https://vibetradez.com/dashboard"
+            "https://www.vibetradez.com"
+            "https://vibetradez.com/history"
+            "https://vibetradez.com/models"
           )
 
           FAILED=0
