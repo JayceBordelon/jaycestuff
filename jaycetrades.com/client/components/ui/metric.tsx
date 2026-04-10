@@ -17,20 +17,23 @@ export function Metric({
 }: MetricProps): React.JSX.Element {
 	return (
 		<div
-			className={cn("flex items-baseline justify-between gap-3", className)}
+			className={cn(
+				"flex min-w-0 items-baseline justify-between gap-2",
+				className,
+			)}
 		>
-			<span className="text-xs text-muted-foreground">{label}</span>
+			<span className="shrink-0 text-xs text-muted-foreground">{label}</span>
 			{typeof value === "string" ? (
 				<span
 					className={cn(
-						"text-sm tabular-nums",
+						"min-w-0 truncate text-right text-sm tabular-nums",
 						align === "right" ? "font-semibold" : "font-medium",
 					)}
 				>
 					{value}
 				</span>
 			) : (
-				value
+				<span className="min-w-0 truncate text-right">{value}</span>
 			)}
 		</div>
 	);

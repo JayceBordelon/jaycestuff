@@ -50,7 +50,7 @@ interface MorningCardProps {
 	index: number;
 }
 
-function MorningCard({ dt, liveQuotes, index }: MorningCardProps) {
+function MorningCard({ dt, liveQuotes }: MorningCardProps) {
 	const [open, setOpen] = useState(false);
 	const { trade } = dt;
 	const moneyness = calcMoneyness(trade);
@@ -98,10 +98,7 @@ function MorningCard({ dt, liveQuotes, index }: MorningCardProps) {
 				: "secondary";
 
 	return (
-		<Card
-			className="group animate-in fade-in slide-in-from-bottom-1 duration-300 transition-all hover:-translate-y-0.5 hover:shadow-md"
-			style={{ animationDelay: `${index * 60}ms` }}
-		>
+		<Card className="group animate-in fade-in duration-200 transition-all hover:-translate-y-0.5 hover:shadow-md">
 			<CardContent className="space-y-4 p-5">
 				{/* Tier 1: header */}
 				<div className="flex flex-wrap items-center gap-1.5">

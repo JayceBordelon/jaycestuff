@@ -133,7 +133,7 @@ export function HistoryStats({
 					value={fmtPnlInt(expectancy)}
 					tone={signTone(expectancy)}
 					icon={Sigma}
-					tooltip="Expected $ per trade = (winRate \u00D7 avgWin) \u2212 (lossRate \u00D7 avgLoss)"
+					tooltip="Expected $ per trade = (winRate × avgWin) − (lossRate × avgLoss)"
 				/>
 				<StatCard
 					index={4}
@@ -141,7 +141,7 @@ export function HistoryStats({
 					value={fmt(sharpe, 2)}
 					tone="neutral"
 					icon={Activity}
-					tooltip="Annualized risk-adjusted return = mean daily return / std dev \u00D7 \u221A252"
+					tooltip="Annualized risk-adjusted return = mean daily return / std dev × √252"
 				/>
 				<StatCard
 					index={5}

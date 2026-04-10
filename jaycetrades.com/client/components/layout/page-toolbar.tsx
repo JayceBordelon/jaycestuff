@@ -27,16 +27,20 @@ export function PageToolbar({
 				"sticky top-0 z-10 border-b bg-background/80 backdrop-blur-md",
 			)}
 		>
-			<div className="mx-auto flex max-w-[1200px] flex-col gap-3 px-4 py-4 sm:px-7 lg:flex-row lg:items-center lg:justify-between">
-				<div className="min-w-0">
-					<h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+			<div className="mx-auto flex max-w-[1200px] flex-col gap-3 px-4 py-4 sm:px-7 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
+				<div className="min-w-0 lg:flex-1">
+					<h1 className="truncate text-xl font-semibold tracking-tight sm:text-2xl">
+						{title}
+					</h1>
 					{subtitle && (
-						<p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
+						<p className="mt-0.5 truncate text-sm text-muted-foreground">
+							{subtitle}
+						</p>
 					)}
 				</div>
 				{hasControls && (
-					<div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-						<div className="flex flex-wrap items-center gap-3">
+					<div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 lg:flex-shrink-0">
+						<div className="flex w-max items-center gap-2 sm:gap-3 lg:w-auto lg:flex-wrap">
 							{primaryControls}
 							{secondaryControls}
 							{rightSlot}

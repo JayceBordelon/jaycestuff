@@ -110,9 +110,9 @@ function computeRow(dt: DashboardTrade): RowComputed {
 
 export function TradeTable({ trades }: TradeTableProps) {
 	return (
-		<div>
+		<div className="min-w-0">
 			{/* Desktop table */}
-			<div className="hidden md:block">
+			<div className="hidden overflow-x-auto md:block">
 				<Table>
 					<TableHeader>
 						<TableRow>
