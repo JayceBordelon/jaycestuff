@@ -54,7 +54,8 @@ personal-monorepo/
 │   ├── deploy.yml              # Rolling deployment (parameterized: portfolio or trading)
 │   ├── cleanup.yml             # Post-deploy docker system prune
 │   ├── healthcheck.yml         # Endpoint verification + granular /health
-│   ├── notify.yml              # Per-service deploy email notification
+│   ├── notify-portfolio.yml    # Deploy email for jaycebordelon.com (slate theme)
+│   ├── notify-trading.yml      # Deploy email for vibetradez.com (brand gradient theme)
 │   └── cd.yml                  # Standalone manual trigger pipeline
 │
 ├── docker-compose.yml          # All services + Traefik config

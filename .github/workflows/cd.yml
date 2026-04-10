@@ -265,14 +265,14 @@ jobs:
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: "[${{ needs.deploy_portfolio.result == 'success' && 'PASSED' || 'FAILED' }}] jaycebordelon.com - ${{ needs.deploy_portfolio.outputs.short_sha || 'unknown' }}"
           to: bordelonjayce@gmail.com
-          from: Vibe Tradez <trades@vibetradez.com>
+          from: Jayce Bordelon <bordelonjayce@gmail.com>
           html_body: |
-            <p style="font-family: sans-serif;">
+            <p style="font-family: 'Plus Jakarta Sans', sans-serif; color: #0f172a;">
               <strong>jaycebordelon.com</strong> deploy
-              ${{ needs.deploy_portfolio.result == 'success' && '✓ PASSED' || '✗ FAILED' }}
-              &middot; <code>${{ needs.deploy_portfolio.outputs.short_sha || 'unknown' }}</code>
-              &middot; <a href="https://jaycebordelon.com">Open site</a>
-              &middot; <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">Workflow</a>
+              <span style="color: #475569;">${{ needs.deploy_portfolio.result == 'success' && '✓ PASSED' || '✗ FAILED' }}</span>
+              &middot; <code style="color: #64748b;">${{ needs.deploy_portfolio.outputs.short_sha || 'unknown' }}</code>
+              &middot; <a href="https://jaycebordelon.com" style="color: #475569;">Open site</a>
+              &middot; <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" style="color: #475569;">Workflow</a>
             </p>
 
   notify_trading:

@@ -1,4 +1,4 @@
-name: Notify
+name: Notify / Trading
 
 on:
   workflow_call:

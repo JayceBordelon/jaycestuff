@@ -1,0 +1,261 @@
+name: Notify / Portfolio
+
+on:
+  workflow_call:
+    inputs:
+      deploy_status:
+        required: false
+        type: string
+        default: "✓ PASSED"
+      deploy_error:
+        required: false
+        type: string
+        default: ""
+      commit_sha:
+        required: false
+        type: string
+        default: "unknown"
+      short_sha:
+        required: false
+        type: string
+        default: "unknown"
+      commit_message:
+        required: false
+        type: string
+        default: "No commit message"
+      commit_author:
+        required: false
+        type: string
+        default: "Unknown"
+      commit_timestamp:
+        required: false
+        type: string
+        default: "Unknown"
+
+jobs:
+  notify:
+    name: Send Email
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine status
+        id: status
+        run: |
+          if [[ "${{ inputs.deploy_status }}" == *"FAILED"* ]]; then
+            echo "result=FAILED" >> $GITHUB_OUTPUT
+          else
+            echo "result=PASSED" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send deploy notification
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: bordelonjayce@gmail.com
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "[${{ steps.status.outputs.result }}] jaycebordelon.com - ${{ inputs.short_sha }}"
+          to: bordelonjayce@gmail.com
+          from: Jayce Bordelon <bordelonjayce@gmail.com>
+          html_body: |
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <style>
+                body {
+                  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                  background-color: #fafafa;
+                  margin: 0;
+                  padding: 40px 20px;
+                  -webkit-font-smoothing: antialiased;
+                }
+                .container {
+                  max-width: 580px;
+                  margin: 0 auto;
+                  background-color: #ffffff;
+                  border-radius: 12px;
+                  overflow: hidden;
+                  border: 1px solid #e2e8f0;
+                  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.06);
+                }
+                .brand-bar {
+                  height: 4px;
+                  background: linear-gradient(90deg, #475569, #94a3b8);
+                }
+                .header {
+                  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+                  padding: 32px 28px;
+                  text-align: center;
+                }
+                .header h1 {
+                  color: #f1f5f9;
+                  font-size: 22px;
+                  font-weight: 800;
+                  margin: 0 0 6px 0;
+                  letter-spacing: -0.3px;
+                }
+                .header p {
+                  color: #94a3b8;
+                  font-size: 13px;
+                  margin: 0;
+                  font-weight: 500;
+                }
+                .status-badge {
+                  display: inline-block;
+                  padding: 5px 14px;
+                  border-radius: 6px;
+                  font-weight: 700;
+                  font-size: 13px;
+                  margin-top: 12px;
+                }
+                .status-passed {
+                  background: #475569;
+                  color: #ffffff;
+                }
+                .status-failed {
+                  background: #ef4444;
+                  color: #ffffff;
+                }
+                .content {
+                  padding: 28px;
+                }
+                .section {
+                  margin-bottom: 24px;
+                }
+                .section:last-child {
+                  margin-bottom: 0;
+                }
+                .section h3 {
+                  color: #0f172a;
+                  font-size: 11px;
+                  font-weight: 700;
+                  margin: 0 0 12px 0;
+                  text-transform: uppercase;
+                  letter-spacing: 0.08em;
+                }
+                .info-box {
+                  background-color: #f8fafc;
+                  border-radius: 8px;
+                  padding: 20px;
+                  border: 1px solid #e2e8f0;
+                }
+                .info-row {
+                  padding: 6px 0;
+                  font-size: 13px;
+                }
+                .info-label {
+                  color: #94a3b8;
+                  font-weight: 500;
+                }
+                .info-value {
+                  color: #0f172a;
+                  font-weight: 600;
+                  word-break: break-all;
+                }
+                .error-box {
+                  background-color: #fef2f2;
+                  border: 1px solid #fecaca;
+                  border-radius: 8px;
+                  padding: 16px 20px;
+                  color: #dc2626;
+                  font-size: 13px;
+                  line-height: 1.6;
+                  font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+                  word-break: break-word;
+                }
+                .cta {
+                  display: inline-block;
+                  padding: 10px 24px;
+                  background: #475569;
+                  color: #ffffff !important;
+                  font-size: 13px;
+                  font-weight: 600;
+                  text-decoration: none;
+                  border-radius: 8px;
+                }
+                .links-box {
+                  background-color: #f8fafc;
+                  padding: 16px 20px;
+                  border-radius: 8px;
+                  border: 1px solid #e2e8f0;
+                  line-height: 2;
+                  font-size: 13px;
+                }
+                .footer-bar {
+                  height: 3px;
+                  background: linear-gradient(90deg, #475569, #94a3b8);
+                }
+                .footer {
+                  background-color: #f1f5f9;
+                  padding: 16px 28px;
+                  text-align: center;
+                }
+                a {
+                  color: #475569;
+                  text-decoration: none;
+                }
+                a:hover {
+                  text-decoration: underline;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="brand-bar"></div>
+                <div class="header">
+                  <h1>jaycebordelon.com</h1>
+                  <p>Deploy</p>
+                  <span class="status-badge status-${{ steps.status.outputs.result == 'FAILED' && 'failed' || 'passed' }}">
+                    ${{ steps.status.outputs.result == 'FAILED' && '✗ FAILED' || '✓ PASSED' }}
+                  </span>
+                </div>
+
+                <div class="content">
+                  ${{ steps.status.outputs.result == 'FAILED' && inputs.deploy_error != '' && format('<div class="section"><h3>Error</h3><div class="error-box">{0}</div></div>', inputs.deploy_error) || '' }}
+
+                  <div class="section">
+                    <h3>Commit</h3>
+                    <div class="info-box">
+                      <div class="info-row">
+                        <span class="info-label">Message</span><br>
+                        <span class="info-value">${{ inputs.commit_message }}</span>
+                      </div>
+                      <div class="info-row">
+                        <span class="info-label">Author</span><br>
+                        <span class="info-value">${{ inputs.commit_author }}</span>
+                      </div>
+                      <div class="info-row">
+                        <span class="info-label">SHA</span><br>
+                        <span class="info-value">${{ inputs.commit_sha }}</span>
+                      </div>
+                      <div class="info-row">
+                        <span class="info-label">Timestamp</span><br>
+                        <span class="info-value">${{ inputs.commit_timestamp }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="section">
+                    <h3>Links</h3>
+                    <div class="links-box">
+                      <a href="https://jaycebordelon.com">jaycebordelon.com</a><br>
+                      <a href="${{ github.server_url }}/${{ github.repository }}/commit/${{ inputs.commit_sha }}">View Commit on GitHub</a><br>
+                      <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Workflow Run #${{ github.run_number }}</a>
+                    </div>
+                  </div>
+
+                  <div class="section" style="text-align: center;">
+                    <a href="https://jaycebordelon.com" class="cta">Open jaycebordelon.com</a>
+                  </div>
+                </div>
+
+                <div class="footer-bar"></div>
+                <div class="footer">
+                  <p style="margin: 0;">
+                    <span style="font-size: 14px; font-weight: 700; color: #0f172a;">Jayce Bordelon</span>
+                    <span style="color: #94a3b8; font-size: 11px;">&nbsp;&middot;&nbsp;Deployment Pipeline</span>
+                  </p>
+                </div>
+              </div>
+            </body>
+            </html>
