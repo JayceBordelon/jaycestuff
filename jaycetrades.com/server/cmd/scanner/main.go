@@ -238,17 +238,11 @@ func sendStartupTestEmail(cfg *config.Config, db *store.Store, schwabClient *sch
 		scraper := sentiment.NewScraper()
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
-		data, err := scraper.GetTrendingTickers(ctx, 5)
-		if err != nil {
-			return err
-		}
-		if len(data) == 0 {
-			return fmt.Errorf("no tickers returned")
-		}
-		return nil
+		_, err := scraper.GetTrendingTickers(ctx, 5)
+		return err
 	})
 	if c.Status == "ok" {
-		c.Detail = "Fetched trending tickers"
+		c.Detail = "Reddit API reachable"
 	}
 	checks = append(checks, c)
 
