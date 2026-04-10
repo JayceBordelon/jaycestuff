@@ -47,14 +47,14 @@ personal-monorepo/
 │       └── package.json         # Next.js 16, React 19, shadcn/ui, Recharts
 │
 ├── .github/workflows/          # CI/CD pipeline
-│   ├── main-pipeline.yml       # Orchestrator: sync → lint → build → deploy → cleanup → healthcheck → notify
+│   ├── main-pipeline.yml       # Orchestrator: two independent deploy/notify paths
 │   ├── sync.yml                # Git pull on production server
 │   ├── lint.yml                # Biome (JS/TS) + golangci-lint (Go)
-│   ├── build.yml               # Docker compose build all services
-│   ├── deploy.yml              # Rolling deployment via docker rollout
+│   ├── build.yml               # Docker compose build (parameterized by service)
+│   ├── deploy.yml              # Rolling deployment (parameterized: portfolio or trading)
 │   ├── cleanup.yml             # Post-deploy docker system prune
 │   ├── healthcheck.yml         # Endpoint verification + granular /health
-│   ├── notify.yml              # Email notification with pipeline results
+│   ├── notify.yml              # Per-service deploy email notification
 │   └── cd.yml                  # Standalone manual trigger pipeline
 │
 ├── docker-compose.yml          # All services + Traefik config
@@ -214,14 +214,39 @@ When updating, also bump the `OPENAI_MODEL` / `ANTHROPIC_MODEL` defaults baked i
 Triggered on push to `main` or manual dispatch. Runs on the production server via SSH. The two sites deploy independently so a slow or failing build on one side never blocks the other.
 
 ```
-sync ─┬─ lint (parallel, does not gate deploys)
-      ├─ build portfolio ──> deploy portfolio ──> notify (jaycebordelon.com)
-      ├─ build frontend ─┐
-      └─ build server ───┴─> deploy trading ──> notify (vibetradez.com)
-                                    │
-                        both deploys done
-                          ├─ cleanup
-                          └─ healthcheck
+                              ┌─────────────────────── PORTFOLIO PATH ───────────────────────┐
+                              │                                                              │
+                              │  ┌─────────────────┐   ┌──────────────────┐   ┌───────────┐  │
+                              ├─>│ Build            │──>│ Deploy           │──>│ Notify    │  │
+                              │  │ jaycebordelon-com│   │ docker rollout   │   │ Portfolio │  │
+                              │  └─────────────────┘   │ jaycebordelon-com│   │ Email     │  │
+                              │                        └────────┬─────────┘   └───────────┘  │
+┌──────┐   ┌──────────────┐   │                                 │                            │
+│ Push │──>│ Sync         │───┤                                 ▼                            │
+│ main │   │ git pull     │   │                        ┌────────────────┐                    │
+└──────┘   └──────┬───────┘   │                        │ Both deploys   │                    │
+                  │           │                        │ complete       │                    │
+                  │           │                        └───┬────────┬───┘                    │
+                  ▼           │                            │        │                        │
+           ┌──────────────┐   │                            ▼        ▼                        │
+           │ Lint         │   │                     ┌─────────┐ ┌────────────┐               │
+           │ Biome + Go   │   │                     │ Cleanup │ │ Health     │               │
+           │ (parallel,   │   │                     │ prune   │ │ Check      │               │
+           │ non-blocking)│   │                     └─────────┘ │ endpoints  │               │
+           └──────────────┘   │                                 │ + /health  │               │
+                              │                                 └────────────┘               │
+                              │                                                              │
+                              │  ┌─────────────────┐   ┌──────────────────┐   ┌───────────┐  │
+                              ├─>│ Build            │──>│                  │──>│ Notify    │  │
+                              │  │ trading-frontend │   │ Deploy           │   │ Trading   │  │
+                              │  └─────────────────┘   │ docker rollout   │   │ Email     │  │
+                              │                     ┌─>│ trading-frontend │   └───────────┘  │
+                              │  ┌─────────────────┐│  │ + force-recreate │                  │
+                              └─>│ Build            ├┘  │ trading-server   │                  │
+                                 │ trading-server   │   └──────────────────┘                  │
+                                 └─────────────────┘                                         │
+                              │                                                              │
+                              └─────────────────────── TRADING PATH ─────────────────────────┘
 ```
 
 1. **Sync** — `git reset --hard origin/main`
