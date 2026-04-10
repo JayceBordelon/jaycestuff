@@ -37,10 +37,11 @@ export default function TermsPage() {
 							All trade ideas presented on this platform are
 							machine-generated suggestions, not recommendations.
 							They are produced by large language models (currently
-							GPT-5.4) analyzing publicly available sentiment data
-							and market information. These outputs have not been
-							reviewed, verified, or endorsed by any licensed
-							financial professional.
+							OpenAI&apos;s GPT-5.4, with a planned migration to
+							Anthropic&apos;s Claude) analyzing publicly available
+							sentiment data and market information. These outputs
+							have not been reviewed, verified, or endorsed by any
+							licensed financial professional.
 						</p>
 					</CardContent>
 				</Card>
