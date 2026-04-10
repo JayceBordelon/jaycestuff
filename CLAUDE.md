@@ -106,6 +106,38 @@ cd vibetradez.com/client && npx biome check .
 
 When working with Next.js, shadcn/ui, Tailwind CSS, Recharts, or any external library, **always fetch and read the current documentation** before writing code. Do not rely on recalled syntax or API signatures — they may be outdated. This applies even if it takes extra time. Incorrect assumptions about APIs cause more rework than the time saved by skipping docs.
 
+### Recharts (currently pinned at v3)
+
+`vibetradez.com/client` uses **Recharts ^3.8.0** wrapped by the shadcn `ChartContainer` primitive at `components/ui/chart.tsx`. Recharts 3 was a hard break from 2 — read the migration guide before touching any chart code.
+
+**Reference URLs:**
+
+- v2 → v3 migration guide: <https://github.com/recharts/recharts/wiki/3.0-migration-guide>
+- Release notes (changelog after 2.x lives only here): <https://github.com/recharts/recharts/releases>
+- npm: <https://www.npmjs.com/package/recharts>
+
+**v3 breaking changes that bite us in this codebase:**
+
+- `CategoricalChartState` is gone. Anything that used to read internal chart state via `Customized` or props now must use hooks (`useActiveTooltipLabel`, etc.).
+- Many "internal" cloned props are gone: `Scatter.points`, `Area.points`, `Legend.payload`, `activeIndex`. If you see code reading any of these, it's broken on v3.
+- `<Customized />` no longer receives extra props.
+- `ref.current.current` on `ResponsiveContainer` is gone.
+- `XAxis` / `YAxis` axis lines now render even when there are no ticks.
+- Multiple `YAxis` instances render in alphabetical order of `yAxisId`, not render order.
+- `CartesianGrid` requires explicit `xAxisId` / `yAxisId` to match the axes it pairs with.
+- SVG z-order is the JSX render order — to put a series on top, render it last.
+- `Area`'s `connectNulls=true` now treats null datapoints as zero instead of skipping them.
+- `Pie.blendStroke` is removed; use `stroke="none"`.
+- `<Cell>` is **deprecated** as of v3.7 and will be removed in v4. Migrate per-bar/per-slice colors to the chart element's `shape` prop instead. We still use `Cell` in `daily-pnl-chart.tsx` and `daily-breakdown.tsx` — leave them alone for now but plan a migration before bumping major.
+- Tooltip custom-content prop type is now `TooltipContentProps`, not `TooltipProps`.
+- Since v3.3, every chart accepts a `responsive` prop directly, so `ResponsiveContainer` wrapping is **optional**. Our shadcn `ChartContainer` still wraps with `ResponsiveContainer` for the inline-style fallback.
+
+**Project-specific rules for chart components:**
+
+- Always render charts through `ChartContainer` from `@/components/ui/chart` — it owns the `ResponsiveContainer`, the `--color-*` CSS variable injection, and the tooltip context.
+- Never call `.map()` directly on a `data` prop you receive from a parent without a fallback. The `Cannot read properties of null (reading 'map')` runtime crash on `/history` was caused by the server returning `{"days": null}` for an empty range and `filterByRank` calling `data.days.map(...)` unguarded. The lesson: any boundary that produces JSON arrays must initialize them as empty slices server-side (Go nil slice → JSON `null`), and any client function that consumes them must `?? []` them defensively. Same pattern applies to `comparison.go`, `cmd/scanner/main.go`, and any future endpoint that returns lists.
+- When passing data into Recharts components, the data prop must be an array, not null/undefined. A guard like `data && data.length > 0 && <BarChart data={data} ...>` is the safest pattern.
+
 ### Always use feature branches
 
 Never push directly to `main`. Create a descriptive branch, push there, and let the user handle PRs and merging.
