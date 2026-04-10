@@ -1,11 +1,14 @@
-name: Jayce Land - CI/CD Pipeline
+name: CI/CD Pipeline (Manual)
 
 on:
   workflow_dispatch:
 
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
 env:
   PROJECT_PATH: /home/jayce/personal-monorepo
-  REPO_URL: git@github.com:JayceBordelon/personal-monorepo.git
 
 jobs:
   sync:
@@ -85,8 +88,10 @@ jobs:
             docker compose build --no-cache jaycebordelon-com trading-server trading-frontend
             docker tag jaycebordelon.com:latest "jaycebordelon.com:${SHORT_SHA}"
 
-  deploy:
-    name: Deploy
+  # ── Deploy (independent) ──────────────────────────────────────────
+
+  deploy_portfolio:
+    name: Deploy / Portfolio
     runs-on: ubuntu-latest
     needs: build
     outputs:
@@ -94,6 +99,8 @@ jobs:
       short_sha: ${{ steps.get_info.outputs.short_sha }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Get commit info
         id: get_info
@@ -101,7 +108,7 @@ jobs:
           echo "commit_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
           echo "short_sha=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
 
-      - name: Deploy to production
+      - name: Deploy portfolio
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOST }}
@@ -110,18 +117,46 @@ jobs:
           script: |
             set -e
             cd ${{ env.PROJECT_PATH }}
-
-            # Zero-downtime rolling deployment of web apps
             docker rollout jaycebordelon-com --timeout 120 --wait-after-healthy 30
-            docker rollout trading-frontend --timeout 120 --wait-after-healthy 30
+            docker compose up -d traefik
 
-            # Restart trading server (no rollout needed for background service)
+  deploy_trading:
+    name: Deploy / Trading
+    runs-on: ubuntu-latest
+    needs: build
+    outputs:
+      commit_sha: ${{ steps.get_info.outputs.commit_sha }}
+      short_sha: ${{ steps.get_info.outputs.short_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get commit info
+        id: get_info
+        run: |
+          echo "commit_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "short_sha=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+
+      - name: Deploy trading
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+            cd ${{ env.PROJECT_PATH }}
+            docker rollout trading-frontend --timeout 120 --wait-after-healthy 30
             docker compose up -d --force-recreate trading-server
+            docker compose up -d traefik
+
+  # ── Post-deploy ───────────────────────────────────────────────────
 
   cleanup:
     name: Post-Deploy Cleanup
     runs-on: ubuntu-latest
-    needs: deploy
+    needs: [deploy_portfolio, deploy_trading]
     steps:
       - uses: actions/checkout@v4
 
@@ -141,7 +176,7 @@ jobs:
   healthcheck:
     name: Health Check
     runs-on: ubuntu-latest
-    needs: deploy
+    needs: [deploy_portfolio, deploy_trading]
     outputs:
       status: ${{ steps.health.outputs.status }}
       results: ${{ steps.health.outputs.results }}
@@ -212,13 +247,15 @@ jobs:
             echo "status=PASSED" >> $GITHUB_OUTPUT
           fi
 
-  notify:
-    name: Send Notification
+  # ── Notify (fires as soon as its deploy finishes) ─────────────────
+
+  notify_portfolio:
+    name: Notify / Portfolio
     runs-on: ubuntu-latest
-    needs: [deploy, healthcheck]
-    if: always()
+    needs: deploy_portfolio
+    if: always() && !cancelled()
     steps:
-      - name: Send deployment summary email
+      - name: Send portfolio deploy notification
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -226,180 +263,40 @@ jobs:
           secure: true
           username: bordelonjayce@gmail.com
           password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "[${{ needs.healthcheck.outputs.status }}] Jayce Land Deployment - ${{ needs.deploy.outputs.short_sha }}"
+          subject: "[${{ needs.deploy_portfolio.result == 'success' && 'PASSED' || 'FAILED' }}] jaycebordelon.com - ${{ needs.deploy_portfolio.outputs.short_sha || 'unknown' }}"
           to: bordelonjayce@gmail.com
-          from: Jayce Land CI/CD <bordelonjayce@gmail.com>
+          from: Vibe Tradez <trades@vibetradez.com>
           html_body: |
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <style>
-                body { 
-                  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-                  line-height: 1.6; 
-                  color: #000000;
-                  background-color: #f9f9fa;
-                  margin: 0;
-                  padding: 0;
-                }
-                .container { 
-                  max-width: 600px; 
-                  margin: 40px auto; 
-                  background: #ffffff;
-                  border: 1px solid #e0e0e0;
-                  border-radius: 8px;
-                  overflow: hidden;
-                }
-                .header { 
-                  background: #34a85a;
-                  color: #ffffff;
-                  padding: 32px 24px;
-                  text-align: center;
-                }
-                .header.failed { 
-                  background: #ef4444;
-                }
-                .header h1 {
-                  margin: 0;
-                  font-size: 24px;
-                  font-weight: 700;
-                  letter-spacing: -0.02em;
-                }
-                .content { 
-                  padding: 32px 24px;
-                }
-                .section { 
-                  margin: 24px 0;
-                  padding-bottom: 24px;
-                  border-bottom: 1px solid #e0e0e0;
-                }
-                .section:last-child {
-                  border-bottom: none;
-                  padding-bottom: 0;
-                }
-                .section h3 { 
-                  margin: 0 0 16px 0;
-                  color: #000000;
-                  font-size: 16px;
-                  font-weight: 600;
-                  letter-spacing: -0.01em;
-                }
-                .info-grid { 
-                  display: grid;
-                  grid-template-columns: 140px 1fr;
-                  gap: 12px;
-                  font-size: 14px;
-                }
-                .info-label { 
-                  font-weight: 600;
-                  color: #050505;
-                }
-                .info-value {
-                  color: #000000;
-                  word-break: break-all;
-                }
-                .health-results { 
-                  background: #fafafa;
-                  padding: 16px;
-                  border-radius: 6px;
-                  border: 1px solid #e0e0e0;
-                  font-family: 'JetBrains Mono', 'Courier New', monospace;
-                  font-size: 13px;
-                  line-height: 1.8;
-                }
-                .footer { 
-                  text-align: center;
-                  padding: 24px;
-                  color: #c9c9c9;
-                  font-size: 12px;
-                  background: #fafafa;
-                  border-top: 1px solid #e0e0e0;
-                }
-                .status-badge { 
-                  display: inline-block;
-                  padding: 6px 16px;
-                  border-radius: 6px;
-                  font-weight: 600;
-                  font-size: 14px;
-                  margin-top: 8px;
-                }
-                .status-passed { 
-                  background: #7ed957;
-                  color: #000000;
-                }
-                .status-failed { 
-                  background: #ef4444;
-                  color: #ffffff;
-                }
-                a {
-                  color: #34a85a;
-                  text-decoration: none;
-                }
-                a:hover {
-                  text-decoration: underline;
-                }
-                pre {
-                  margin: 0;
-                  white-space: pre-wrap;
-                  word-wrap: break-word;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="container">
-                <div class="header ${{ needs.healthcheck.outputs.status == 'FAILED' && 'failed' || '' }}">
-                  <h1>Jayce Land Deployment</h1>
-                  <span class="status-badge status-${{ needs.healthcheck.outputs.status == 'FAILED' && 'failed' || 'passed' }}">
-                    ${{ needs.healthcheck.outputs.status }}
-                  </span>
-                </div>
-                
-                <div class="content">
-                  <div class="section">
-                    <h3>Deployment Details</h3>
-                    <div class="info-grid">
-                      <span class="info-label">Repository</span>
-                      <span class="info-value">${{ github.repository }}</span>
-                      
-                      <span class="info-label">Branch</span>
-                      <span class="info-value">${{ github.ref_name }}</span>
-                      
-                      <span class="info-label">Commit</span>
-                      <span class="info-value">${{ needs.deploy.outputs.commit_sha }}</span>
-                      
-                      <span class="info-label">Version</span>
-                      <span class="info-value">jayce.com:${{ needs.deploy.outputs.short_sha }}</span>
-                      
-                      <span class="info-label">Triggered by</span>
-                      <span class="info-value">${{ github.actor }}</span>
-                      
-                      <span class="info-label">Workflow Run</span>
-                      <span class="info-value"><a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">#${{ github.run_number }}</a></span>
-                    </div>
-                  </div>
-                  
-                  <div class="section">
-                    <h3>Health Check Results</h3>
-                    <div class="health-results">
-                      <pre>${{ needs.healthcheck.outputs.results }}</pre>
-                    </div>
-                  </div>
-                  
-                  <div class="section">
-                    <h3>Quick Links</h3>
-                    <div style="line-height: 2;">
-                      <a href="https://jaycebordelon.com">https://jaycebordelon.com</a><br>
-                      <a href="https://www.jaycebordelon.com">https://www.jaycebordelon.com</a><br>
-                      <a href="https://vibetradez.com">https://vibetradez.com</a><br>
-                      <a href="https://vibetradez.com/dashboard">https://vibetradez.com/dashboard</a><br>
-                      <a href="${{ github.server_url }}/${{ github.repository }}/commit/${{ needs.deploy.outputs.commit_sha }}">View Commit</a>
-                    </div>
-                  </div>
-                </div>
-                
-                <div class="footer">
-                  <p>Automated deployment notification from Jayce Land CI/CD</p>
-                </div>
-              </div>
-            </body>
-            </html>
+            <p style="font-family: sans-serif;">
+              <strong>jaycebordelon.com</strong> deploy
+              ${{ needs.deploy_portfolio.result == 'success' && '✓ PASSED' || '✗ FAILED' }}
+              &middot; <code>${{ needs.deploy_portfolio.outputs.short_sha || 'unknown' }}</code>
+              &middot; <a href="https://jaycebordelon.com">Open site</a>
+              &middot; <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">Workflow</a>
+            </p>
+
+  notify_trading:
+    name: Notify / Trading
+    runs-on: ubuntu-latest
+    needs: deploy_trading
+    if: always() && !cancelled()
+    steps:
+      - name: Send trading deploy notification
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: bordelonjayce@gmail.com
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "[${{ needs.deploy_trading.result == 'success' && 'PASSED' || 'FAILED' }}] vibetradez.com - ${{ needs.deploy_trading.outputs.short_sha || 'unknown' }}"
+          to: bordelonjayce@gmail.com
+          from: Vibe Tradez <trades@vibetradez.com>
+          html_body: |
+            <p style="font-family: sans-serif;">
+              <strong>vibetradez.com</strong> deploy
+              ${{ needs.deploy_trading.result == 'success' && '✓ PASSED' || '✗ FAILED' }}
+              &middot; <code>${{ needs.deploy_trading.outputs.short_sha || 'unknown' }}</code>
+              &middot; <a href="https://vibetradez.com">Open site</a>
+              &middot; <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">Workflow</a>
+            </p>

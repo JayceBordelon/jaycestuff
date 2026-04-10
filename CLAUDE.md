@@ -211,12 +211,24 @@ When updating, also bump the `OPENAI_MODEL` / `ANTHROPIC_MODEL` defaults baked i
 
 ## CI/CD Pipeline
 
-Triggered on push to `main` or manual dispatch. Runs on the production server via SSH:
+Triggered on push to `main` or manual dispatch. Runs on the production server via SSH. The two sites deploy independently so a slow or failing build on one side never blocks the other.
+
+```
+sync ─┬─ lint (parallel, does not gate deploys)
+      ├─ build portfolio ──> deploy portfolio ──> notify (jaycebordelon.com)
+      ├─ build frontend ─┐
+      └─ build server ───┴─> deploy trading ──> notify (vibetradez.com)
+                                    │
+                        both deploys done
+                          ├─ cleanup
+                          └─ healthcheck
+```
 
 1. **Sync** — `git reset --hard origin/main`
-2. **Lint** — Biome + gofmt + go vet
-3. **Build** — `docker compose build --no-cache` all services
-4. **Deploy** — `docker rollout` for web apps, `docker compose up -d --force-recreate` for background services
-5. **Cleanup** — `docker system prune -af --volumes` to reclaim disk space
-6. **Health Check** — Verify all endpoints + granular `/health` for trading server services (database, openai, anthropic, schwab, api). The healthcheck step iterates `services | keys[]` so any new service added to the granular `/health` response is automatically gated without YAML changes.
-7. **Notify** — Email with full pipeline status, commit info, and health results
+2. **Lint** — Biome + gofmt + go vet (runs in parallel, does not block deploys)
+3. **Build** — Three parallel `docker compose build --no-cache` jobs: `jaycebordelon-com`, `trading-frontend`, `trading-server`
+4. **Deploy / Portfolio** — `docker rollout jaycebordelon-com` (fires as soon as portfolio build finishes)
+5. **Deploy / Trading** — `docker rollout trading-frontend` + `docker compose up -d --force-recreate trading-server` (fires as soon as both trading builds finish)
+6. **Notify** — Per-service email to bordelonjayce@gmail.com as soon as each deploy completes. Each notification is independent and does not wait for the other site.
+7. **Cleanup** — `docker system prune -af --volumes` to reclaim disk space (waits for both deploys)
+8. **Health Check** — Verify all endpoints + granular `/health` for trading server services (database, openai, anthropic, schwab, api). The healthcheck step iterates `services | keys[]` so any new service added to the granular `/health` response is automatically gated without YAML changes. Waits for both deploys.

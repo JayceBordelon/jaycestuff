@@ -3,30 +3,14 @@ name: Notify
 on:
   workflow_call:
     inputs:
-      sync_status:
-        required: false
+      service:
+        required: true
         type: string
-        default: "✓ PASSED"
-      sync_error:
-        required: false
+        description: "Service display name (e.g. 'jaycebordelon.com' or 'vibetradez.com')"
+      service_url:
+        required: true
         type: string
-        default: ""
-      lint_status:
-        required: false
-        type: string
-        default: "✓ PASSED"
-      lint_error:
-        required: false
-        type: string
-        default: ""
-      build_status:
-        required: false
-        type: string
-        default: "✓ PASSED"
-      build_error:
-        required: false
-        type: string
-        default: ""
+        description: "URL to link in the email CTA"
       deploy_status:
         required: false
         type: string
@@ -35,93 +19,42 @@ on:
         required: false
         type: string
         default: ""
-      deploy_commit_sha:
+      commit_sha:
         required: false
         type: string
         default: "unknown"
-      deploy_short_sha:
+      short_sha:
         required: false
         type: string
         default: "unknown"
-      deploy_commit_message:
+      commit_message:
         required: false
         type: string
         default: "No commit message"
-      deploy_commit_author:
+      commit_author:
         required: false
         type: string
         default: "Unknown"
-      deploy_commit_timestamp:
+      commit_timestamp:
         required: false
         type: string
         default: "Unknown"
-      cleanup_status:
-        required: false
-        type: string
-        default: "✓ PASSED"
-      cleanup_error:
-        required: false
-        type: string
-        default: ""
-      healthcheck_status:
-        required: false
-        type: string
-        default: "✓ PASSED"
-      healthcheck_error:
-        required: false
-        type: string
-        default: ""
-      healthcheck_results:
-        required: false
-        type: string
-        default: "No results"
 
 jobs:
   notify:
-    name: Send Email Notification
+    name: Send Email
     runs-on: ubuntu-latest
     steps:
-      - name: Determine overall status
-        id: overall
+      - name: Determine status
+        id: status
         run: |
-          SYNC="${{ inputs.sync_status }}"
-          LINT="${{ inputs.lint_status }}"
-          BUILD="${{ inputs.build_status }}"
-          DEPLOY="${{ inputs.deploy_status }}"
-          CLEANUP="${{ inputs.cleanup_status }}"
-          HEALTH="${{ inputs.healthcheck_status }}"
-
-          if [[ "$SYNC" == *"FAILED"* ]] || [[ "$LINT" == *"FAILED"* ]] || [[ "$BUILD" == *"FAILED"* ]] || [[ "$DEPLOY" == *"FAILED"* ]] || [[ "$CLEANUP" == *"FAILED"* ]] || [[ "$HEALTH" == *"FAILED"* ]]; then
-            echo "status=FAILED" >> $GITHUB_OUTPUT
+          if [[ "${{ inputs.deploy_status }}" == *"FAILED"* ]]; then
+            echo "result=FAILED" >> $GITHUB_OUTPUT
           else
-            echo "status=PASSED" >> $GITHUB_OUTPUT
+            echo "result=PASSED" >> $GITHUB_OUTPUT
           fi
 
-          ERRORS=""
-          if [[ "$SYNC" == *"FAILED"* ]]; then
-            ERRORS="${ERRORS}Sync: ${{ inputs.sync_error }}<br>"
-          fi
-          if [[ "$LINT" == *"FAILED"* ]]; then
-            ERRORS="${ERRORS}Lint: ${{ inputs.lint_error }}<br>"
-          fi
-          if [[ "$BUILD" == *"FAILED"* ]]; then
-            ERRORS="${ERRORS}Build: ${{ inputs.build_error }}<br>"
-          fi
-          if [[ "$DEPLOY" == *"FAILED"* ]]; then
-            ERRORS="${ERRORS}Deploy: ${{ inputs.deploy_error }}<br>"
-          fi
-          if [[ "$CLEANUP" == *"FAILED"* ]]; then
-            ERRORS="${ERRORS}Cleanup: ${{ inputs.cleanup_error }}<br>"
-          fi
-          if [[ "$HEALTH" == *"FAILED"* ]]; then
-            ERRORS="${ERRORS}Health: ${{ inputs.healthcheck_error }}<br>"
-          fi
-
-          echo "errors<<EOF" >> $GITHUB_OUTPUT
-          echo "$ERRORS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Send deployment summary email
+      - name: Send deploy notification
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -129,7 +62,7 @@ jobs:
           secure: true
           username: bordelonjayce@gmail.com
           password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "[${{ steps.overall.outputs.status }}] VibeTradez Deploy - ${{ inputs.deploy_short_sha }}"
+          subject: "[${{ steps.status.outputs.result }}] ${{ inputs.service }} - ${{ inputs.short_sha }}"
           to: bordelonjayce@gmail.com
           from: Vibe Tradez <trades@vibetradez.com>
           html_body: |
@@ -138,20 +71,20 @@ jobs:
             <head>
               <style>
                 body {
-                  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-                  background-color: #f1f5f9;
+                  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                  background-color: #fafafa;
                   margin: 0;
                   padding: 40px 20px;
-                  letter-spacing: 0.025em;
+                  -webkit-font-smoothing: antialiased;
                 }
                 .container {
-                  max-width: 600px;
+                  max-width: 580px;
                   margin: 0 auto;
                   background-color: #ffffff;
-                  border-radius: 8px;
+                  border-radius: 12px;
                   overflow: hidden;
                   border: 1px solid #e2e8f0;
-                  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+                  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.06);
                 }
                 .brand-bar {
                   height: 4px;
@@ -159,48 +92,29 @@ jobs:
                 }
                 .header {
                   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-                  padding: 48px 40px;
+                  padding: 32px 28px;
                   text-align: center;
-                  position: relative;
-                }
-                .header.failed {
-                  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
                 }
                 .header h1 {
                   color: #ffffff;
-                  font-size: 28px;
+                  font-size: 22px;
                   font-weight: 800;
-                  margin: 0 0 8px 0;
+                  margin: 0 0 6px 0;
                   letter-spacing: -0.3px;
                 }
                 .header p {
-                  color: rgba(255, 255, 255, 0.85);
-                  font-size: 16px;
+                  color: #94a3b8;
+                  font-size: 13px;
                   margin: 0;
                   font-weight: 500;
                 }
-                .content {
-                  padding: 40px;
-                  background-color: #ffffff;
-                }
-                .section {
-                  margin-bottom: 32px;
-                }
-                .section h3 {
-                  color: #0f172a;
-                  font-size: 13px;
-                  font-weight: 700;
-                  margin: 0 0 16px 0;
-                  text-transform: uppercase;
-                  letter-spacing: 0.1em;
-                }
                 .status-badge {
                   display: inline-block;
-                  padding: 6px 16px;
+                  padding: 5px 14px;
                   border-radius: 6px;
                   font-weight: 700;
-                  font-size: 14px;
-                  margin-top: 8px;
+                  font-size: 13px;
+                  margin-top: 12px;
                 }
                 .status-passed {
                   background: linear-gradient(135deg, #10a37f 0%, #D97757 100%);
@@ -210,92 +124,70 @@ jobs:
                   background: #ef4444;
                   color: #ffffff;
                 }
-                .info-box {
-                  background-color: #fafafa;
-                  border-radius: 8px;
+                .content {
                   padding: 28px;
+                }
+                .section {
+                  margin-bottom: 24px;
+                }
+                .section:last-child {
+                  margin-bottom: 0;
+                }
+                .section h3 {
+                  color: #0f172a;
+                  font-size: 11px;
+                  font-weight: 700;
+                  margin: 0 0 12px 0;
+                  text-transform: uppercase;
+                  letter-spacing: 0.08em;
+                }
+                .info-box {
+                  background-color: #f8fafc;
+                  border-radius: 8px;
+                  padding: 20px;
                   border: 1px solid #e2e8f0;
                 }
-                .info-grid {
-                  display: grid;
-                  grid-template-columns: 140px 1fr;
-                  gap: 16px;
-                  font-size: 14px;
+                .info-row {
+                  padding: 6px 0;
+                  font-size: 13px;
                 }
                 .info-label {
-                  color: #64748b;
+                  color: #94a3b8;
                   font-weight: 500;
                 }
                 .info-value {
                   color: #0f172a;
-                  font-weight: 700;
+                  font-weight: 600;
                   word-break: break-all;
                 }
                 .error-box {
                   background-color: #fef2f2;
-                  border: 1px solid #ef4444;
+                  border: 1px solid #fecaca;
                   border-radius: 8px;
-                  padding: 24px;
-                  color: #991b1b;
-                  line-height: 1.8;
+                  padding: 16px 20px;
+                  color: #dc2626;
+                  font-size: 13px;
+                  line-height: 1.6;
+                  font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+                  word-break: break-word;
                 }
-                .pipeline-stages {
-                  display: grid;
-                  gap: 12px;
+                .cta {
+                  display: inline-block;
+                  padding: 10px 24px;
+                  background: linear-gradient(135deg, #10a37f 0%, #D97757 100%);
+                  color: #ffffff !important;
+                  font-size: 13px;
+                  font-weight: 600;
+                  text-decoration: none;
+                  border-radius: 8px;
                 }
-                .stage {
-                  background-color: #fafafa;
+                .links-box {
+                  background-color: #f8fafc;
                   padding: 16px 20px;
                   border-radius: 8px;
                   border: 1px solid #e2e8f0;
-                  display: flex;
-                  justify-content: space-between;
-                  align-items: center;
-                }
-                .stage-name {
-                  color: #0f172a;
-                  font-weight: 600;
-                  font-size: 14px;
-                }
-                .stage-status {
-                  font-weight: 700;
-                  font-size: 14px;
-                }
-                .stage-status.passed {
-                  color: #10a37f;
-                }
-                .stage-status.failed {
-                  color: #ef4444;
-                }
-                .stage-status.skipped {
-                  color: #94a3b8;
-                }
-                .health-results {
-                  background-color: #fafafa;
-                  padding: 24px;
-                  border-radius: 8px;
-                  border: 1px solid #e2e8f0;
-                  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.06);
-                  font-family: 'JetBrains Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
-                  font-size: 13px;
-                  line-height: 1.8;
-                  color: #334155;
-                  font-weight: 600;
-                }
-                .links-box {
-                  background-color: #f1f5f9;
-                  padding: 20px 24px;
-                  border-radius: 8px;
-                  border: 1px solid #e2e8f0;
                   line-height: 2;
-                }
-                .links-box a {
-                  color: #475569;
-                  text-decoration: none;
-                  font-weight: 600;
-                }
-                .links-box a:hover {
-                  text-decoration: underline;
+                  font-size: 13px;
                 }
                 .footer-bar {
                   height: 3px;
@@ -303,154 +195,75 @@ jobs:
                 }
                 .footer {
                   background-color: #f1f5f9;
-                  padding: 28px 40px;
-                }
-                .footer p {
-                  margin: 0 0 4px 0;
-                  font-size: 14px;
-                }
-                .footer-label {
-                  color: #64748b;
-                }
-                .footer-value {
-                  color: #475569;
-                  font-weight: 800;
-                  font-size: 16px;
-                }
-                .copyright {
+                  padding: 16px 28px;
                   text-align: center;
-                  padding: 28px 20px 0;
-                  color: #94a3b8;
-                  font-size: 12px;
-                  line-height: 1.6;
                 }
-                pre {
-                  margin: 0;
-                  white-space: pre-wrap;
-                  word-wrap: break-word;
+                a {
+                  color: #10a37f;
+                  text-decoration: none;
+                }
+                a:hover {
+                  text-decoration: underline;
                 }
               </style>
             </head>
             <body>
               <div class="container">
                 <div class="brand-bar"></div>
-                <div class="header ${{ steps.overall.outputs.status == 'FAILED' && 'failed' || '' }}">
+                <div class="header">
                   <h1><span style="color: #10a37f;">Vibe</span><span style="color: #D97757;">Tradez</span> <span style="color: #94a3b8; font-weight: 500;">Deploy</span></h1>
-                  <p>Build ${{ inputs.deploy_short_sha || 'unknown' }}</p>
-                  <span class="status-badge status-${{ steps.overall.outputs.status == 'FAILED' && 'failed' || 'passed' }}">
-                    ${{ steps.overall.outputs.status == 'FAILED' && '✗ FAILED' || '✓ PASSED' }}
+                  <p>${{ inputs.service }}</p>
+                  <span class="status-badge status-${{ steps.status.outputs.result == 'FAILED' && 'failed' || 'passed' }}">
+                    ${{ steps.status.outputs.result == 'FAILED' && '✗ FAILED' || '✓ PASSED' }}
                   </span>
                 </div>
 
                 <div class="content">
-                  <div style="background-color: #f8fafc; border-left: 4px solid; border-image: linear-gradient(180deg, #10a37f, #D97757) 1; padding: 16px 20px; margin-bottom: 32px; border-radius: 0 8px 8px 0;">
-                    <p style="margin: 0; color: #475569; font-size: 14px; line-height: 1.6;">
-                      Deployment pipeline completed for the personal monorepo. All services (jaycebordelon.com, vibetradez.com) are covered by this run.
-                    </p>
-                  </div>
-
-                  ${{ steps.overall.outputs.status == 'FAILED' && format('<div class="section"><h3>Deployment Errors</h3><div class="error-box">{0}</div></div>', steps.overall.outputs.errors) || '' }}
+                  ${{ steps.status.outputs.result == 'FAILED' && inputs.deploy_error != '' && format('<div class="section"><h3>Error</h3><div class="error-box">{0}</div></div>', inputs.deploy_error) || '' }}
 
                   <div class="section">
-                    <h3>Commit Information</h3>
+                    <h3>Commit</h3>
                     <div class="info-box">
-                      <div class="info-grid">
-                        <span class="info-label">Message</span>
-                        <span class="info-value">${{ inputs.deploy_commit_message || 'No message' }}</span>
-
-                        <span class="info-label">Author</span>
-                        <span class="info-value">${{ inputs.deploy_commit_author || 'Unknown' }}</span>
-
-                        <span class="info-label">SHA</span>
-                        <span class="info-value">${{ inputs.deploy_commit_sha || 'unknown' }}</span>
-
-                        <span class="info-label">Timestamp</span>
-                        <span class="info-value">${{ inputs.deploy_commit_timestamp || 'Unknown' }}</span>
+                      <div class="info-row">
+                        <span class="info-label">Message</span><br>
+                        <span class="info-value">${{ inputs.commit_message }}</span>
+                      </div>
+                      <div class="info-row">
+                        <span class="info-label">Author</span><br>
+                        <span class="info-value">${{ inputs.commit_author }}</span>
+                      </div>
+                      <div class="info-row">
+                        <span class="info-label">SHA</span><br>
+                        <span class="info-value">${{ inputs.commit_sha }}</span>
+                      </div>
+                      <div class="info-row">
+                        <span class="info-label">Timestamp</span><br>
+                        <span class="info-value">${{ inputs.commit_timestamp }}</span>
                       </div>
                     </div>
                   </div>
 
                   <div class="section">
-                    <h3>Pipeline Stages</h3>
-                    <div class="pipeline-stages">
-                      <div class="stage">
-                        <span class="stage-name">1. Repository Sync</span>
-                        <span class="stage-status ${{ contains(inputs.sync_status, 'FAILED') && 'failed' || (contains(inputs.sync_status, 'Not Run') && 'skipped' || 'passed') }}">${{ inputs.sync_status || '✓ PASSED' }}</span>
-                      </div>
-                      <div class="stage">
-                        <span class="stage-name">2. Linting</span>
-                        <span class="stage-status ${{ contains(inputs.lint_status, 'FAILED') && 'failed' || (contains(inputs.lint_status, 'Not Run') && 'skipped' || 'passed') }}">${{ inputs.lint_status || '✓ PASSED' }}</span>
-                      </div>
-                      <div class="stage">
-                        <span class="stage-name">3. Docker Build</span>
-                        <span class="stage-status ${{ contains(inputs.build_status, 'FAILED') && 'failed' || (contains(inputs.build_status, 'Not Run') && 'skipped' || 'passed') }}">${{ inputs.build_status || '✓ PASSED' }}</span>
-                      </div>
-                      <div class="stage">
-                        <span class="stage-name">4. Deployment</span>
-                        <span class="stage-status ${{ contains(inputs.deploy_status, 'FAILED') && 'failed' || (contains(inputs.deploy_status, 'Not Run') && 'skipped' || 'passed') }}">${{ inputs.deploy_status || '✓ PASSED' }}</span>
-                      </div>
-                      <div class="stage">
-                        <span class="stage-name">5. Post-Deploy Cleanup</span>
-                        <span class="stage-status ${{ contains(inputs.cleanup_status, 'FAILED') && 'failed' || (contains(inputs.cleanup_status, 'Not Run') && 'skipped' || 'passed') }}">${{ inputs.cleanup_status || '✓ PASSED' }}</span>
-                      </div>
-                      <div class="stage">
-                        <span class="stage-name">6. Health Check</span>
-                        <span class="stage-status ${{ contains(inputs.healthcheck_status, 'FAILED') && 'failed' || (contains(inputs.healthcheck_status, 'Not Run') && 'skipped' || 'passed') }}">${{ inputs.healthcheck_status || '✓ PASSED' }}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="section">
-                    <h3>Health Check Results</h3>
-                    <div class="health-results">
-                      <pre>${{ inputs.healthcheck_results || 'No results available' }}</pre>
-                    </div>
-                  </div>
-
-                  <div class="section">
-                    <h3>Deployment Details</h3>
-                    <div class="info-box">
-                      <div class="info-grid">
-                        <span class="info-label">Repository</span>
-                        <span class="info-value">${{ github.repository }}</span>
-
-                        <span class="info-label">Branch</span>
-                        <span class="info-value">${{ github.ref_name }}</span>
-
-                        <span class="info-label">Version</span>
-                        <span class="info-value">jayce.com:${{ inputs.deploy_short_sha || 'unknown' }}</span>
-
-                        <span class="info-label">Triggered by</span>
-                        <span class="info-value">${{ github.actor }}</span>
-
-                        <span class="info-label">Workflow Run</span>
-                        <span class="info-value"><a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" style="color: #10a37f; text-decoration: none;">#${{ github.run_number }}</a></span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="section">
-                    <h3>Quick Links</h3>
+                    <h3>Links</h3>
                     <div class="links-box">
-                      <a href="https://vibetradez.com">https://vibetradez.com</a><br>
-                      <a href="https://jaycebordelon.com">https://jaycebordelon.com</a><br>
-                      <a href="${{ github.server_url }}/${{ github.repository }}/commit/${{ inputs.deploy_commit_sha }}">View Commit on GitHub</a><br>
-                      <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Workflow Run</a>
+                      <a href="${{ inputs.service_url }}">${{ inputs.service }}</a><br>
+                      <a href="${{ github.server_url }}/${{ github.repository }}/commit/${{ inputs.commit_sha }}">View Commit on GitHub</a><br>
+                      <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Workflow Run #${{ github.run_number }}</a>
                     </div>
+                  </div>
+
+                  <div class="section" style="text-align: center;">
+                    <a href="${{ inputs.service_url }}" class="cta">Open ${{ inputs.service }}</a>
                   </div>
                 </div>
 
                 <div class="footer-bar"></div>
                 <div class="footer">
-                  <p style="margin: 0; text-align: center;">
+                  <p style="margin: 0;">
                     <span style="font-size: 14px; font-weight: 700; color: #10a37f;">Vibe</span><span style="font-size: 14px; font-weight: 700; color: #D97757;">Tradez</span>
                     <span style="color: #94a3b8; font-size: 11px;">&nbsp;&middot;&nbsp;Deployment Pipeline</span>
                   </p>
                 </div>
-              </div>
-
-              <div class="copyright">
-                <p>Automated deployment notification &middot; Build ${{ inputs.deploy_short_sha || 'unknown' }}</p>
               </div>
             </body>
             </html>

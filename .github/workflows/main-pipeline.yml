@@ -1,4 +1,4 @@
-name: Jayce Land - CI/CD Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
@@ -31,6 +31,8 @@ jobs:
     with:
       project_path: /home/jayce/personal-monorepo
 
+  # ── Build (parallel) ──────────────────────────────────────────────
+
   build_portfolio:
     name: Build / Portfolio
     needs: sync
@@ -61,18 +63,69 @@ jobs:
       project_path: /home/jayce/personal-monorepo
       service: trading-server
 
-  deploy:
-    name: Deploy
-    needs: [build_portfolio, build_frontend, build_server]
+  # ── Deploy (independent) ──────────────────────────────────────────
+
+  deploy_portfolio:
+    name: Deploy / Portfolio
+    needs: build_portfolio
     if: success()
     uses: ./.github/workflows/deploy.yml
     secrets: inherit
     with:
       project_path: /home/jayce/personal-monorepo
+      service: portfolio
+
+  deploy_trading:
+    name: Deploy / Trading
+    needs: [build_frontend, build_server]
+    if: success()
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit
+    with:
+      project_path: /home/jayce/personal-monorepo
+      service: trading
+
+  # ── Notify (fires as soon as its deploy finishes) ─────────────────
+
+  notify_portfolio:
+    name: Notify / Portfolio
+    needs: deploy_portfolio
+    if: always() && !cancelled()
+    uses: ./.github/workflows/notify.yml
+    secrets: inherit
+    with:
+      service: jaycebordelon.com
+      service_url: https://jaycebordelon.com
+      deploy_status: ${{ needs.deploy_portfolio.result == 'success' && needs.deploy_portfolio.outputs.status || '✗ FAILED' }}
+      deploy_error: ${{ needs.deploy_portfolio.outputs.error || 'Deploy did not run' }}
+      commit_sha: ${{ needs.deploy_portfolio.outputs.commit_sha || github.sha }}
+      short_sha: ${{ needs.deploy_portfolio.outputs.short_sha || 'unknown' }}
+      commit_message: ${{ needs.deploy_portfolio.outputs.commit_message || 'No message' }}
+      commit_author: ${{ needs.deploy_portfolio.outputs.commit_author || github.actor }}
+      commit_timestamp: ${{ needs.deploy_portfolio.outputs.commit_timestamp || 'Unknown' }}
+
+  notify_trading:
+    name: Notify / Trading
+    needs: deploy_trading
+    if: always() && !cancelled()
+    uses: ./.github/workflows/notify.yml
+    secrets: inherit
+    with:
+      service: vibetradez.com
+      service_url: https://vibetradez.com
+      deploy_status: ${{ needs.deploy_trading.result == 'success' && needs.deploy_trading.outputs.status || '✗ FAILED' }}
+      deploy_error: ${{ needs.deploy_trading.outputs.error || 'Deploy did not run' }}
+      commit_sha: ${{ needs.deploy_trading.outputs.commit_sha || github.sha }}
+      short_sha: ${{ needs.deploy_trading.outputs.short_sha || 'unknown' }}
+      commit_message: ${{ needs.deploy_trading.outputs.commit_message || 'No message' }}
+      commit_author: ${{ needs.deploy_trading.outputs.commit_author || github.actor }}
+      commit_timestamp: ${{ needs.deploy_trading.outputs.commit_timestamp || 'Unknown' }}
+
+  # ── Post-deploy (waits for both) ──────────────────────────────────
 
   cleanup:
     name: Cleanup
-    needs: deploy
+    needs: [deploy_portfolio, deploy_trading]
     if: success()
     uses: ./.github/workflows/cleanup.yml
     secrets: inherit
@@ -81,35 +134,7 @@ jobs:
 
   healthcheck:
     name: Health Check
-    needs: deploy
+    needs: [deploy_portfolio, deploy_trading]
     if: success()
     uses: ./.github/workflows/healthcheck.yml
     secrets: inherit
-
-  notify:
-    name: Notify
-    needs: [sync, lint, build_portfolio, build_frontend, build_server, deploy, cleanup, healthcheck]
-    if: always()
-    uses: ./.github/workflows/notify.yml
-    secrets: inherit
-    with:
-      sync_status: ${{ needs.sync.result == 'success' && needs.sync.outputs.status || (needs.sync.result == 'skipped' && '○ Not Run' || '✗ FAILED') }}
-      sync_error: ${{ needs.sync.outputs.error || '' }}
-      lint_status: ${{ needs.lint.result == 'success' && needs.lint.outputs.status || (needs.lint.result == 'skipped' && '○ Not Run' || '✗ FAILED') }}
-      lint_error: ${{ needs.lint.outputs.error || '' }}
-      build_status: |
-        Portfolio: ${{ needs.build_portfolio.result == 'success' && needs.build_portfolio.outputs.status || (needs.build_portfolio.result == 'skipped' && '○ Not Run' || '✗ FAILED') }} • Frontend: ${{ needs.build_frontend.result == 'success' && needs.build_frontend.outputs.status || (needs.build_frontend.result == 'skipped' && '○ Not Run' || '✗ FAILED') }} • Server: ${{ needs.build_server.result == 'success' && needs.build_server.outputs.status || (needs.build_server.result == 'skipped' && '○ Not Run' || '✗ FAILED') }}
-      build_error: |
-        ${{ needs.build_portfolio.outputs.error || '' }}${{ needs.build_frontend.outputs.error && format(' | {0}', needs.build_frontend.outputs.error) || '' }}${{ needs.build_server.outputs.error && format(' | {0}', needs.build_server.outputs.error) || '' }}
-      deploy_status: ${{ needs.deploy.result == 'success' && needs.deploy.outputs.status || (needs.deploy.result == 'skipped' && '○ Not Run' || '✗ FAILED') }}
-      deploy_error: ${{ needs.deploy.outputs.error || '' }}
-      deploy_commit_sha: ${{ needs.deploy.outputs.commit_sha || github.sha }}
-      deploy_short_sha: ${{ needs.deploy.outputs.short_sha || 'unknown' }}
-      deploy_commit_message: ${{ needs.deploy.outputs.commit_message || 'No message' }}
-      deploy_commit_author: ${{ needs.deploy.outputs.commit_author || github.actor }}
-      deploy_commit_timestamp: ${{ needs.deploy.outputs.commit_timestamp || 'Unknown' }}
-      cleanup_status: ${{ needs.cleanup.result == 'success' && needs.cleanup.outputs.status || (needs.cleanup.result == 'skipped' && '○ Not Run' || '✗ FAILED') }}
-      cleanup_error: ${{ needs.cleanup.outputs.error || '' }}
-      healthcheck_status: ${{ needs.healthcheck.result == 'success' && needs.healthcheck.outputs.status || (needs.healthcheck.result == 'skipped' && '○ Not Run' || '✗ FAILED') }}
-      healthcheck_error: ${{ needs.healthcheck.outputs.error || '' }}
-      healthcheck_results: ${{ needs.healthcheck.outputs.results || 'No results' }}

@@ -6,6 +6,10 @@ on:
       project_path:
         required: true
         type: string
+      service:
+        required: true
+        type: string
+        description: "'portfolio' for jaycebordelon.com, 'trading' for vibetradez.com"
     outputs:
       commit_sha:
         description: "Full commit SHA"
@@ -74,20 +78,15 @@ jobs:
             set -e
             cd ${{ inputs.project_path }}
 
-            # Rolling deployment for web apps
-            docker rollout jaycebordelon-com --timeout 120 --wait-after-healthy 30
-            docker rollout trading-frontend --timeout 120 --wait-after-healthy 30
+            SERVICE="${{ inputs.service }}"
+            if [ "$SERVICE" = "portfolio" ]; then
+              docker rollout jaycebordelon-com --timeout 120 --wait-after-healthy 30
+            elif [ "$SERVICE" = "trading" ]; then
+              docker rollout trading-frontend --timeout 120 --wait-after-healthy 30
+              docker compose up -d --force-recreate trading-server
+            fi
 
-            # Restart trading server (no rollout needed for background service)
-            docker compose up -d --force-recreate trading-server
-
-            # Ensure Traefik is up. The deploy steps above only touch the
-            # three application services; if Traefik was ever stopped (a
-            # crash, a manual restart, or a previous cleanup that pruned
-            # its image while it was down) the entire site is unreachable
-            # because nothing is listening on 80/443. This idempotent
-            # `up -d traefik` is a no-op when Traefik is already running
-            # and brings it back when it isn't.
+            # Ensure Traefik is up (idempotent no-op when already running)
             docker compose up -d traefik
 
       - name: Set deploy status
@@ -99,5 +98,5 @@ jobs:
             echo "error=" >> $GITHUB_OUTPUT
           else
             echo "status=✗ FAILED" >> $GITHUB_OUTPUT
-            echo "error=Deployment rollout failed - containers may not have started properly" >> $GITHUB_OUTPUT
+            echo "error=${{ inputs.service }} deployment failed - containers may not have started properly" >> $GITHUB_OUTPUT
           fi
