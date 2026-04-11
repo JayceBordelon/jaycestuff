@@ -50,7 +50,8 @@ personal-monorepo/
 │   ├── main-pipeline.yml       # Orchestrator: two independent deploy/notify paths
 │   ├── sync.yml                # Git pull on production server
 │   ├── lint-portfolio.yml      # Biome lint for jaycebordelon.com
-│   ├── lint-trading.yml        # golangci-lint for vibetradez.com/server
+│   ├── lint-trading-frontend.yml # Biome lint for vibetradez.com/client
+│   ├── lint-trading-server.yml # golangci-lint for vibetradez.com/server
 │   ├── build.yml               # Docker compose build (parameterized by service)
 │   ├── deploy.yml              # Rolling deployment (parameterized: portfolio or trading)
 │   ├── cleanup.yml             # Post-deploy docker system prune
@@ -216,47 +217,50 @@ When updating, also bump the `OPENAI_MODEL` / `ANTHROPIC_MODEL` defaults baked i
 Triggered on push to `main` or manual dispatch. Runs on the production server via SSH. The two sites deploy independently so a slow or failing build on one side never blocks the other.
 
 ```
-           ┌──────────────────────────────── PORTFOLIO PATH ────────────────────────────────┐
-           │                                                                                 │
-           │  ┌──────────┐   ┌─────────────────┐   ┌──────────────────┐   ┌───────────┐     │
-           ├─>│ Lint      │──>│ Build            │──>│ Deploy           │──>│ Notify    │     │
-           │  │ Portfolio │   │ jaycebordelon-com│   │ docker rollout   │   │ Portfolio │     │
-           │  │ (Biome)   │   └─────────────────┘   │ jaycebordelon-com│   │ Email     │     │
-           │  └──────────┘                          └────────┬─────────┘   └───────────┘     │
-┌──────┐   │                                                 │                               │
-│ Push │──>│ Sync                                            ▼                               │
-│ main │──>│ git pull                               ┌────────────────┐                       │
-└──────┘   │                                        │ Both deploys   │                       │
-           │                                        │ complete       │                       │
-           │                                        └───┬────────┬───┘                       │
-           │                                            │        │                           │
-           │                                            ▼        ▼                           │
-           │                                     ┌─────────┐ ┌────────────┐                  │
-           │                                     │ Cleanup │ │ Health     │                  │
-           │                                     │ prune   │ │ Check      │                  │
-           │                                     └─────────┘ │ endpoints  │                  │
-           │                                                 │ + /health  │                  │
-           │                                                 └────────────┘                  │
-           │                                                                                 │
-           │  ┌──────────┐   ┌─────────────────┐   ┌──────────────────┐   ┌───────────┐     │
-           │  │ Lint      │   │ Build            │──>│                  │──>│ Notify    │     │
-           ├─>│ Trading  │──>│ trading-frontend │   │ Deploy           │   │ Trading   │     │
-           │  │ (Go lint) │   └─────────────────┘   │ docker rollout   │   │ Email     │     │
-           │  └──────────┘                       ┌─>│ trading-frontend │   └───────────┘     │
-           │               ┌─────────────────┐   │  │ + force-recreate │                     │
-           │               │ Build            │──>┘  │ trading-server   │                     │
-           │               │ trading-server   │      └──────────────────┘                     │
-           │               └─────────────────┘                                               │
-           │                                                                                 │
-           └──────────────────────────────── TRADING PATH ───────────────────────────────────┘
+           ┌──────────────────────────────────── PORTFOLIO PATH ────────────────────────────────────┐
+           │                                                                                         │
+           │  ┌──────────────┐   ┌─────────────────┐   ┌──────────────────┐   ┌───────────┐         │
+           ├─>│ Lint          │──>│ Build            │──>│ Deploy           │──>│ Notify    │         │
+           │  │ Portfolio     │   │ jaycebordelon-com│   │ docker rollout   │   │ Portfolio │         │
+           │  │ (Biome)       │   └─────────────────┘   │ jaycebordelon-com│   │ Email     │         │
+           │  └──────────────┘                          └────────┬─────────┘   └───────────┘         │
+┌──────┐   │                                                     │                                   │
+│ Push │──>│ Sync                                                ▼                                   │
+│ main │──>│ git pull                                   ┌────────────────┐                           │
+└──────┘   │                                            │ Both deploys   │                           │
+           │                                            │ complete       │                           │
+           │                                            └───┬────────┬───┘                           │
+           │                                                │        │                               │
+           │                                                ▼        ▼                               │
+           │                                         ┌─────────┐ ┌────────────┐                      │
+           │                                         │ Cleanup │ │ Health     │                      │
+           │                                         │ prune   │ │ Check      │                      │
+           │                                         └─────────┘ │ endpoints  │                      │
+           │                                                     │ + /health  │                      │
+           │                                                     └────────────┘                      │
+           │                                                                                         │
+           │  ┌──────────────┐   ┌─────────────────┐                                                │
+           ├─>│ Lint          │──>│ Build            │──┐                                             │
+           │  │ Trading FE    │   │ trading-frontend │  │  ┌──────────────────┐   ┌───────────┐      │
+           │  │ (Biome)       │   └─────────────────┘  ├─>│ Deploy           │──>│ Notify    │      │
+           │  └──────────────┘                         │  │ docker rollout   │   │ Trading   │      │
+           │                                           │  │ trading-frontend │   │ Email     │      │
+           │  ┌──────────────┐   ┌─────────────────┐   │  │ + force-recreate │   └───────────┘      │
+           └─>│ Lint          │──>│ Build            │──┘  │ trading-server   │                      │
+              │ Trading BE    │   │ trading-server   │     └──────────────────┘                      │
+              │ (Go lint)     │   └─────────────────┘                                               │
+              └──────────────┘                                                                      │
+           │                                                                                         │
+           └──────────────────────────────────── TRADING PATH ───────────────────────────────────────┘
 ```
 
 1. **Sync** — `git reset --hard origin/main`
-2. **Lint / Portfolio** — Biome check on `jaycebordelon.com/` (gates portfolio build)
-3. **Lint / Trading** — golangci-lint on `vibetradez.com/server/` (gates trading builds, runs in parallel with portfolio lint)
-4. **Build** — Three parallel `docker compose build --no-cache` jobs, each gated by its own lint
-5. **Deploy / Portfolio** — `docker rollout jaycebordelon-com` (fires as soon as portfolio build finishes)
-6. **Deploy / Trading** — `docker rollout trading-frontend` + `docker compose up -d --force-recreate trading-server` (fires as soon as both trading builds finish)
-7. **Notify** — Per-service email to bordelonjayce@gmail.com as soon as each deploy completes. Each notification is independent and does not wait for the other site.
-8. **Cleanup** — `docker system prune -af --volumes` to reclaim disk space (waits for both deploys)
-9. **Health Check** — Verify all endpoints + granular `/health` for trading server services (database, openai, anthropic, schwab, api). The healthcheck step iterates `services | keys[]` so any new service added to the granular `/health` response is automatically gated without YAML changes. Waits for both deploys.
+2. **Lint / Portfolio** — Biome check on `jaycebordelon.com/` (gates portfolio build only)
+3. **Lint / Trading Frontend** — Biome check on `vibetradez.com/client/` (gates trading frontend build only)
+4. **Lint / Trading Server** — golangci-lint on `vibetradez.com/server/` (gates trading server build only)
+5. **Build** — Three parallel `docker compose build --no-cache` jobs, each gated by its own lint
+6. **Deploy / Portfolio** — `docker rollout jaycebordelon-com` (fires as soon as portfolio build finishes)
+7. **Deploy / Trading** — `docker rollout trading-frontend` + `docker compose up -d --force-recreate trading-server` (fires as soon as both trading builds finish)
+8. **Notify** — Per-service email to bordelonjayce@gmail.com as soon as each deploy completes. Each notification is independent and does not wait for the other site.
+9. **Cleanup** — `docker system prune -af --volumes` to reclaim disk space (waits for both deploys)
+10. **Health Check** — Verify all endpoints + granular `/health` for trading server services (database, openai, anthropic, schwab, api). The healthcheck step iterates `services | keys[]` so any new service added to the granular `/health` response is automatically gated without YAML changes. Waits for both deploys.

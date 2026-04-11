@@ -1,0 +1,49 @@
+name: Lint / Trading Frontend
+
+on:
+  workflow_call:
+    inputs:
+      project_path:
+        required: true
+        type: string
+    outputs:
+      status:
+        description: "Lint status"
+        value: ${{ jobs.lint.outputs.status }}
+      error:
+        description: "Lint error message"
+        value: ${{ jobs.lint.outputs.error }}
+
+jobs:
+  lint:
+    name: Biome (vibetradez.com/client)
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.lint_status.outputs.status }}
+      error: ${{ steps.lint_status.outputs.error }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Biome
+        id: lint_run
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+            cd ${{ inputs.project_path }}
+            biome check vibetradez.com/client/
+
+      - name: Set lint status
+        id: lint_status
+        if: always()
+        run: |
+          if [ "${{ steps.lint_run.outcome }}" == "success" ]; then
+            echo "status=✓ PASSED" >> $GITHUB_OUTPUT
+            echo "error=" >> $GITHUB_OUTPUT
+          else
+            echo "status=✗ FAILED" >> $GITHUB_OUTPUT
+            echo "error=Trading frontend linting failed - check Biome output" >> $GITHUB_OUTPUT
+          fi

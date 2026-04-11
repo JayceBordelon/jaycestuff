@@ -48,7 +48,7 @@ flowchart TB
     Reddit["Reddit JSON<br/>r/wallstreetbets sentiment"]:::external
     Resend["Resend<br/>email delivery"]:::external
 
-    GH["GitHub Actions<br/>sync · 2× lint · 3× build<br/>deploy · cleanup · healthcheck · notify"]:::ci
+    GH["GitHub Actions<br/>sync · 3× lint · 3× build<br/>deploy · cleanup · healthcheck · notify"]:::ci
 
     User --> D1
     User --> D2
@@ -79,7 +79,7 @@ personal-monorepo/
 │   ├── server/          Go API (cron jobs, dual-model LLM picking, Schwab market data, Resend email)
 │   ├── client/          Next.js 16 dashboard (live picks, history, model comparison)
 │   └── local/           Self-contained Docker stack with seeded Postgres for offline dev
-├── .github/workflows/   CI/CD pipeline (sync → 2× lint → 3× build → deploy → cleanup → healthcheck → notify)
+├── .github/workflows/   CI/CD pipeline (sync → 3× lint → 3× build → deploy → cleanup → healthcheck → notify)
 ├── docker-compose.yml   Production stack: Traefik + portfolio + trading server + trading frontend
 └── CLAUDE.md            Project conventions, dev rules, and the dual-model architecture in detail
 ```
@@ -140,7 +140,8 @@ flowchart LR
     Sync["Sync<br/>git pull"]:::sync
 
     LP["Lint / Portfolio<br/>Biome"]:::lint
-    LT["Lint / Trading<br/>golangci-lint"]:::lint
+    LTF["Lint / Trading FE<br/>Biome"]:::lint
+    LTS["Lint / Trading BE<br/>golangci-lint"]:::lint
 
     BP["Build<br/>jaycebordelon-com"]:::build
     BF["Build<br/>trading-frontend"]:::build
@@ -158,11 +159,12 @@ flowchart LR
     Push --> Sync
 
     Sync --> LP
-    Sync --> LT
+    Sync --> LTF
+    Sync --> LTS
 
     LP --> BP
-    LT --> BF
-    LT --> BS
+    LTF --> BF
+    LTS --> BS
 
     BP --> DP
     BF --> DT
@@ -177,17 +179,18 @@ flowchart LR
     DT --> HC
 ```
 
-**Reading the diagram:** after `git pull` syncs the droplet, two independent lint jobs run in parallel. Portfolio lint (Biome) gates the portfolio build; trading lint (golangci-lint) gates both trading builds. Each path then deploys and notifies independently. Cleanup and healthcheck wait for both deploys.
+**Reading the diagram:** after `git pull` syncs the droplet, three independent lint jobs run in parallel. Portfolio lint (Biome) gates the portfolio build; trading frontend lint (Biome) gates the frontend build; trading server lint (golangci-lint) gates the server build. Each deploy path fires as soon as its builds finish, and notifies independently. Cleanup and healthcheck wait for both deploys.
 
 1. **Sync** - `git reset --hard origin/main`
 2. **Lint / Portfolio** - Biome check on `jaycebordelon.com/` (gates portfolio build only)
-3. **Lint / Trading** - golangci-lint on `vibetradez.com/server/` (gates trading builds only, runs in parallel with portfolio lint)
-4. **Build** - three parallel `docker compose build --no-cache` jobs, each gated by its own lint
-5. **Deploy / Portfolio** - `docker rollout jaycebordelon-com` (fires as soon as portfolio build finishes)
-6. **Deploy / Trading** - `docker rollout trading-frontend` + `docker compose up -d --force-recreate trading-server` (fires as soon as both trading builds finish)
-7. **Notify** - per-service email as soon as each deploy completes, independent of the other site
-8. **Cleanup** - `docker system prune -af` (no `--volumes`, so Traefik's Let's Encrypt cert volume is preserved)
-9. **Health Check** - endpoint checks plus granular `/health` parsing that fails on any non-ok service
+3. **Lint / Trading Frontend** - Biome check on `vibetradez.com/client/` (gates trading frontend build only)
+4. **Lint / Trading Server** - golangci-lint on `vibetradez.com/server/` (gates trading server build only)
+5. **Build** - three parallel `docker compose build --no-cache` jobs, each gated by its own lint
+6. **Deploy / Portfolio** - `docker rollout jaycebordelon-com` (fires as soon as portfolio build finishes)
+7. **Deploy / Trading** - `docker rollout trading-frontend` + `docker compose up -d --force-recreate trading-server` (fires as soon as both trading builds finish)
+8. **Notify** - per-service email as soon as each deploy completes, independent of the other site
+9. **Cleanup** - `docker system prune -af` (no `--volumes`, so Traefik's Let's Encrypt cert volume is preserved)
+10. **Health Check** - endpoint checks plus granular `/health` parsing that fails on any non-ok service
 
 Per the project rules in `CLAUDE.md`: never push directly to `main`, always work on feature branches, and let the human merge.
 

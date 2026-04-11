@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["jaycebordelon.com/**/*.{js,jsx,ts,tsx,json,mdx}", "!**/node_modules", "!**/.next", "!**/dist", "!**/build"],
+    "includes": ["jaycebordelon.com/**/*.{js,jsx,ts,tsx,json,mdx}", "vibetradez.com/client/**/*.{js,jsx,ts,tsx,json}", "!**/node_modules", "!**/.next", "!**/dist", "!**/build"],
     "ignoreUnknown": true
   },
   "formatter": {

@@ -1,4 +1,4 @@
-name: Lint / Trading
+name: Lint / Trading Server
 
 on:
   workflow_call:
@@ -16,7 +16,7 @@ on:
 
 jobs:
   lint:
-    name: Go Linting (vibetradez.com)
+    name: Go Linting (vibetradez.com/server)
     runs-on: ubuntu-latest
     outputs:
       status: ${{ steps.lint_status.outputs.status }}
@@ -53,5 +53,5 @@ jobs:
             echo "error=" >> $GITHUB_OUTPUT
           else
             echo "status=✗ FAILED" >> $GITHUB_OUTPUT
-            echo "error=Trading linting failed - check Go lint output" >> $GITHUB_OUTPUT
+            echo "error=Trading server linting failed - check Go lint output" >> $GITHUB_OUTPUT
           fi
