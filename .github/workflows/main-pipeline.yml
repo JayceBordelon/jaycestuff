@@ -22,20 +22,29 @@ jobs:
       project_path: /home/jayce/personal-monorepo
       repo_url: git@github.com:JayceBordelon/personal-monorepo.git
 
-  lint:
-    name: Lint
+  lint_portfolio:
+    name: Lint / Portfolio
     needs: sync
     if: success()
-    uses: ./.github/workflows/lint.yml
+    uses: ./.github/workflows/lint-portfolio.yml
     secrets: inherit
     with:
       project_path: /home/jayce/personal-monorepo
 
-  # ── Build (parallel) ──────────────────────────────────────────────
+  lint_trading:
+    name: Lint / Trading
+    needs: sync
+    if: success()
+    uses: ./.github/workflows/lint-trading.yml
+    secrets: inherit
+    with:
+      project_path: /home/jayce/personal-monorepo
+
+  # ── Build (each gated on its own lint) ─────────────────────────────
 
   build_portfolio:
     name: Build / Portfolio
-    needs: sync
+    needs: lint_portfolio
     if: success()
     uses: ./.github/workflows/build.yml
     secrets: inherit
@@ -45,7 +54,7 @@ jobs:
 
   build_frontend:
     name: Build / Trading Frontend
-    needs: sync
+    needs: lint_trading
     if: success()
     uses: ./.github/workflows/build.yml
     secrets: inherit
@@ -55,7 +64,7 @@ jobs:
 
   build_server:
     name: Build / Trading Server
-    needs: sync
+    needs: lint_trading
     if: success()
     uses: ./.github/workflows/build.yml
     secrets: inherit

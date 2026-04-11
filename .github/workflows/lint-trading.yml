@@ -1,4 +1,4 @@
-name: Lint
+name: Lint / Trading
 
 on:
   workflow_call:
@@ -16,7 +16,7 @@ on:
 
 jobs:
   lint:
-    name: Biome + Go Linting
+    name: Go Linting (vibetradez.com)
     runs-on: ubuntu-latest
     outputs:
       status: ${{ steps.lint_status.outputs.status }}
@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run linter
+      - name: Run Go linters
         id: lint_run
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -35,9 +35,6 @@ jobs:
             set -e
             cd ${{ inputs.project_path }}
 
-            # Lint JS/TS
-            biome check .
-
             # Ensure Go 1.23+ is available (install to ~/go1.23 if needed)
             export PATH=$HOME/go1.23/bin:$PATH
             if ! go version 2>/dev/null | grep -qE 'go1\.(2[3-9]|[3-9][0-9])'; then
@@ -45,7 +42,6 @@ jobs:
               curl -sL https://go.dev/dl/go1.23.6.linux-amd64.tar.gz | tar -C $HOME/go1.23 --strip-components=1 -xzf -
             fi
 
-            # Lint Go
             cd vibetradez.com/server && golangci-lint run ./...
 
       - name: Set lint status
@@ -57,5 +53,5 @@ jobs:
             echo "error=" >> $GITHUB_OUTPUT
           else
             echo "status=✗ FAILED" >> $GITHUB_OUTPUT
-            echo "error=Linting failed - check code style and formatting" >> $GITHUB_OUTPUT
+            echo "error=Trading linting failed - check Go lint output" >> $GITHUB_OUTPUT
           fi
