@@ -29,7 +29,7 @@ personal-monorepo/
 │   │   │   ├── config/          # Environment variable loading
 │   │   │   ├── email/           # Resend email client
 │   │   │   ├── schwab/          # Schwab OAuth + Market Data API
-│   │   │   ├── sentiment/       # Reddit WSB sentiment scraper
+│   │   │   ├── sentiment/       # Market signal aggregator (StockTwits, Yahoo, Finviz, EDGAR)
 │   │   │   ├── server/          # HTTP API handlers
 │   │   │   ├── store/           # PostgreSQL database layer
 │   │   │   ├── templates/       # HTML email templates
@@ -162,7 +162,7 @@ All `/api/*` routes on the trading server require the `X-VT-Source` header. With
 ## Trading Server Workflows
 
 The Go server runs three cron jobs in Eastern Time:
-- **9:25 AM Mon-Fri** — Scrape Reddit sentiment, call OpenAI for 10 ranked trade picks, save to DB, email subscribers
+- **9:25 AM Mon-Fri** — Aggregate market signals (StockTwits, Yahoo Finance, Finviz, SEC EDGAR), call OpenAI + Claude for independent trade picks, save to DB, email subscribers
 - **4:05 PM Mon-Fri** — Fetch closing prices from Schwab, compute EOD P&L, save summaries, email subscribers
 - **4:30 PM Fridays** — Aggregate weekly performance, compute stats (win rate, Sharpe, drawdown), email weekly report
 

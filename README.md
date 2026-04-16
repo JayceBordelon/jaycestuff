@@ -45,7 +45,7 @@ flowchart TB
     end
 
     Schwab["Schwab Market Data API<br/>quotes + option chain + greeks"]:::external
-    Reddit["Reddit JSON<br/>r/wallstreetbets sentiment"]:::external
+    Signals["Market Signals<br/>StockTwits · Yahoo · Finviz · EDGAR"]:::external
     Resend["Resend<br/>email delivery"]:::external
 
     GH["GitHub Actions<br/>sync · 3× lint · 3× build<br/>deploy · cleanup · healthcheck · notify"]:::ci
@@ -59,7 +59,7 @@ flowchart TB
     TS -- "morning cron 9:25 ET" --> OAI
     TS -- "morning cron 9:25 ET" --> ANT
     TS -- "EOD cron 4:05 ET<br/>live dashboard quotes" --> Schwab
-    TS -- "morning cron sentiment scrape" --> Reddit
+    TS -- "morning cron market signals" --> Signals
     TS -- "all subscriber email" --> Resend
 
     OAI -. "function tools<br/>+ web search" .-> Schwab
@@ -68,7 +68,7 @@ flowchart TB
     GH -- "SSH on push to main" --> Droplet
 ```
 
-**Reading the diagram:** users hit GoDaddy DNS, which points at the droplet. Traefik terminates TLS (Let's Encrypt) and routes by hostname + path priority to one of three containers: the personal portfolio, the trading dashboard, or the trading API. Only the trading API talks to the outside world for trade picking — Postgres for persistence, Schwab for market data, OpenAI **and** Anthropic in parallel for the dual-model picker, Reddit for sentiment, Resend for email. GitHub Actions deploys by SSH'ing into the droplet and running `docker compose` against the same `docker-compose.yml` that defines the stack you see above.
+**Reading the diagram:** users hit GoDaddy DNS, which points at the droplet. Traefik terminates TLS (Let's Encrypt) and routes by hostname + path priority to one of three containers: the personal portfolio, the trading dashboard, or the trading API. Only the trading API talks to the outside world for trade picking: Postgres for persistence, Schwab for market data, OpenAI **and** Anthropic in parallel for the dual-model picker, four market signal sources (StockTwits, Yahoo Finance, Finviz, SEC EDGAR) for trending tickers and catalysts, and Resend for email. GitHub Actions deploys by SSH'ing into the droplet and running `docker compose` against the same `docker-compose.yml` that defines the stack you see above.
 
 ## What's in here
 
@@ -103,7 +103,7 @@ Traefik handles TLS (Let's Encrypt) and routes by hostname + path priority. The 
 - **Configurable models.** `OPENAI_MODEL` and `ANTHROPIC_MODEL` env vars override the defaults baked into `vibetradez.com/server/internal/config/config.go` (`DefaultOpenAIModel`, `DefaultAnthropicModel`). The defaults must be refreshed from the official SDK docs whenever this code is touched — see CLAUDE.md "Model version refresh policy".
 - **Live Schwab data.** Authorized via OAuth at `/auth/schwab`; tokens auto-refresh and persist to the `oauth_tokens` table. Quote and option-chain calls feed both the cron pickers and the live dashboard.
 - **Email delivery.** Resend handles morning picks, EOD summaries, weekly reports, and admin announcements. Subscribers stored in Postgres; HTML templates in `vibetradez.com/server/internal/templates/`.
-- **Granular `/health`.** One endpoint reports per-service status (database, openai, anthropic, schwab, api) using the actual SDK clients, with latencies. The deployment healthcheck job auto-gates on every service in the response without needing YAML changes per addition.
+- **Granular `/health`.** One endpoint reports per-service status (database, openai, anthropic, schwab, market_signals, api) using the actual SDK clients and live source probes, with latencies. The deployment healthcheck job auto-gates on every service in the response without needing YAML changes per addition.
 
 ## Running locally
 
