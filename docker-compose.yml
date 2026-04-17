@@ -59,12 +59,38 @@ services:
       - "traefik.http.middlewares.redirect-to-jaycebordelon.redirectregex.replacement=https://jaycebordelon.com$${2}"
       - "traefik.http.middlewares.redirect-to-jaycebordelon.redirectregex.permanent=true"
 
+  auth-service:
+    image: auth.jaycebordelon.com:latest
+    build:
+      context: ./auth.jaycebordelon.com
+    env_file:
+      - ./auth.jaycebordelon.com/.env
+    expose:
+      - "8081"
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    labels:
+      - "app=auth-service"
+      - "traefik.enable=true"
+      - "traefik.http.routers.auth-service.rule=Host(`auth.jaycebordelon.com`)"
+      - "traefik.http.routers.auth-service.entrypoints=websecure"
+      - "traefik.http.routers.auth-service.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.auth-service.priority=20"
+      - "traefik.http.services.auth-service.loadbalancer.server.port=8081"
+
   trading-server:
     image: vibetradez.com-trading-server:latest
     build:
       context: ./vibetradez.com/server
     env_file:
-      - .env
+      - ./vibetradez.com/server/.env
     expose:
       - "8080"
     networks:
@@ -74,7 +100,7 @@ services:
       - "app=trading-server"
       - "traefik.enable=true"
       # API/auth/health routes — higher priority
-      - "traefik.http.routers.trading-api.rule=(Host(`vibetradez.com`) || Host(`www.vibetradez.com`)) && (PathPrefix(`/api`) || PathPrefix(`/auth`) || PathPrefix(`/admin`) || Path(`/health`))"
+      - "traefik.http.routers.trading-api.rule=(Host(`vibetradez.com`) || Host(`www.vibetradez.com`)) && (PathPrefix(`/api`) || PathPrefix(`/auth`) || Path(`/health`))"
       - "traefik.http.routers.trading-api.entrypoints=websecure"
       - "traefik.http.routers.trading-api.tls.certresolver=letsencrypt"
       - "traefik.http.routers.trading-api.priority=20"

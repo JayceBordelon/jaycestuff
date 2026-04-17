@@ -7,7 +7,8 @@ Jayce Bordelon's production monorepo. All services are deployed to a single Digi
 **Single-server monolithic deployment.** Traefik routes incoming HTTPS requests to the correct container by hostname and path:
 
 - `jaycebordelon.com` / `www.jaycebordelon.com` → Next.js portfolio (port 3000)
-- `vibetradez.com` → `/api/*`, `/auth/*`, `/admin/*`, `/health` → Go API server (port 8080, priority 20)
+- `auth.jaycebordelon.com` → Go centralized OAuth identity provider (port 8081)
+- `vibetradez.com` → `/api/*`, `/auth/*`, `/health` → Go API server (port 8080, priority 20)
 - `vibetradez.com` → everything else → Next.js trading frontend (port 3001, priority 10)
 
 ## Project Structure
@@ -21,6 +22,16 @@ personal-monorepo/
 │   ├── lib/                     # Utilities
 │   ├── Dockerfile               # Multi-stage Node.js build
 │   └── package.json             # Next.js 16, React 19, Tailwind v4
+│
+├── auth.jaycebordelon.com/      # Centralized OAuth identity provider
+│   ├── cmd/server/              # Main entry point
+│   ├── internal/
+│   │   ├── config/              # Environment variable loading (fail-fast)
+│   │   ├── google/              # Google OAuth client (upstream IdP)
+│   │   ├── server/              # /oauth/{authorize,token,verify,revoke} + /auth/google/*
+│   │   └── store/               # PostgreSQL: users, sessions, oauth_clients, oauth_codes, access_tokens
+│   ├── Dockerfile               # Multi-stage Go build
+│   └── go.mod
 │
 ├── vibetradez.com/
 │   ├── server/                  # Go API server (trading backend)
@@ -61,7 +72,6 @@ personal-monorepo/
 │   └── cd.yml                  # Standalone manual trigger pipeline
 │
 ├── docker-compose.yml          # All services + Traefik config
-├── .env                        # Secrets (gitignored)
 └── CLAUDE.md                   # This file
 ```
 
@@ -72,23 +82,20 @@ personal-monorepo/
 | jaycebordelon.com | Next.js 16, React 19, Tailwind CSS v4, shadcn/ui (new-york), MDX, Framer Motion |
 | vibetradez.com/client | Next.js 16, React 19, Tailwind CSS v4, shadcn/ui (new-york), Recharts v3, TradingView Lightweight Charts |
 | vibetradez.com/server | Go 1.23, PostgreSQL (Digital Ocean managed), OpenAI GPT-5.4, Schwab Market Data API, Resend email |
+| auth.jaycebordelon.com | Go 1.25, PostgreSQL (Digital Ocean managed), golang.org/x/oauth2, bcrypt |
 | Infrastructure | Docker Compose, Traefik v2.10, Let's Encrypt, Digital Ocean Droplet |
 
 ## Database
 
-PostgreSQL hosted on Digital Ocean Managed Databases. Connection string is in `.env` as `DATABASE_URL`. The Go server auto-migrates schema on startup (CREATE TABLE IF NOT EXISTS).
+PostgreSQL hosted on Digital Ocean Managed Databases. Two DBs: `vibetradez` (trading server) and `auth` (identity provider). Each Go service owns its own DB and auto-migrates schema on startup (CREATE TABLE IF NOT EXISTS).
 
-## Key Environment Variables (.env)
+## Environment Variables
 
-- `DATABASE_URL` — PostgreSQL connection string (required, no default)
-- `RESEND_API_KEY` — Email delivery
-- `OPENAI_API_KEY` — GPT trade analyzer (required to run cron jobs)
-- `OPENAI_MODEL` — Override the default OpenAI model (default: latest from `config.DefaultOpenAIModel`)
-- `ANTHROPIC_API_KEY` — Claude trade validator (optional; validation skipped if missing or stub)
-- `ANTHROPIC_MODEL` — Override the default Anthropic model (default: latest from `config.DefaultAnthropicModel`)
-- `SCHWAB_APP_KEY` / `SCHWAB_SECRET` — Market data OAuth
-- `ADMIN_KEY` — Protects `/admin/announce` broadcast endpoint
-- `EMAIL_RECIPIENTS` — Seed subscribers on first boot
+Each service reads **its own per-service `.env` file** (mounted into its container via `env_file:` in `docker-compose.yml`), not a shared root `.env`. Every service also ships a `.env.example` next to its code. Required vars cause the service to `log.Fatal` on boot if missing — a misconfigured container will never serve traffic.
+
+- `auth.jaycebordelon.com/.env` — see `auth.jaycebordelon.com/.env.example`
+- `vibetradez.com/server/.env` — see `vibetradez.com/server/.env.example`
+- `vibetradez.com/local/.env` — optional overrides for local-dev compose
 
 ## Development Rules
 
@@ -157,7 +164,18 @@ Both Next.js frontends share the same design tokens (CSS variables in `globals.c
 
 ## API Protection
 
-All `/api/*` routes on the trading server require the `X-VT-Source` header. Without it, requests return 403. The Next.js frontend includes this header on every fetch call. The `/admin/announce` endpoint requires `X-Admin-Key` header matching the `ADMIN_KEY` env var.
+All `/api/*` routes on the trading server require the `X-VT-Source` header. Without it, requests return 403. The Next.js frontend includes this header on every fetch call.
+
+## Centralized Auth
+
+`auth.jaycebordelon.com` is a standalone Go OAuth identity provider. It owns the Google OAuth dance (it's the only service Google Cloud knows about as a redirect target) and issues opaque access tokens to registered consumer apps over the authorization-code flow.
+
+- Consumers register via `OAUTH_CLIENTS_JSON` on the auth service and hold a matching client_id + secret.
+- Sign-in flow: consumer app redirects browser to `/auth/sso/start` → trading-server generates CSRF state (cookie-scoped to `/auth/sso`) → redirects to `auth.jaycebordelon.com/oauth/authorize` → Google consent → auth-service issues a one-shot code → consumer callback exchanges the code for an access token at `/oauth/token` → consumer sets its own session cookie (`vt_session` for vibetradez) holding the opaque token.
+- Per-request verification: consumers call `POST /oauth/verify` on the auth service (cached 60s) to resolve a token into a user. Revocation propagates within the cache TTL.
+- Logout revokes via `POST /oauth/revoke`.
+
+Cross-apex cookie sharing (vibetradez.com ↔ jaycebordelon.com) is intentionally not used; each consumer holds its own same-site session cookie and talks to the auth service over HTTP.
 
 ## Trading Server Workflows
 
@@ -169,14 +187,6 @@ The Go server runs three cron jobs in Eastern Time:
 Market holidays are hardcoded in `cmd/scanner/main.go`. Jobs skip on holidays and weekends.
 
 ## Common Operations
-
-### Send announcement to all subscribers
-```bash
-curl -X POST https://vibetradez.com/admin/announce \
-  -H "X-Admin-Key: <ADMIN_KEY>" \
-  -H "Content-Type: application/json" \
-  -d '{"subject": "...", "badge": "...", "headline": "...", "sections": [{"title": "...", "body": "..."}], "cta_text": "...", "cta_url": "..."}'
-```
 
 ### Re-authorize Schwab OAuth
 Visit `https://vibetradez.com/auth/schwab` in a browser. Tokens are stored in the `oauth_tokens` table and auto-refresh.
