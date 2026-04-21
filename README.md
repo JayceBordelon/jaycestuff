@@ -65,7 +65,7 @@ flowchart TB
     OAI -. "function tools<br/>+ web search" .-> Schwab
     ANT -. "function tools<br/>+ web search" .-> Schwab
 
-    GH -- "SSH on push to main" --> Droplet
+    GH -- "SSH on manual dispatch" --> Droplet
 ```
 
 **Reading the diagram:** users hit GoDaddy DNS, which points at the droplet. Traefik terminates TLS (Let's Encrypt) and routes by hostname + path priority to one of three containers: the personal portfolio, the trading dashboard, or the trading API. Only the trading API talks to the outside world for trade picking: Postgres for persistence, Schwab for market data, OpenAI **and** Anthropic in parallel for the dual-model picker, four market signal sources (StockTwits, Yahoo Finance, Finviz, SEC EDGAR) for trending tickers and catalysts, and Resend for email. GitHub Actions deploys by SSH'ing into the droplet and running `docker compose` against the same `docker-compose.yml` that defines the stack you see above.
@@ -125,7 +125,7 @@ npm run dev
 
 ## CI / CD
 
-`main` is the deploy branch. Pushing to `main` triggers `.github/workflows/main-pipeline.yml`, which SSHes into the production droplet. The two sites deploy as fully independent paths, so a lint or build failure on one side never blocks the other.
+`main` is the deploy branch, but deploys do not fire automatically. `.github/workflows/main-pipeline.yml` runs only on manual dispatch (GitHub Actions "Run workflow" button, or `gh workflow run main-pipeline.yml`), at which point it SSHes into the production droplet. The two sites deploy as fully independent paths, so a lint or build failure on one side never blocks the other.
 
 ```mermaid
 flowchart LR
@@ -135,7 +135,7 @@ flowchart LR
     classDef deploy fill:#f0fdf4,stroke:#059669,color:#0f172a
     classDef post fill:#fffbeb,stroke:#b45309,color:#0f172a
 
-    Push["Push to main"]
+    Push["Manual dispatch<br/>workflow_dispatch"]
 
     Sync["Sync<br/>git pull"]:::sync
 
