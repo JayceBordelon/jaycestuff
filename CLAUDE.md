@@ -1,4 +1,4 @@
-# Personal Monorepo
+# jaycestuff
 
 Jayce Bordelon's production monorepo. All services are deployed to a single Digital Ocean droplet running Docker Compose behind Traefik as a reverse proxy with automatic Let's Encrypt TLS.
 
@@ -14,7 +14,7 @@ Jayce Bordelon's production monorepo. All services are deployed to a single Digi
 ## Project Structure
 
 ```
-personal-monorepo/
+jaycestuff/
 ├── jaycebordelon.com/           # Personal portfolio & blog
 │   ├── app/                     # Next.js 16 App Router pages
 │   ├── components/              # React components + shadcn/ui
@@ -200,7 +200,7 @@ Returns per-service status for database, OpenAI, Anthropic, Schwab, and API with
 ### Docker commands on production
 ```bash
 ssh jayce@<server>
-cd ~/personal-monorepo
+cd ~/jaycestuff
 docker compose logs trading-server --tail 50    # View Go server logs
 docker compose logs trading-frontend --tail 50  # View Next.js logs
 docker compose restart trading-server           # Restart Go server
@@ -230,7 +230,7 @@ When updating, also bump the `OPENAI_MODEL` / `ANTHROPIC_MODEL` defaults baked i
 
 ## CI/CD Pipeline
 
-Triggered on push to `main` or manual dispatch. Runs on the production server via SSH. The two sites deploy independently so a slow or failing build on one side never blocks the other.
+Triggered manually via GitHub Actions (`workflow_dispatch`). Runs on the production server via SSH. Merges to `main` no longer auto-deploy; trigger via the "Run workflow" button on the Actions tab or `gh workflow run main-pipeline.yml`. The two sites deploy independently so a slow or failing build on one side never blocks the other.
 
 ```
            ┌──────────────────────── LINTS (parallel) ────────────────────────┐
@@ -239,10 +239,10 @@ Triggered on push to `main` or manual dispatch. Runs on the production server vi
            │  │ Portfolio     │                                                │
            │  │ (Biome)       │                                                │
            │  └──────────────┘                                                 │
-┌──────┐   │  ┌──────────────┐        ┌─────────────────────┐                  │
-│ Push │──>│  │ Lint          │       │ Build                │                  │
-│ main │──>│─>│ Trading FE    │──────>│ docker compose build │──┐               │
-└──────┘   │  │ (Biome)       │       │ --no-cache (all 3)   │  │               │
+┌────────┐ │  ┌──────────────┐        ┌─────────────────────┐                  │
+│ Manual │─>│  │ Lint          │       │ Build                │                  │
+│dispatch│─>│─>│ Trading FE    │──────>│ docker compose build │──┐               │
+└────────┘ │  │ (Biome)       │       │ --no-cache (all 3)   │  │               │
  │  Sync   │  └──────────────┘        └─────────────────────┘  │               │
  │ git     │  ┌──────────────┐                                  │               │
  │ pull    │  │ Lint          │                                 │               │
