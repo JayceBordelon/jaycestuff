@@ -1,48 +1,156 @@
 # UI/UX enhancements — visual snapshots
 
-After-state screenshots that accompany [PR #N — `feat/ui-ux-enhancements`](https://github.com/JayceBordelon/jaycestuff/pulls?q=head%3Afeat%2Fui-ux-enhancements). This branch is **screenshots only** — no code changes — so it never merges; it exists as a reference link for the PR description.
+After-state screenshots that accompany **PR #40 — `feat/ui-ux-enhancements`**: <https://github.com/JayceBordelon/jaycestuff/pull/40>.
 
-Captured by `scripts/ux-audit/audit.mjs` on the `feat/ui-ux-enhancements` branch against the local Docker stack at `http://localhost:3001`.
+Captured by `scripts/ux-audit/audit.mjs` against the local Docker stack at `http://localhost:3001`. This branch is screenshots-only and never merges; it exists as a reference link for the PR description.
 
-## Layout
+---
 
-```
-screenshots/
-├── desktop/                # 1440x900 viewport, full page per route
-│   ├── home.png
-│   ├── dashboard.png
-│   ├── history.png
-│   ├── models.png
-│   ├── faq.png
-│   ├── terms.png
-│   └── not-found.png
-├── mobile/                 # iPhone 14 Pro (390x844), full page per route
-│   └── (same routes)
-└── interactions/           # interaction-walk steps (open subscribe modal,
-    ├── desktop/            #  click Top-N filter, click date prev,
-    └── mobile/             #  toggle Week/Month/Year/All, etc.)
-```
+## Routes — Desktop (1440×900)
 
-## What to look for
+### Home
 
-- **`desktop/models.png`, `mobile/models.png`** — head-to-head card and side-by-side panels now read **ChatGPT** / **Claude** instead of `gpt-5.5` / `claude-opus-4-7`. Cumulative P&L legend updated.
-- **`desktop/history.png`, `mobile/history.png`** — Equity Curve and Daily P&L cards no longer carry duplicate headings (was rendered twice — once by the outer `<Section>`, once by `<CardTitle>`).
-- **`mobile/*.png`** — footer link cluster, brand link, nav tabs, history mode toggle, models range tabs, Top-N dropdown trigger, and the Terms back-to-top link all expand to ≥44px tap height on mobile while preserving desktop density.
-- **`desktop/home.png`, `mobile/home.png`** — landing copy now says "ChatGPT and Claude" instead of "GPT Latest and Claude Latest". The Reveal IntersectionObserver fix means above-fold content paints synchronously, so SEO / OG snapshots see the hero without scrolling.
-- **`interactions/`** — confirms subscribe CTA opens, dashboard date-prev arrow works, Top-N control switches state, and the history Week/Month/Year/All toggle cycles correctly on both viewports.
+![desktop home](desktop-home.png)
+
+### Dashboard
+
+![desktop dashboard](desktop-dashboard.png)
+
+### Historical analytics
+
+![desktop history](desktop-history.png)
+
+### Models
+
+![desktop models](desktop-models.png)
+
+### FAQ
+
+![desktop faq](desktop-faq.png)
+
+### Terms
+
+![desktop terms](desktop-terms.png)
+
+### 404
+
+![desktop not-found](desktop-not-found.png)
+
+---
+
+## Routes — Mobile (iPhone 14 Pro, 390×844)
+
+### Home
+
+![mobile home](mobile-home.png)
+
+### Dashboard
+
+![mobile dashboard](mobile-dashboard.png)
+
+### Historical analytics
+
+![mobile history](mobile-history.png)
+
+### Models
+
+![mobile models](mobile-models.png)
+
+### FAQ
+
+![mobile faq](mobile-faq.png)
+
+### Terms
+
+![mobile terms](mobile-terms.png)
+
+### 404
+
+![mobile not-found](mobile-not-found.png)
+
+---
+
+## Interaction walks — Desktop
+
+### 01 — Land on home
+
+![interaction desktop home](interaction-desktop-01-home.png)
+
+### 02 — Subscribe modal opens
+
+![interaction desktop subscribe open](interaction-desktop-02-subscribe-open.png)
+
+### 02b — Navigate to dashboard
+
+![interaction desktop dashboard](interaction-desktop-02b-dashboard.png)
+
+### 03 — Top-N filter clicked
+
+![interaction desktop after top-n](interaction-desktop-03-after-top-n.png)
+
+### 04 — Date prev arrow clicked
+
+![interaction desktop prev day](interaction-desktop-04-prev-day.png)
+
+### 05 — History page
+
+![interaction desktop history](interaction-desktop-05-history.png)
+
+### 06 — History mode toggled (Week → All)
+
+![interaction desktop history after toggle](interaction-desktop-06-history-after-toggle.png)
+
+### 07 — Models page
+
+![interaction desktop models](interaction-desktop-07-models.png)
+
+---
+
+## Interaction walks — Mobile
+
+### 01 — Land on home
+
+![interaction mobile home](interaction-mobile-01-home.png)
+
+### 02 — Subscribe modal opens
+
+![interaction mobile subscribe open](interaction-mobile-02-subscribe-open.png)
+
+### 02b — Navigate to dashboard
+
+![interaction mobile dashboard](interaction-mobile-02b-dashboard.png)
+
+### 03 — Top-N filter clicked
+
+![interaction mobile after top-n](interaction-mobile-03-after-top-n.png)
+
+### 04 — Date prev arrow clicked
+
+![interaction mobile prev day](interaction-mobile-04-prev-day.png)
+
+### 05 — History page
+
+![interaction mobile history](interaction-mobile-05-history.png)
+
+### 06 — History mode toggled (Week → All)
+
+![interaction mobile history after toggle](interaction-mobile-06-history-after-toggle.png)
+
+### 07 — Models page
+
+![interaction mobile models](interaction-mobile-07-models.png)
+
+---
 
 ## Reproducing
 
 ```bash
-# 1. Boot the local stack on the feat/ui-ux-enhancements branch
 git checkout feat/ui-ux-enhancements
 cd vibetradez.com/local
 docker compose -f docker-compose.local.yml up --build -d
 
-# 2. Run the audit harness
 cd ../../scripts/ux-audit
 npm install   # first time only
 node audit.mjs
-
-# Output lands in scripts/ux-audit/output/{report.json,summary.md,screenshots/}
+# Output: scripts/ux-audit/output/{report.json,summary.md,screenshots/}
 ```
