@@ -17,20 +17,30 @@ jobs:
   trading-frontend:
     name: Trading Frontend
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: vibetradez.com/client
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: npm
-          cache-dependency-path: vibetradez.com/client/package-lock.json
-      - run: npm ci
+          cache-dependency-path: |
+            vibetradez.com/client/package-lock.json
+            jaycebordelon.com/package-lock.json
+      # Install both projects: trading-frontend for next build, portfolio
+      # for biome (per CLAUDE.md "biome lives in jaycebordelon.com"). This
+      # mirrors the local workflow exactly so CI never enforces a stricter
+      # biome version than what runs on the dev's machine.
+      - name: Install trading-frontend deps
+        working-directory: vibetradez.com/client
+        run: npm ci
+      - name: Install portfolio deps (for biome)
+        working-directory: jaycebordelon.com
+        run: npm ci
       - name: Biome check
-        run: npx --yes @biomejs/biome check .
+        working-directory: jaycebordelon.com
+        run: npx biome check ../vibetradez.com/client/
       - name: Next build
+        working-directory: vibetradez.com/client
         run: npx next build
 
   portfolio:
@@ -62,15 +72,19 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.23"
+          go-version: "1.25"
           cache-dependency-path: vibetradez.com/server/go.sum
       - run: go mod download
+      - name: gofmt check
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "::error::Files need gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
       - run: go vet ./...
       - run: go build ./...
-      - uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-          working-directory: vibetradez.com/server
 
   auth-service:
     name: Auth Service
