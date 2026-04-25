@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   trading-frontend:
-    name: Trading Frontend
+    name: Lint + Build • Trading Frontend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,7 +44,7 @@ jobs:
         run: npx next build
 
   portfolio:
-    name: Portfolio
+    name: Lint + Build • Portfolio
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -63,7 +63,7 @@ jobs:
         run: npx next build
 
   trading-server:
-    name: Trading Server
+    name: Lint + Build • Trading Server
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -87,7 +87,7 @@ jobs:
       - run: go build ./...
 
   auth-service:
-    name: Auth Service
+    name: Lint + Build • Auth Service
     runs-on: ubuntu-latest
     defaults:
       run:
