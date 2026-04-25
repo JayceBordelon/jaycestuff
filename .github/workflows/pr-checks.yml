@@ -101,3 +101,16 @@ jobs:
       - run: go mod download
       - run: go vet ./...
       - run: go build ./...
+
+  workflows:
+    name: Lint • Workflows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # actionlint catches YAML errors, deprecated action versions, and
+      # shellcheck issues in run: blocks. Stops the kind of round-trip we
+      # had with golangci-lint's go-version mismatch from happening again.
+      - name: actionlint
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color
