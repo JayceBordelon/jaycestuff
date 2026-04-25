@@ -1,0 +1,35 @@
+frontend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - vibetradez.com/client/**
+          - jaycebordelon.com/**
+
+server:
+  - changed-files:
+      - any-glob-to-any-file: vibetradez.com/server/**
+
+auth:
+  - changed-files:
+      - any-glob-to-any-file: auth.jaycebordelon.com/**
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file: .github/**
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file: "**/*.md"
+
+infra:
+  - changed-files:
+      - any-glob-to-any-file:
+          - docker-compose.yml
+          - vibetradez.com/local/**
+
+deps:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/package.json"
+          - "**/package-lock.json"
+          - "**/go.mod"
+          - "**/go.sum"

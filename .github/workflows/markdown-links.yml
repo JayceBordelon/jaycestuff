@@ -1,0 +1,22 @@
+name: Markdown Links
+
+# Walks every *.md file in the repo and verifies external links still
+# resolve. External docs rot silently — this catches it on every PR
+# instead of you discovering it months later when someone clicks. Runs
+# in a few seconds; fails on broken links.
+
+on:
+  pull_request:
+    paths:
+      - "**/*.md"
+
+jobs:
+  link-check:
+    name: Lint • Markdown Links
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: tcort/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: "yes"
+          use-verbose-mode: "yes"

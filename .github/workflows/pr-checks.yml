@@ -1,0 +1,121 @@
+name: PR Checks
+
+# Pre-merge gating for PRs targeting main. Runs entirely on GitHub-hosted
+# runners (no SSH into the prod droplet) so PRs from any branch are
+# validated without touching production. Each project gets its own job
+# so failures surface independently in the PR check list.
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: pr-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trading-frontend:
+    name: Lint + Build • Trading Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: |
+            vibetradez.com/client/package-lock.json
+            jaycebordelon.com/package-lock.json
+      # Install both projects: trading-frontend for next build, portfolio
+      # for biome (per CLAUDE.md "biome lives in jaycebordelon.com"). This
+      # mirrors the local workflow exactly so CI never enforces a stricter
+      # biome version than what runs on the dev's machine.
+      - name: Install trading-frontend deps
+        working-directory: vibetradez.com/client
+        run: npm ci
+      - name: Install portfolio deps (for biome)
+        working-directory: jaycebordelon.com
+        run: npm ci
+      - name: Biome check
+        working-directory: jaycebordelon.com
+        run: npx biome check ../vibetradez.com/client/
+      - name: Next build
+        working-directory: vibetradez.com/client
+        run: npx next build
+
+  portfolio:
+    name: Lint + Build • Portfolio
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: jaycebordelon.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: jaycebordelon.com/package-lock.json
+      - run: npm ci
+      - name: Biome check
+        run: npx biome check .
+      - name: Next build
+        run: npx next build
+
+  trading-server:
+    name: Lint + Build • Trading Server
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vibetradez.com/server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: vibetradez.com/server/go.sum
+      - run: go mod download
+      - name: gofmt check
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "::error::Files need gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
+      - run: go vet ./...
+      - run: go build ./...
+
+  auth-service:
+    name: Lint + Build • Auth Service
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: auth.jaycebordelon.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: auth.jaycebordelon.com/go.sum
+      - run: go mod download
+      - run: go vet ./...
+      - run: go build ./...
+
+  workflows:
+    name: Lint • Workflows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # actionlint catches YAML errors, deprecated action versions, and
+      # genuine shellcheck issues in run: blocks. Stops the kind of
+      # round-trip we had with golangci-lint's go-version mismatch from
+      # happening again. SHELLCHECK_OPTS suppresses shellcheck's info
+      # and style level findings (mostly SC2086 on GitHub-controlled
+      # ${{ }} substitutions in the deploy scripts) that are noise here.
+      - name: actionlint
+        uses: docker://rhysd/actionlint:latest
+        env:
+          SHELLCHECK_OPTS: -S warning
+        with:
+          args: -color
