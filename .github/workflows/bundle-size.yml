@@ -1,0 +1,39 @@
+name: Bundle Size
+
+# Compares JS + CSS chunk sizes between the PR head and the base
+# branch, comments the diff on the PR. Informational — does NOT gate
+# the merge (build size can drift for legit reasons), but a sudden
+# +200 KB on a marketing page will be visible during review.
+
+on: pull_request
+
+jobs:
+  trading-frontend:
+    name: Bundle Size • Trading Frontend
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: preactjs/compressed-size-action@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          cwd: vibetradez.com/client
+          pattern: ".next/static/chunks/**/*.{js,css}"
+          build-script: build
+
+  portfolio:
+    name: Bundle Size • Portfolio
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: preactjs/compressed-size-action@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          cwd: jaycebordelon.com
+          pattern: ".next/static/chunks/**/*.{js,css}"
+          build-script: build
