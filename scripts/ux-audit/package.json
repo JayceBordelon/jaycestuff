@@ -1,0 +1,15 @@
+{
+  "name": "vt-ux-audit",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Puppeteer UX audit harness for the local vibetradez/jaycebordelon stack",
+  "scripts": {
+    "audit": "node audit.mjs",
+    "audit:portfolio": "TARGETS=portfolio node audit.mjs",
+    "audit:trading": "TARGETS=trading node audit.mjs"
+  },
+  "dependencies": {
+    "puppeteer": "^23.11.1"
+  }
+}
