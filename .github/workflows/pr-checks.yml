@@ -101,6 +101,17 @@ jobs:
       - run: go mod download
       - run: go vet ./...
       - run: go build ./...
+      # Build golangci-lint from source against the runner's Go (1.25)
+      # rather than golangci-lint-action's bundled binary (which targets
+      # Go 1.24 in the v6 release and fails with "Go language version
+      # used to build golangci-lint is lower than the targeted Go
+      # version" when the auth go.mod declares 1.25).
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+      # setup-go@v5 already adds GOPATH/bin to PATH so the binary
+      # installed above is callable by name.
+      - name: golangci-lint
+        run: golangci-lint run ./...
 
   workflows:
     name: Lint • Workflows
