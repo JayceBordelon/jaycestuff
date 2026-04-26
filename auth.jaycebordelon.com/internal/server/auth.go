@@ -14,7 +14,7 @@ const (
 	oauthStateTTL    = 10 * time.Minute
 )
 
-/**
+/*
 handleGoogleLogin kicks off a plain IdP sign-in (no consumer app attached).
 Used when a user lands on auth.jaycebordelon.com directly or when a consumer
 flow bounces through to pick up a new Google token.
@@ -27,7 +27,7 @@ func (s *Server) handleGoogleLogin(w http.ResponseWriter, r *http.Request) {
 	s.startGoogleFlow(w, r, "", "", "", returnTo)
 }
 
-/**
+/*
 startGoogleFlow generates CSRF state, stashes any in-flight consumer
 authorize request, sets the double-submit cookie, and redirects to Google.
 clientID / redirectURI / consumerState are empty for plain IdP sign-in.
@@ -109,7 +109,7 @@ func (s *Server) handleGoogleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	/**
+	/*
 	Mint an IdP session cookie on auth.jaycebordelon.com so subsequent
 	authorize requests (possibly from a different consumer app) don't need
 	to re-prompt Google.
@@ -127,7 +127,7 @@ func (s *Server) handleGoogleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	s.setSessionCookie(w, token)
 
-	/**
+	/*
 	If this callback was the tail of a consumer authorize flow, resume it
 	by minting an auth code and redirecting back to the consumer.
 	*/
@@ -170,7 +170,7 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 	}})
 }
 
-/**
+/*
 currentIdPUser returns the user attached to the auth.jaycebordelon.com IdP
 cookie, or nil if none.
 */
@@ -183,7 +183,7 @@ func (s *Server) currentIdPUser(r *http.Request) *idPUser {
 	if err != nil || sess == nil {
 		return nil
 	}
-	/**
+	/*
 	Only IdP cookies (NULL client_id) count here — access tokens issued to
 	consumer apps live in the same sessions table but aren't valid as the
 	auth.jaycebordelon.com browser cookie.

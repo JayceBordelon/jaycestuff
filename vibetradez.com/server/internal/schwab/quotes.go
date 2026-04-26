@@ -173,7 +173,6 @@ func (c *Client) GetQuotes(symbols []string) (map[string]StockQuote, error) {
 }
 
 /*
-*
 OptionMark returns the current mark price for a single option
 contract, or the bid-ask midpoint if mark is missing. Used by the
 auto-execution paper trader to synthesize a fill at the prevailing
@@ -264,7 +263,6 @@ func (c *Client) GetOptionChain(symbol, contractType, fromDate, toDate string, s
 }
 
 /*
-*
 GetPriceHistory fetches OHLCV candle data for a symbol.
 periodType: "day","month","year","ytd". frequencyType: "minute","daily","weekly","monthly".
 */

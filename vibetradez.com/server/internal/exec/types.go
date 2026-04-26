@@ -3,7 +3,6 @@ package exec
 import "time"
 
 /*
-*
 Decision is one row of the daily go/no-go pipeline. There is at most
 one Decision per trade_date by schema constraint. Decisions start as
 'pending', then transition to 'execute' (user clicked Execute within
@@ -30,7 +29,6 @@ type Decision struct {
 }
 
 /*
-*
 Execution is one order lifecycle. A Decision with decision='execute'
 has exactly one Execution with side='open'. If the open fills, the
 3:55pm cron creates a second Execution with side='close'. PaperTrader

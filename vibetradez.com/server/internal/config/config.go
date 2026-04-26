@@ -23,10 +23,10 @@ type Config struct {
 	SchwabAppKey       string
 	SchwabSecret       string
 	SchwabCallbackURL  string
-	/**
-	Auth service (auth.jaycebordelon.com) client credentials. Trading
-	server delegates sign-in to the centralized auth service and talks
-	to it over HTTP for token exchange + session introspection.
+	/*
+		Auth service (auth.jaycebordelon.com) client credentials. Trading
+		server delegates sign-in to the centralized auth service and talks
+		to it over HTTP for token exchange + session introspection.
 	*/
 	AuthBaseURL       string // e.g. http://auth-service:8081 (internal)
 	AuthPublicURL     string // e.g. https://auth.jaycebordelon.com (browser-facing)
@@ -35,14 +35,14 @@ type Config struct {
 	AuthRedirectURI   string // consumer callback URL (must be registered at auth service)
 	SessionCookieName string
 	SessionTTLDays    int
-	/**
-	Auto-execution feature. TradingEnabled is the master switch; when
-	false, the entire pipeline (selector, decision row, email, order)
-	is dead code and no rows are ever written. TradingMode chooses
-	between PaperTrader (synthetic fills, never touches Schwab Trader
-	API) and LiveTrader (real money). Default is paper, and "anything
-	not literally 'live'" resolves to paper — there is no fallback to
-	live on misconfiguration.
+	/*
+		Auto-execution feature. TradingEnabled is the master switch; when
+		false, the entire pipeline (selector, decision row, email, order)
+		is dead code and no rows are ever written. TradingMode chooses
+		between PaperTrader (synthetic fills, never touches Schwab Trader
+		API) and LiveTrader (real money). Default is paper, and "anything
+		not literally 'live'" resolves to paper — there is no fallback to
+		live on misconfiguration.
 	*/
 	TradingEnabled      bool
 	TradingMode         string // "paper" | "live"
@@ -52,7 +52,6 @@ type Config struct {
 }
 
 /*
-*
 DefaultOpenAIModel and DefaultAnthropicModel must be refreshed from the
 official Go SDK documentation each time work touches the trade analyzer
 or validator. They should always point at the latest production model
@@ -65,7 +64,6 @@ const (
 )
 
 /*
-*
 User-facing labels for the current default models. Emails, logs, and
 the React app reference these instead of the versioned identifier so
 that bumping a default doesn't require a copy sweep across the UI.
@@ -85,7 +83,6 @@ func getEnvOrDefault(key, def string) string {
 }
 
 /*
-*
 mustEnv aborts startup if the named env var is missing or empty. Required
 config MUST fail fast so a container with broken env never serves traffic.
 */
@@ -98,9 +95,9 @@ func mustEnv(key string) string {
 }
 
 func Load() *Config {
-	/**
-	Required: service refuses to start without these. Keep the list in sync
-	with the .env.example / docker-compose env blocks.
+	/*
+		Required: service refuses to start without these. Keep the list in sync
+		with the .env.example / docker-compose env blocks.
 	*/
 	databaseURL := mustEnv("DATABASE_URL")
 	resendKey := mustEnv("RESEND_API_KEY")
@@ -140,9 +137,9 @@ func Load() *Config {
 		EmailFrom:       getEnvOrDefault("EMAIL_FROM", "Vibe Tradez <trades@vibetradez.com>"),
 		DatabaseURL:     databaseURL,
 		ServerPort:      getEnvOrDefault("SERVER_PORT", "8080"),
-		/**
-		Schwab market data is optional — live quotes degrade gracefully when
-		keys are unset. Leave this dual-var pair free-form.
+		/*
+			Schwab market data is optional — live quotes degrade gracefully when
+			keys are unset. Leave this dual-var pair free-form.
 		*/
 		SchwabAppKey:      os.Getenv("SCHWAB_APP_KEY"),
 		SchwabSecret:      os.Getenv("SCHWAB_SECRET"),
@@ -156,10 +153,10 @@ func Load() *Config {
 		SessionTTLDays:    sessionTTLDays,
 		TradingEnabled:    os.Getenv("TRADING_ENABLED") == "true",
 		TradingMode:       resolveTradingMode(os.Getenv("TRADING_MODE")),
-		/**
-		Required if TradingEnabled — checked at startup in main, not
-		here, so a misconfig surfaces as a clear log line rather than
-		a silent dormant pipeline.
+		/*
+			Required if TradingEnabled — checked at startup in main, not
+			here, so a misconfig surfaces as a clear log line rather than
+			a silent dormant pipeline.
 		*/
 		ExecutionHMACSecret: []byte(os.Getenv("EXECUTION_HMAC_SECRET")),
 		ExecutionRecipient:  getEnvOrDefault("EXECUTION_RECIPIENT", "bordelonjayce@gmail.com"),
@@ -168,7 +165,6 @@ func Load() *Config {
 }
 
 /*
-*
 resolveTradingMode collapses anything other than the literal string
 "live" to "paper". This is intentional — a typo or empty env var must
 never accidentally route to real-money execution.

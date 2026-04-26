@@ -10,7 +10,6 @@ import (
 )
 
 /*
-*
 confirmRequest is the JSON body POSTed to /api/execution/confirm by
 the Next.js /execute page. Token + action come from the email link's
 query string and are forwarded server-to-server (so the cookie ride
@@ -28,7 +27,6 @@ type confirmResponse struct {
 }
 
 /*
-*
 HandleConfirm is the HTTP wrapper around Service.ConfirmDecision.
 Caller is expected to have already gated this with auth + email
 allowlist middleware. Returns the HTTP handler — easier to wire from
@@ -59,12 +57,12 @@ func (s *Service) HandleConfirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	/**
-	Defense in depth: re-check token hash against the decision row to
-	guarantee single-use even if multiple Mint calls produced
-	different tokens for the same decision (which they shouldn't, but
-	the schema's UNIQUE constraint ensures the persisted row matches
-	exactly one minted token).
+	/*
+		Defense in depth: re-check token hash against the decision row to
+		guarantee single-use even if multiple Mint calls produced
+		different tokens for the same decision (which they shouldn't, but
+		the schema's UNIQUE constraint ensures the persisted row matches
+		exactly one minted token).
 	*/
 	d, err := s.store.GetDecision(decisionID)
 	if err != nil {
@@ -88,7 +86,6 @@ func (s *Service) HandleConfirm(w http.ResponseWriter, r *http.Request) {
 }
 
 /*
-*
 HandleCancelAll is the big-red-button kill switch. Walks the day's
 state and:
 
@@ -145,9 +142,9 @@ func (s *Service) HandleCancelAll(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		if cancelErr := s.trader.CancelOrder(ctx, hash, *ex.SchwabOrderID); cancelErr != nil {
-			/**
-			Best-effort; log and keep going. Mark as failed rather
-			than canceled so the audit trail records the attempt.
+			/*
+				Best-effort; log and keep going. Mark as failed rather
+				than canceled so the audit trail records the attempt.
 			*/
 			_ = s.store.UpdateExecutionStatus(ex.ID, "failed", nil, 0, "cancel-all attempt: "+cancelErr.Error())
 		} else {
@@ -156,11 +153,11 @@ func (s *Service) HandleCancelAll(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	/**
-	(2) Immediately close any positions where the open already filled
-	but there's no filled close yet. Reuses the same closeOne logic
-	the 3:55pm cron uses, so retry-cancel-replace + alert email all
-	apply.
+	/*
+		(2) Immediately close any positions where the open already filled
+		but there's no filled close yet. Reuses the same closeOne logic
+		the 3:55pm cron uses, so retry-cancel-replace + alert email all
+		apply.
 	*/
 	openPositions, err := s.store.OpenPositionsForDate(tradeDate)
 	if err == nil {
@@ -170,15 +167,15 @@ func (s *Service) HandleCancelAll(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	/**
-	(3, 4) Mark today's decision as terminal so no further cron
-	activity (or late email click) can do anything to it.
+	/*
+		(3, 4) Mark today's decision as terminal so no further cron
+		activity (or late email click) can do anything to it.
 	*/
 	if d.Decision == "pending" || d.Decision == "execute" {
 		if err := s.store.ForceSetDecisionStatus(d.ID, "cancel-all"); err != nil {
-			/**
-			Non-fatal — orders are already cancelled. Log for audit.
-			(We don't have a logger handy; the response carries the warning.)
+			/*
+				Non-fatal — orders are already cancelled. Log for audit.
+				(We don't have a logger handy; the response carries the warning.)
 			*/
 			writeJSON(w, http.StatusOK, confirmResponse{
 				OK:      true,
@@ -203,7 +200,6 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 }
 
 /*
-*
 ErrNotPending is returned by ConfirmDecision when the decision row
 has already moved out of 'pending' state.
 */

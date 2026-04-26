@@ -66,7 +66,7 @@ func (s *Server) routes() *http.ServeMux {
 	mux.HandleFunc("GET /oauth/verify", s.handleVerify)
 	mux.HandleFunc("POST /oauth/revoke", s.handleRevoke)
 
-	/**
+	/*
 	IdP session introspection (for users viewing auth.jaycebordelon.com
 	directly, or for auth service's own landing page if ever built).
 	*/
@@ -119,7 +119,7 @@ func clientIP(r *http.Request) string {
 	return addr
 }
 
-/**
+/*
 setSessionCookie sets a host-scoped cookie on auth.jaycebordelon.com for
 the IdP session. No Domain attribute so it's NOT shared across subdomains,
 which is the correct scope (each consumer app gets its own cookie on its

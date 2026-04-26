@@ -3,7 +3,6 @@ package exec
 import "vibetradez.com/internal/trades"
 
 /*
-*
 MaxContractPremium is the hard upper bound on a single contract's
 premium for auto-execution. Quarter of the existing $200 model-prompt
 cap; the lower number reflects "we're auto-trading this so the cap
@@ -25,7 +24,6 @@ if the cap ever changes.
 const MaxContractPremium = 5.00
 
 /*
-*
 QualifyingPick returns the trade that should be auto-executed today,
 if any. The qualification rule is intentionally narrow:
   - both models picked the same ticker (same Symbol)

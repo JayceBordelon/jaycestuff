@@ -1,5 +1,4 @@
 /*
-*
 Package authclient is the trading server's client to auth.jaycebordelon.com.
 It wraps the three endpoints we use: POST /oauth/token, GET /oauth/verify,
 and POST /oauth/revoke. Verify responses are cached in-memory for a short
@@ -102,7 +101,6 @@ func (c *Client) Exchange(ctx context.Context, code string) (*TokenResponse, err
 }
 
 /*
-*
 Verify introspects an access token. Returns (nil, nil) when the token is
 valid but the auth service reports it inactive, or an error on transport
 failure. Hits a 60s in-memory cache first.

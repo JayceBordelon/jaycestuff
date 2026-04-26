@@ -35,7 +35,6 @@ func NewScraper() *Scraper {
 }
 
 /*
-*
 GetTrendingTickers combines all market signal sources and returns the top
 trending tickers. Each source contributes independently; failures are
 logged but do not block other sources from running.
@@ -112,7 +111,6 @@ type stockTwitsResponse struct {
 }
 
 /*
-*
 scrapeStockTwitsTrending fetches StockTwits' trending symbols endpoint.
 Returns up to 30 symbols with trending scores and human-readable
 summaries explaining why each ticker is trending. No auth required.
@@ -171,7 +169,6 @@ type yahooMoversResponse struct {
 }
 
 /*
-*
 scrapeYahooTrending fetches Yahoo Finance's trending tickers and market
 movers (gainers + losers). These are public JSON endpoints that do not
 require authentication.
@@ -193,9 +190,9 @@ func (s *Scraper) scrapeYahooTrending(ctx context.Context) ([]TickerMention, err
 			continue
 		}
 
-		/**
-		Trending endpoint has a different shape than screener endpoints.
-		Try trending first, fall back to screener/movers.
+		/*
+			Trending endpoint has a different shape than screener endpoints.
+			Try trending first, fall back to screener/movers.
 		*/
 		var trending yahooTrendingResponse
 		if err := json.Unmarshal(body, &trending); err == nil {
@@ -252,15 +249,14 @@ func (s *Scraper) scrapeYahooTrending(ctx context.Context) ([]TickerMention, err
 // ---------- Finviz ----------
 
 /*
-*
 scrapeFinvizSignals scrapes Finviz's signal pages for unusual volume and
 most active options tickers. Finviz serves HTML but with a consistent
 table structure that is straightforward to parse.
 */
 func (s *Scraper) scrapeFinvizSignals(ctx context.Context) ([]TickerMention, error) {
-	/**
-	ta_unusualvolume: stocks trading at significantly higher volume than normal
-	ta_mostactive: highest absolute volume
+	/*
+		ta_unusualvolume: stocks trading at significantly higher volume than normal
+		ta_mostactive: highest absolute volume
 	*/
 	urls := []string{
 		"https://finviz.com/screener.ashx?v=111&s=ta_unusualvolume",
@@ -298,7 +294,6 @@ func (s *Scraper) scrapeFinvizSignals(ctx context.Context) ([]TickerMention, err
 }
 
 /*
-*
 extractTickersFromFinvizHTML pulls ticker symbols from Finviz screener
 HTML. Finviz renders tickers as links inside the screener results table
 with class "screener-link-primary".
@@ -351,7 +346,6 @@ type edgarSearchResponse struct {
 }
 
 /*
-*
 scrapeEDGARCatalysts queries the SEC EDGAR full-text search API (EFTS)
 for recent 8-K filings containing catalyst keywords (mergers,
 acquisitions, material agreements). The EFTS API is free, public, and
@@ -409,7 +403,6 @@ func (s *Scraper) scrapeEDGARCatalysts(ctx context.Context) ([]TickerMention, er
 }
 
 /*
-*
 fetchEDGAR makes an HTTP request to SEC EDGAR with the required
 User-Agent format (SEC blocks requests without a proper contact UA).
 */
@@ -484,7 +477,6 @@ func (s *Scraper) fetchHTML(ctx context.Context, url string) (string, error) {
 }
 
 /*
-*
 estimateSentimentFromText does a quick keyword scan on a short text
 blurb (like StockTwits' trending_summary) and returns a value between
 -1 (bearish) and 1 (bullish).
@@ -530,7 +522,6 @@ type SourceStatus struct {
 }
 
 /*
-*
 ProbeAll tests every scraping source and returns per-source results.
 Used both for startup verification and the /health endpoint.
 */
@@ -566,7 +557,6 @@ func (s *Scraper) ProbeAll(ctx context.Context) []SourceStatus {
 }
 
 /*
-*
 isEquityTicker validates that a string looks like a US equity ticker
 (1-5 uppercase letters, no dots or numbers which indicate preferred
 shares, warrants, etc.).

@@ -8,7 +8,6 @@ import (
 )
 
 /*
-*
 MaxContracts is the per-trade contract count cap. Hardcoded at 1 so
 no caller can ever submit a multi-contract order — even if a future
 bug computed N>1, BuildOpenOrder would panic. Modify here AND in the
@@ -17,7 +16,6 @@ task plan + email templates if this ever needs to change.
 const MaxContracts = 1
 
 /*
-*
 OCCSymbol builds the 21-character OCC OSI symbol that Schwab's Trader
 API expects for option instruments. Format:
 
@@ -68,7 +66,6 @@ func OCCSymbol(symbol, expiration, contractType string, strike float64) (string,
 }
 
 /*
-*
 BuildOpenOrder returns the Order to submit for an Execute confirmation.
 Hardcodes MaxContracts (1) and BUY_TO_OPEN — these are NOT parameters,
 they are invariants. Any caller that wants something different is a
@@ -98,7 +95,6 @@ func BuildOpenOrder(d *Decision) (Order, error) {
 }
 
 /*
-*
 BuildCloseOrder mirrors BuildOpenOrder for the 3:55pm mandatory close.
 Same hardcoded contract count + market order; only the instruction
 differs (SELL_TO_CLOSE).

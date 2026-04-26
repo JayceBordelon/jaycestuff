@@ -110,7 +110,7 @@ FIELD EXPLANATIONS:
 
 Only respond with the JSON array, no other text.`
 
-/**
+/*
 Both Analyzer (OpenAI) and ClaudePicker (Anthropic) use AnalysisPrompt
 directly. The previous ClaudeValidationPrompt was removed when the
 pipeline switched from a proposer/validator model to two independent
@@ -118,7 +118,6 @@ pickers running the same workflow on the same raw sentiment data.
 */
 
 /*
-*
 CrossExaminationPrompt is the second-pass prompt each model runs after
 both have produced their independent top-10. The model is shown the
 OTHER model's pick list and asked to write one short, specific

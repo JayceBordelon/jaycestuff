@@ -18,7 +18,6 @@ import (
 )
 
 /*
-*
 Output token caps shared across the OpenAI Analyzer and the Claude
 picker so head-to-head comparisons aren't skewed by call config.
 Picks need more headroom than verdicts because each pick carries a
@@ -46,18 +45,18 @@ type Trade struct {
 	MentionCount   int     `json:"mention_count"`
 	Rank           int     `json:"rank"`
 
-	/**
-	Per-model ranks as the picker returned them, BEFORE unioning into a
-	combined Rank. These exist so the auto-execution selector can ask
-	"did both models independently rank this trade #1?" — Rank above is
-	the post-union combined rank and is not useful for that check.
+	/*
+		Per-model ranks as the picker returned them, BEFORE unioning into a
+		combined Rank. These exist so the auto-execution selector can ask
+		"did both models independently rank this trade #1?" — Rank above is
+		the post-union combined rank and is not useful for that check.
 	*/
 	GPTRank    int `json:"gpt_rank"`
 	ClaudeRank int `json:"claude_rank"`
 
-	/**
-	Dual-model scoring. Each side rates the trade 1-10 and explains why.
-	Rank above is the final ordering after combining both scores.
+	/*
+		Dual-model scoring. Each side rates the trade 1-10 and explains why.
+		Rank above is the final ordering after combining both scores.
 	*/
 	GPTScore        int     `json:"gpt_score"`
 	GPTRationale    string  `json:"gpt_rationale"`
@@ -65,34 +64,34 @@ type Trade struct {
 	ClaudeRationale string  `json:"claude_rationale"`
 	CombinedScore   float64 `json:"combined_score"`
 
-	/**
-	Versioned model identifiers as sent to the OpenAI / Anthropic
-	APIs at pick time (e.g. "gpt-5.5", "claude-opus-4-7"). Persisted
-	per row so historical analysis can attribute picks to the exact
-	model that produced them, even after the default is bumped.
+	/*
+		Versioned model identifiers as sent to the OpenAI / Anthropic
+		APIs at pick time (e.g. "gpt-5.5", "claude-opus-4-7"). Persisted
+		per row so historical analysis can attribute picks to the exact
+		model that produced them, even after the default is bumped.
 	*/
 	GPTModel    string `json:"gpt_model"`
 	ClaudeModel string `json:"claude_model"`
 
-	/**
-	Picker attribution. Both models run the full AnalysisPrompt
-	independently and each return their own 10 picks; the union of
-	both pick sets is persisted, and these flags record which model(s)
-	actually picked the trade. The All view shows everything; the
-	OpenAI / Claude filter views show only the rows where the matching
-	flag is true.
+	/*
+		Picker attribution. Both models run the full AnalysisPrompt
+		independently and each return their own 10 picks; the union of
+		both pick sets is persisted, and these flags record which model(s)
+		actually picked the trade. The All view shows everything; the
+		OpenAI / Claude filter views show only the rows where the matching
+		flag is true.
 	*/
 	PickedByOpenAI bool `json:"picked_by_openai"`
 	PickedByClaude bool `json:"picked_by_claude"`
 
-	/**
-	Cross-examination verdicts. Once both pickers finish their
-	independent runs, each model is shown the other's full pick list
-	and writes a one-sentence verdict on every trade in it. GPTVerdict
-	is what GPT wrote about this trade (only populated when Claude
-	picked it); ClaudeVerdict is what Claude wrote about this trade
-	(only populated when GPT picked it). Consensus picks may carry
-	both verdicts.
+	/*
+		Cross-examination verdicts. Once both pickers finish their
+		independent runs, each model is shown the other's full pick list
+		and writes a one-sentence verdict on every trade in it. GPTVerdict
+		is what GPT wrote about this trade (only populated when Claude
+		picked it); ClaudeVerdict is what Claude wrote about this trade
+		(only populated when GPT picked it). Consensus picks may carry
+		both verdicts.
 	*/
 	GPTVerdict    string `json:"gpt_verdict"`
 	ClaudeVerdict string `json:"claude_verdict"`
@@ -131,7 +130,6 @@ func NewAnalyzer(apiKey, model string, schwabClient *schwab.Client) *Analyzer {
 func (a *Analyzer) Model() string { return a.model }
 
 /*
-*
 gptTradeOutput is the JSON shape we ask GPT to return. We map it onto
 Trade and stamp GPTScore / GPTRationale from the score / rationale fields.
 */
@@ -218,7 +216,6 @@ func (a *Analyzer) GetTopTrades(ctx context.Context, sentimentData []sentiment.T
 }
 
 /*
-*
 WriteVerdicts runs the cross-examination pass: given the other model's
 pick list (and this model's own picks for context), it returns a
 one-sentence verdict per symbol. Errors are non-fatal at the caller
@@ -473,7 +470,6 @@ func (a *Analyzer) execGetOptionChain(_ context.Context, arguments string) strin
 }
 
 /*
-*
 extractJSON pulls the first balanced JSON object or array out of a
 model response, tolerating ```json fences and free-form prose on
 either side of the payload. Returns the original (trimmed) string if
@@ -543,7 +539,6 @@ func extractJSON(s string) string {
 }
 
 /*
-*
 parseJSONResponse extracts JSON from a model's free-form output and
 unmarshals it into dst. On failure it logs the raw response (truncated)
 tagged with source so the next parse failure is diagnosable from logs.

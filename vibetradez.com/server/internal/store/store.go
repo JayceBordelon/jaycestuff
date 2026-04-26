@@ -194,6 +194,15 @@ func migrate(db *sql.DB) error {
 		CREATE INDEX IF NOT EXISTS idx_executions_decision_id ON executions(decision_id);
 		CREATE INDEX IF NOT EXISTS idx_executions_open_pending
 			ON executions(status) WHERE status IN ('pending','working');
+
+		-- token_hash on execution_decisions was originally NOT NULL UNIQUE,
+		-- which forced HandleQualifyingPick into a clunky two-step mint
+		-- pattern. The UNIQUE was redundant defense — single-use is
+		-- enforced atomically by SetDecisionStatus's WHERE decision='pending'
+		-- guard. Drop both so the row can be inserted first with a null
+		-- hash, then updated after the row id is known.
+		ALTER TABLE execution_decisions ALTER COLUMN token_hash DROP NOT NULL;
+		ALTER TABLE execution_decisions DROP CONSTRAINT IF EXISTS execution_decisions_token_hash_key;
 	`)
 	return err
 }
@@ -517,7 +526,6 @@ func (s *Store) GetOAuthToken(provider string) (accessToken, refreshToken string
 }
 
 /*
-*
 LinkSubscriberAuthUser attaches an upstream auth user id to any
 subscriber row matching this email that isn't linked yet. Does NOT
 touch active or unsubscribed_at — users who previously opted out

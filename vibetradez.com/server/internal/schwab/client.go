@@ -218,7 +218,6 @@ func (c *Client) AuthenticatedGet(url string) (*http.Response, error) {
 }
 
 /*
-*
 AuthenticatedDo performs an arbitrary authenticated request. Used by
 the Trader API client for POST (place order) and DELETE (cancel
 order) calls. Body may be nil; if non-nil the caller must set the

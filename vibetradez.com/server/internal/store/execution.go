@@ -13,11 +13,11 @@ import (
 var ErrNoDecision = errors.New("no decision found")
 
 /*
-*
-InsertDecision creates the daily go/no-go row. Returns the new row's
-id. Fails (UNIQUE violation) if a decision already exists for
-trade_date, which is the schema-level guard against firing twice in a
-day.
+InsertDecision creates the daily go/no-go row WITHOUT a token_hash —
+the caller mints the confirmation token after this returns (so the
+token's payload can carry the real row id) and writes the hash back
+via SetDecisionTokenHash. UNIQUE(trade_date) prevents two decisions
+on the same day, which is the actual single-use guarantee.
 */
 func (s *Store) InsertDecision(d exec.Decision) (int, error) {
 	var id int
@@ -25,16 +25,32 @@ func (s *Store) InsertDecision(d exec.Decision) (int, error) {
 		INSERT INTO execution_decisions (
 			trade_date, symbol, contract_type, strike_price, expiration,
 			occ_symbol, contract_price, gpt_score, claude_score, trade_id,
-			token_hash, decision, expires_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending', $12)
+			decision, expires_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', $11)
 		RETURNING id
 	`, d.TradeDate, d.Symbol, d.ContractType, d.StrikePrice, d.Expiration,
 		d.OCCSymbol, d.ContractPrice, d.GPTScore, d.ClaudeScore, nullableInt(d.TradeID),
-		d.TokenHash, d.ExpiresAt).Scan(&id)
+		d.ExpiresAt).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("insert decision: %w", err)
 	}
 	return id, nil
+}
+
+/*
+SetDecisionTokenHash records the SHA-256 of the execute-side
+confirmation token for an existing decision row. Audit trail only —
+single-use enforcement is provided atomically by SetDecisionStatus's
+WHERE decision='pending' guard, not by hash comparison at confirm
+time. Called immediately after InsertDecision returns the row id so
+the token's payload can reference the real id.
+*/
+func (s *Store) SetDecisionTokenHash(id int, hash string) error {
+	_, err := s.db.Exec(`UPDATE execution_decisions SET token_hash = $1 WHERE id = $2`, hash, id)
+	if err != nil {
+		return fmt.Errorf("set token hash: %w", err)
+	}
+	return nil
 }
 
 // GetDecision loads a decision row by id.
@@ -42,6 +58,7 @@ func (s *Store) GetDecision(id int) (*exec.Decision, error) {
 	var d exec.Decision
 	var tradeID sql.NullInt64
 	var decidedAt sql.NullTime
+	var tokenHash sql.NullString
 	err := s.db.QueryRow(`
 		SELECT id, trade_date, symbol, contract_type, strike_price, expiration,
 			occ_symbol, contract_price, gpt_score, claude_score, trade_id,
@@ -49,7 +66,7 @@ func (s *Store) GetDecision(id int) (*exec.Decision, error) {
 		FROM execution_decisions WHERE id = $1
 	`, id).Scan(&d.ID, &d.TradeDate, &d.Symbol, &d.ContractType, &d.StrikePrice, &d.Expiration,
 		&d.OCCSymbol, &d.ContractPrice, &d.GPTScore, &d.ClaudeScore, &tradeID,
-		&d.TokenHash, &d.Decision, &decidedAt, &d.ExpiresAt, &d.CreatedAt)
+		&tokenHash, &d.Decision, &decidedAt, &d.ExpiresAt, &d.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNoDecision
 	}
@@ -59,6 +76,9 @@ func (s *Store) GetDecision(id int) (*exec.Decision, error) {
 	if tradeID.Valid {
 		d.TradeID = int(tradeID.Int64)
 	}
+	if tokenHash.Valid {
+		d.TokenHash = tokenHash.String
+	}
 	if decidedAt.Valid {
 		d.DecidedAt = &decidedAt.Time
 	}
@@ -66,7 +86,6 @@ func (s *Store) GetDecision(id int) (*exec.Decision, error) {
 }
 
 /*
-*
 GetDecisionByDate returns the (at most one) decision for a trade
 date, regardless of status. Returns ErrNoDecision if none exists.
 Used by the cancel-all kill switch to find what's currently in flight.
@@ -84,7 +103,6 @@ func (s *Store) GetDecisionByDate(date string) (*exec.Decision, error) {
 }
 
 /*
-*
 ForceSetDecisionStatus updates a decision's status WITHOUT the
 pending-only guard that SetDecisionStatus enforces. Reserved for the
 cancel-all kill switch which needs to terminate decisions already in
@@ -104,7 +122,6 @@ func (s *Store) ForceSetDecisionStatus(id int, newStatus string) error {
 }
 
 /*
-*
 SetDecisionStatus transitions a decision's status atomically. The
 transition fails (returns ErrDecisionNotPending) if the current value
 isn't 'pending' — this is the single-use enforcement: a token can only
@@ -127,14 +144,12 @@ func (s *Store) SetDecisionStatus(id int, newStatus string) error {
 }
 
 /*
-*
 ErrDecisionNotPending is returned when a state transition is attempted
 on a decision that has already been decided.
 */
 var ErrDecisionNotPending = errors.New("decision is no longer pending")
 
 /*
-*
 PendingDecisions returns all decisions still awaiting user action.
 Used by the auto-cancel cron to find decisions whose 5-minute window
 has elapsed.
@@ -143,7 +158,7 @@ func (s *Store) PendingDecisions() ([]exec.Decision, error) {
 	rows, err := s.db.Query(`
 		SELECT id, trade_date, symbol, contract_type, strike_price, expiration,
 			occ_symbol, contract_price, gpt_score, claude_score,
-			COALESCE(trade_id, 0), token_hash, decision, expires_at, created_at
+			COALESCE(trade_id, 0), COALESCE(token_hash, ''), decision, expires_at, created_at
 		FROM execution_decisions
 		WHERE decision = 'pending'
 	`)
@@ -166,7 +181,6 @@ func (s *Store) PendingDecisions() ([]exec.Decision, error) {
 }
 
 /*
-*
 InsertExecution records an order submission (paper or live). Returns
 the new row id. The caller is responsible for setting Status correctly
 based on the trader's response.
@@ -190,7 +204,6 @@ func (s *Store) InsertExecution(e exec.Execution) (int, error) {
 }
 
 /*
-*
 UpdateExecutionStatus updates fill state on an existing execution row.
 Used as orders progress from working → filled (or canceled / failed).
 */
@@ -243,7 +256,6 @@ func (s *Store) GetExecution(id int) (*exec.Execution, error) {
 }
 
 /*
-*
 OpenPositionsForDate returns decisions for the given trade_date that
 have a filled open execution but no filled close execution. Used by
 the 3:55pm cron to find what needs to be closed.
@@ -252,7 +264,7 @@ func (s *Store) OpenPositionsForDate(tradeDate string) ([]exec.Decision, error) 
 	rows, err := s.db.Query(`
 		SELECT d.id, d.trade_date, d.symbol, d.contract_type, d.strike_price, d.expiration,
 			d.occ_symbol, d.contract_price, d.gpt_score, d.claude_score,
-			COALESCE(d.trade_id, 0), d.token_hash, d.decision, d.expires_at, d.created_at
+			COALESCE(d.trade_id, 0), COALESCE(d.token_hash, ''), d.decision, d.expires_at, d.created_at
 		FROM execution_decisions d
 		WHERE d.trade_date = $1
 		  AND d.decision = 'execute'
@@ -284,7 +296,6 @@ func (s *Store) OpenPositionsForDate(tradeDate string) ([]exec.Decision, error) 
 }
 
 /*
-*
 OpenExecutionForDecision returns the most recent open-side execution
 for a decision (filled or otherwise). Used by the close cron to
 recover the actual entry fill price for accurate realized-P&L
@@ -328,7 +339,6 @@ func (s *Store) OpenExecutionForDecision(decisionID int) (*exec.Execution, error
 }
 
 /*
-*
 LiveExecutionsForDecision returns every execution row for a decision
 that's NOT in a terminal state — i.e. still pending or working at the
 broker. Used by the cancel-all kill switch to find what to cancel.
@@ -375,7 +385,6 @@ func (s *Store) LiveExecutionsForDecision(decisionID int) ([]exec.Execution, err
 }
 
 /*
-*
 nullableInt converts a zero int to a SQL NULL so the trade_id FK is
 stored as NULL when the caller doesn't have a backing trade row yet.
 */
@@ -387,7 +396,6 @@ func nullableInt(v int) any {
 }
 
 /*
-*
 ExecutionView is the lightweight projection surfaced to the public
 dashboard/history/trade-detail UI when Jayce has taken a position
 (paper or live) on a trade. Joins execution_decisions + the open
@@ -410,7 +418,6 @@ type ExecutionView struct {
 }
 
 /*
-*
 GetExecutionForDate returns the execution view for a single trade
 date, or nil if no decision was confirmed that day. Paper and live
 are both surfaced — the Mode field carries the distinction. Pending,
@@ -444,7 +451,6 @@ func (s *Store) GetExecutionForDate(date string) (*ExecutionView, error) {
 }
 
 /*
-*
 GetExecutionsForDateRange returns a map of trade_date → ExecutionView
 for the history/week view. Only dates with confirmed executions appear
 in the map; days where no qualifying pick existed are simply absent.
@@ -501,11 +507,11 @@ func (s *Store) GetExecutionsForDateRange(start, end string) (map[string]*Execut
 		if v.State == "closed" && v.OpenPrice > 0 && v.ClosePrice > 0 {
 			v.RealizedPnL = (v.ClosePrice - v.OpenPrice) * 100
 		}
-		/**
-		Only surface dates where a real position was taken (skip
-		failed/pending). The state derivation already filtered out
-		non-execute decisions via the WHERE clause; here we drop the
-		row if the open never filled.
+		/*
+			Only surface dates where a real position was taken (skip
+			failed/pending). The state derivation already filtered out
+			non-execute decisions via the WHERE clause; here we drop the
+			row if the open never filled.
 		*/
 		if v.State == "" {
 			continue
@@ -516,7 +522,6 @@ func (s *Store) GetExecutionsForDateRange(start, end string) (map[string]*Execut
 }
 
 /*
-*
 scanExecutionView reads a single ExecutionView row from a *sql.Row.
 Shared between the date and range queries.
 */
@@ -552,7 +557,6 @@ func scanExecutionView(row *sql.Row) (*ExecutionView, error) {
 }
 
 /*
-*
 deriveExecutionState collapses the open/close status pair into the
 single string the frontend renders. Returns empty string when the
 open never reached a terminal-or-filled state — caller treats that

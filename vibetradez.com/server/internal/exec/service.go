@@ -14,14 +14,12 @@ import (
 )
 
 /*
-*
 schwabPositionsURL is the deep link surfaced in receipt emails. Used
 verbatim per the task spec — do not parameterize.
 */
 const schwabPositionsURL = "https://client.schwab.com/app/accounts/positions/#/"
 
 /*
-*
 confirmationWindow is the hard expiry between the email going out and
 the trade auto-cancelling. Defined here so the cron + selector + HMAC
 expiry all reference the same constant.
@@ -29,12 +27,12 @@ expiry all reference the same constant.
 const confirmationWindow = 5 * time.Minute
 
 /*
-*
 DecisionStore is the slice of *store.Store that exec.Service needs.
 Defined as an interface so tests don't need a real Postgres.
 */
 type DecisionStore interface {
 	InsertDecision(d Decision) (int, error)
+	SetDecisionTokenHash(id int, hash string) error
 	GetDecision(id int) (*Decision, error)
 	GetDecisionByDate(date string) (*Decision, error)
 	SetDecisionStatus(id int, status string) error
@@ -54,7 +52,6 @@ type MailSender interface {
 }
 
 /*
-*
 ServiceConfig captures everything the executor needs to know about the
 world. Built from cfg in main.go.
 */
@@ -70,7 +67,6 @@ type ServiceConfig struct {
 }
 
 /*
-*
 Service orchestrates the auto-execution lifecycle. One instance per
 process; safe for concurrent use across goroutines (only mutable state
 is held inside the trader and store, both of which are thread-safe).
@@ -87,7 +83,6 @@ func NewService(store DecisionStore, trader TraderClient, mail MailSender, cfg S
 }
 
 /*
-*
 Mode returns the trading mode the service was constructed with
 ("paper" | "live"). Used by the /health endpoint to decide whether
 schwab_trading auth failures are fatal (live) or merely a warning
@@ -96,7 +91,6 @@ schwab_trading auth failures are fatal (live) or merely a warning
 func (s *Service) Mode() string { return s.cfg.Mode }
 
 /*
-*
 HandleQualifyingPick mints a decision row, sends the confirmation
 email, and returns. The 5-minute timer is enforced by the
 CancelExpiredDecisions cron + the token's embedded expiry — there is
@@ -120,23 +114,13 @@ func (s *Service) HandleQualifyingPick(ctx context.Context, t *trades.Trade) err
 	expiresAt := now.Add(confirmationWindow)
 	tradeDate := now.In(easternTime()).Format("2006-01-02")
 
-	/**
-	Mint execute token; we'll mint decline separately with the same
-	expiry so each is independently single-use.
-	*/
-	executeToken, err := Mint(0, ActionExecute, expiresAt, s.cfg.HMACSecret)
-	if err != nil {
-		return fmt.Errorf("mint execute token: %w", err)
-	}
-	declineToken, err := Mint(0, ActionDecline, expiresAt, s.cfg.HMACSecret)
-	if err != nil {
-		return fmt.Errorf("mint decline token: %w", err)
-	}
-
-	/**
-	Persist decision with execute token's hash; decline token isn't
-	stored (it's stateless — verifier only checks signature + expiry +
-	"decision still pending" against THIS row).
+	/*
+		Insert the decision row first so the auto-generated id can be baked
+		into the token payload. token_hash is left null on insert and
+		written back via SetDecisionTokenHash once the real token exists —
+		audit trail only; single-use enforcement is provided by
+		SetDecisionStatus's atomic WHERE decision='pending' guard, not by
+		hash equality.
 	*/
 	d := Decision{
 		TradeDate:     tradeDate,
@@ -148,7 +132,6 @@ func (s *Service) HandleQualifyingPick(ctx context.Context, t *trades.Trade) err
 		ContractPrice: t.EstimatedPrice,
 		GPTScore:      t.GPTScore,
 		ClaudeScore:   t.ClaudeScore,
-		TokenHash:     TokenHash(executeToken),
 		ExpiresAt:     expiresAt,
 	}
 	id, err := s.store.InsertDecision(d)
@@ -156,9 +139,19 @@ func (s *Service) HandleQualifyingPick(ctx context.Context, t *trades.Trade) err
 		return fmt.Errorf("insert decision: %w", err)
 	}
 
-	// Re-mint with the now-known decision id baked into the payload.
-	executeToken, _ = Mint(id, ActionExecute, expiresAt, s.cfg.HMACSecret)
-	declineToken, _ = Mint(id, ActionDecline, expiresAt, s.cfg.HMACSecret)
+	executeToken, err := Mint(id, ActionExecute, expiresAt, s.cfg.HMACSecret)
+	if err != nil {
+		return fmt.Errorf("mint execute token: %w", err)
+	}
+	declineToken, err := Mint(id, ActionDecline, expiresAt, s.cfg.HMACSecret)
+	if err != nil {
+		return fmt.Errorf("mint decline token: %w", err)
+	}
+
+	if err := s.store.SetDecisionTokenHash(id, TokenHash(executeToken)); err != nil {
+		// Non-fatal: audit trail loss only. Email still sends.
+		log.Printf("execution: backfill token hash failed (audit only, non-fatal): %v", err)
+	}
 
 	emailData := templates.ExecuteConfirmData{
 		Subject:         fmt.Sprintf("[%s] Confirm trade: %s %s", strings.ToUpper(s.cfg.Mode), t.Symbol, t.ContractType),
@@ -200,7 +193,6 @@ func (s *Service) HandleQualifyingPick(ctx context.Context, t *trades.Trade) err
 }
 
 /*
-*
 ConfirmDecision is invoked by the HTTP handler once the token + auth
 gates have passed. Returns the post-action human-readable summary
 string for the confirmation page to render.
@@ -228,9 +220,9 @@ func (s *Service) ConfirmDecision(ctx context.Context, decisionID int, action Ac
 		if err := s.store.SetDecisionStatus(decisionID, "execute"); err != nil {
 			return "", err
 		}
-		/**
-		Place the order asynchronously so the HTTP request doesn't
-		block on the broker round-trip.
+		/*
+			Place the order asynchronously so the HTTP request doesn't
+			block on the broker round-trip.
 		*/
 		go s.submitOpen(context.Background(), d)
 		return fmt.Sprintf("Trade execution confirmed: %s %.2f %s. Order is being submitted; receipt email will follow.", d.Symbol, d.StrikePrice, d.ContractType), nil
@@ -240,7 +232,6 @@ func (s *Service) ConfirmDecision(ctx context.Context, decisionID int, action Ac
 }
 
 /*
-*
 submitOpen is the async tail of the Execute path: places the broker
 order, polls for fill, persists the execution row, sends the receipt.
 Errors here CANNOT roll back the user's decision (they already clicked
@@ -293,11 +284,11 @@ func (s *Service) submitOpen(ctx context.Context, d *Decision) {
 		return
 	}
 
-	/**
-	Paper mode fills instantly; live mode may need polling. For v1 we
-	trust whatever GetOrder returns — the close cron will handle the
-	case where status is still WORKING by 3:55pm (unlikely for a
-	market order at 9:30am).
+	/*
+		Paper mode fills instantly; live mode may need polling. For v1 we
+		trust whatever GetOrder returns — the close cron will handle the
+		case where status is still WORKING by 3:55pm (unlikely for a
+		market order at 9:30am).
 	*/
 	if st.Filled {
 		fp := st.FillPrice
@@ -310,7 +301,6 @@ func (s *Service) submitOpen(ctx context.Context, d *Decision) {
 }
 
 /*
-*
 CancelExpiredDecisions is called by the every-minute cron during the
 9-10am ET window. Marks any pending decisions whose 5-minute window
 has elapsed as 'timeout' and fires the cancellation email.
@@ -335,7 +325,6 @@ func (s *Service) CancelExpiredDecisions(ctx context.Context) {
 }
 
 /*
-*
 CloseAllPositionsForDate is the 3:55pm ET load-bearing safety job.
 Wraps each position close in its own panic recovery so one failure
 can't prevent another from running. Designed to NEVER skip — even if
@@ -427,7 +416,6 @@ func (s *Service) closeOne(ctx context.Context, d *Decision) {
 }
 
 /*
-*
 pollFilled waits for an order to reach FILLED status, polling every
 `interval` for `attempts` cycles. Returns true if filled, false on
 timeout or any error during polling.
@@ -495,7 +483,6 @@ func (s *Service) recordCloseAndEmail(ctx context.Context, d *Decision, execID i
 }
 
 /*
-*
 findOpenExecution locates the open-side execution for a decision so
 the close path can compute realized P&L from the actual entry fill
 (which can differ from decision.ContractPrice in live mode due to
@@ -585,7 +572,6 @@ func (s *Service) confirmURL(token, action string) string {
 }
 
 /*
-*
 easternTime returns the ET location for date formatting. Falls back
 to UTC if the zone db isn't available (extremely unlikely).
 */
@@ -598,7 +584,6 @@ func easternTime() *time.Location {
 }
 
 /*
-*
 Compile-time guarantee that *email.Client satisfies MailSender. If
 the email package's signature changes, this file fails to compile.
 */

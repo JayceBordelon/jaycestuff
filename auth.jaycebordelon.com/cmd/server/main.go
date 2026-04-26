@@ -50,7 +50,7 @@ func main() {
 	}
 }
 
-/**
+/*
 sweeper runs a nightly-ish cleanup in-process (no cron dep). Every hour
 it deletes sessions/codes/states past their TTL.
 */

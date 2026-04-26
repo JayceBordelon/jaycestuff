@@ -15,7 +15,7 @@ type Config struct {
 	GoogleClientSecret string
 	GoogleCallbackURL  string
 
-	/**
+	/*
 	Cookie set on auth.jaycebordelon.com when the user authenticates with
 	the IdP directly (so a second consumer app doesn't need to re-prompt
 	Google). Host-scoped: does NOT leak to other subdomains.
@@ -25,7 +25,7 @@ type Config struct {
 	AuthCodeTTLSec int // seconds
 	AccessTokenTTL int // days
 
-	/**
+	/*
 	Registered OAuth clients (consumer apps). Loaded from OAUTH_CLIENTS_JSON
 	as an array of {id, secret, name, redirect_uris[]} objects. Clients are
 	upserted into the DB on every boot so config changes propagate.

@@ -1,5 +1,4 @@
 /*
-*
 Package exec implements the guarded auto-execution pipeline:
 pick-of-day selection, HMAC-signed confirmation tokens, paper/live
 order placement, and the 3:55pm ET mandatory close. The package is
@@ -30,7 +29,6 @@ const (
 )
 
 /*
-*
 tokenPayload is the JSON serialized into the first half of a signed
 token. nonce gives every (decision_id, action) pair a unique signature
 so two emails with the same decision can't share a token, and exp lets
@@ -44,7 +42,6 @@ type tokenPayload struct {
 }
 
 /*
-*
 Mint produces a single-use signed token for (decisionID, action) that
 expires at expiresAt. The returned string is URL-safe and contains no
 secret material — only the payload + an HMAC-SHA256 tag. The hash of
@@ -84,7 +81,6 @@ func Mint(decisionID int, action Action, expiresAt time.Time, secret []byte) (st
 }
 
 /*
-*
 Verify parses and validates a token. It checks the HMAC tag with
 constant-time comparison, the action whitelist, and the embedded
 expiry. It does NOT check single-use status — that must be done by
@@ -129,7 +125,6 @@ func Verify(token string, secret []byte) (decisionID int, action Action, err err
 }
 
 /*
-*
 TokenHash is the value persisted on the decision row to detect token
 reuse without storing the token itself. Two distinct tokens for the
 same decision (e.g. the execute and decline tokens) hash differently

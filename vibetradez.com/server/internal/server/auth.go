@@ -29,7 +29,6 @@ func userFrom(ctx context.Context) *authclient.User {
 }
 
 /*
-*
 attachUser reads the local vt_session cookie (holds an opaque access
 token issued by auth.jaycebordelon.com), verifies it via the auth
 service's /oauth/verify endpoint (cached 60s), and attaches the user
@@ -60,7 +59,6 @@ func (s *Server) attachUser(next http.HandlerFunc) http.HandlerFunc {
 }
 
 /*
-*
 handleSSOStart kicks off the authorization code flow to
 auth.jaycebordelon.com. Generates a CSRF state, stores it in an
 httpOnly cookie (double-submit) and redirects to the auth service's
@@ -100,7 +98,6 @@ func (s *Server) handleSSOStart(w http.ResponseWriter, r *http.Request) {
 }
 
 /*
-*
 handleSSOCallback completes the auth.jaycebordelon.com authorization
 code flow: exchanges the one-shot code for an access token, then sets
 the access token as the vt_session cookie on vibetradez.com.
@@ -199,7 +196,6 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 }
 
 /*
-*
 requireUser is the strict counterpart to attachUser: rejects with 401
 if no user is on the context. Use this on endpoints where unauthenticated
 callers must not be able to reach the handler at all (auto-execution
@@ -217,7 +213,6 @@ func (s *Server) requireUser(next http.HandlerFunc) http.HandlerFunc {
 }
 
 /*
-*
 requireEmailAllowlist gates a handler to a single allowed email
 address. Used for the auto-execution surface — even an authenticated
 non-allowed user must never be able to fire trades. Email comparison
@@ -236,7 +231,6 @@ func (s *Server) requireEmailAllowlist(allowed string, next http.HandlerFunc) ht
 }
 
 /*
-*
 isSafeReturnTo ensures we only redirect to same-origin paths so the
 callback can't be used as an open redirector.
 */

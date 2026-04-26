@@ -40,7 +40,6 @@ type Trade struct {
 }
 
 /*
-*
 YesterdayRecap is a tiny digest of the previous trading day's results
 surfaced at the top of the morning email so subscribers see how the
 last batch performed before reading today's picks.
@@ -97,11 +96,11 @@ type SummaryEmailData struct {
 	Winners     int
 	Losers      int
 	TotalPnL    float64
-	/**
-	Dual-model attribution: P&L by which model picked the top 3 trades
-	(sorted by each model's score). Lets the EOD email surface a tiny
-	leaderboard answering "which model would you have made more money
-	listening to today?".
+	/*
+		Dual-model attribution: P&L by which model picked the top 3 trades
+		(sorted by each model's score). Lets the EOD email surface a tiny
+		leaderboard answering "which model would you have made more money
+		listening to today?".
 	*/
 	GPTTop3Pnl       float64
 	ClaudeTop3Pnl    float64
@@ -141,11 +140,11 @@ type WeeklyEmailData struct {
 	WorstTrade    string
 	WorstPnL      float64
 	DashboardURL  string
-	/**
-	Per-model backtest aggregates over the week, mirroring the
-	/api/model-comparison response. The weekly email surfaces these so
-	subscribers see which model's ranking would have produced the most
-	P&L if followed in isolation.
+	/*
+		Per-model backtest aggregates over the week, mirroring the
+		/api/model-comparison response. The weekly email surfaces these so
+		subscribers see which model's ranking would have produced the most
+		P&L if followed in isolation.
 	*/
 	GPTTotalPnl      float64
 	GPTWinRate       float64
@@ -230,12 +229,12 @@ func RenderEmail(trades []Trade, gptModelName, claudeModelName string, yesterday
 		return "", err
 	}
 
-	/**
-	Pick each model's #1 conviction trade independently — Claude's top is
-	the highest-ClaudeScore trade Claude actually picked, ditto for GPT.
-	They may resolve to the same underlying ticker on consensus days; the
-	template renders both sections regardless so each model leads with its
-	own rationale.
+	/*
+		Pick each model's #1 conviction trade independently — Claude's top is
+		the highest-ClaudeScore trade Claude actually picked, ditto for GPT.
+		They may resolve to the same underlying ticker on consensus days; the
+		template renders both sections regardless so each model leads with its
+		own rationale.
 	*/
 	var claudeTop, gptTop *Trade
 	for i := range trades {
@@ -302,7 +301,6 @@ type ErrorEmailData struct {
 // ── Auto-execution emails ──
 
 /*
-*
 ExecuteConfirmData powers the 5-minute confirmation email. Includes
 every piece of context the user could possibly want when deciding
 whether to fire: contract details, capital at risk, both models'
@@ -423,7 +421,6 @@ func renderOne(name string, data any) (string, error) {
 }
 
 /*
-*
 VerifyTemplates exercises all email templates with sample data to catch rendering errors.
 Returns a HealthCheck for template rendering.
 */
@@ -494,7 +491,6 @@ func VerifyTemplates() HealthCheck {
 }
 
 /*
-*
 topNPnl picks the N highest-scoring summaries by the given score
 selector and sums their per-contract P&L. Used by both the EOD and
 weekly emails to backtest "what if you had only followed this model
@@ -543,7 +539,6 @@ func RenderTestEmail(data StatusEmailData) (string, error) {
 }
 
 /*
-*
 RenderErrorEmail renders an error notification email. Kept intentionally simple
 (no loops, no comparisons) to minimize the chance of this template itself failing.
 */
@@ -610,12 +605,12 @@ func RenderSummaryEmail(summaryTrades []SummaryTrade) (string, error) {
 		totalPnL += t.PriceChange * 100 // per contract
 	}
 
-	/**
-	Per-model attribution: replay this single day's picks under each
-	model's ranking and aggregate the top-3 P&L for each, the same way
-	/api/model-comparison does for longer windows. Lets the EOD email
-	surface a tiny "which model would you have made more money
-	listening to today" leaderboard.
+	/*
+		Per-model attribution: replay this single day's picks under each
+		model's ranking and aggregate the top-3 P&L for each, the same way
+		/api/model-comparison does for longer windows. Lets the EOD email
+		surface a tiny "which model would you have made more money
+		listening to today" leaderboard.
 	*/
 	gptTop3Pnl := topNPnl(summaryTrades, 3, func(t SummaryTrade) float64 { return float64(t.GPTScore) })
 	claudeTop3Pnl := topNPnl(summaryTrades, 3, func(t SummaryTrade) float64 { return float64(t.ClaudeScore) })

@@ -17,7 +17,6 @@ import (
 )
 
 /*
-*
 ClaudePicker runs the same morning trade analysis pipeline as the
 OpenAI Analyzer, but powered by Anthropic Claude. Both pickers consume
 raw sentiment data, do the full Schwab + web-search workflow with the
@@ -46,7 +45,6 @@ func NewClaudePicker(apiKey, model string, schwabClient *schwab.Client) *ClaudeP
 func (p *ClaudePicker) Model() string { return p.model }
 
 /*
-*
 GetTopTrades runs the same workflow the OpenAI Analyzer does — pull in
 market signals, do its own Schwab tool calls and web search, then
 emit 10 ranked trades. Crucially, Claude is not given GPT's picks; it
@@ -100,10 +98,10 @@ func (p *ClaudePicker) GetTopTrades(ctx context.Context, sentimentData []sentime
 		})
 	}
 
-	/**
-	Enrich with sentiment data the same way the OpenAI Analyzer does so
-	downstream consumers see consistent SentimentScore and MentionCount
-	regardless of which model picked the trade.
+	/*
+		Enrich with sentiment data the same way the OpenAI Analyzer does so
+		downstream consumers see consistent SentimentScore and MentionCount
+		regardless of which model picked the trade.
 	*/
 	type sentimentInfo struct {
 		Score    float64
@@ -124,7 +122,6 @@ func (p *ClaudePicker) GetTopTrades(ctx context.Context, sentimentData []sentime
 }
 
 /*
-*
 WriteVerdicts runs the cross-examination pass for Claude: given the
 other model's pick list (and Claude's own picks for context), returns
 a one-sentence verdict per symbol. No tools are granted; this is a
@@ -179,7 +176,6 @@ func (p *ClaudePicker) WriteVerdicts(ctx context.Context, ownTrades, otherTrades
 }
 
 /*
-*
 verdictTradeView projects a Trade down to the fields a model needs to
 reason about a pick during cross-examination. Strips out scoring
 fields from the OTHER side so each model judges the trade on its
@@ -287,9 +283,9 @@ func (p *ClaudePicker) runConversation(ctx context.Context, prompt string) (stri
 			return "", fmt.Errorf("anthropic messages.new: %w", err)
 		}
 
-		/**
-		Track the code-execution container so follow-up requests can
-		reattach to it (required when web_search triggers code execution).
+		/*
+			Track the code-execution container so follow-up requests can
+			reattach to it (required when web_search triggers code execution).
 		*/
 		if msg.Container.JSON.ID.Valid() {
 			containerID = msg.Container.ID
@@ -326,7 +322,6 @@ func (p *ClaudePicker) runConversation(ctx context.Context, prompt string) (stri
 }
 
 /*
-*
 assistantEchoFromRaw rebuilds an assistant MessageParam by round-tripping
 each content block's raw server JSON through param.Override. We avoid
 msg.ToParam() because anthropic-sdk-go v1.35.1 drops the required `type`
