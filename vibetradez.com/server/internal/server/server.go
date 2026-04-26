@@ -452,21 +452,39 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		allOK = false
 	}
 
-	// Schwab Market Data
+	// Schwab Market Data Production — token freshness check. The token
+	// is shared with the Trading API, but this slot only proves the
+	// market-data side is reachable (which is what the live quotes /
+	// option chain code paths actually depend on).
 	if s.schwab != nil {
 		if s.schwab.IsConnected() {
 			tokStart := time.Now()
 			if _, err := s.schwab.ValidToken(); err != nil {
-				services["schwab"] = serviceHealth{Status: "fail", Detail: err.Error(), Latency: fmtLatency(time.Since(tokStart))}
+				services["schwab_market_data"] = serviceHealth{Status: "fail", Detail: err.Error(), Latency: fmtLatency(time.Since(tokStart))}
 				allOK = false
 			} else {
-				services["schwab"] = serviceHealth{Status: "ok", Detail: "Authenticated", Latency: fmtLatency(time.Since(tokStart))}
+				services["schwab_market_data"] = serviceHealth{Status: "ok", Detail: "Authenticated", Latency: fmtLatency(time.Since(tokStart))}
 			}
 		} else {
-			services["schwab"] = serviceHealth{Status: "warn", Detail: "Configured but not authorized"}
+			services["schwab_market_data"] = serviceHealth{Status: "warn", Detail: "Configured but not authorized"}
 		}
 	} else {
-		services["schwab"] = serviceHealth{Status: "warn", Detail: "Not configured"}
+		services["schwab_market_data"] = serviceHealth{Status: "warn", Detail: "Not configured"}
+	}
+
+	// Schwab Accounts and Trading Production — verifies the OAuth token
+	// has the Trading product scope by hitting the accountNumbers
+	// endpoint. Severity is conditional on trading mode:
+	//   - executor nil OR mode=paper: failure is `warn` (trading scope
+	//     isn't load-bearing yet, just a heads-up that re-auth is needed
+	//     before flipping to live).
+	//   - mode=live: failure is `fail` and trips allOK so the deploy
+	//     healthcheck blocks (because live orders WILL be attempted and
+	//     they'll bounce without trading scope).
+	tradingHealth := s.checkSchwabTrading(r.Context())
+	services["schwab_trading"] = tradingHealth
+	if tradingHealth.Status == "fail" {
+		allOK = false
 	}
 
 	// Market signal sources
@@ -578,6 +596,61 @@ func (s *Server) checkAnthropic() serviceHealth {
 		return serviceHealth{Status: "fail", Detail: err.Error()}
 	}
 	return serviceHealth{Status: "ok", Detail: "Anthropic API reachable"}
+}
+
+// checkSchwabTrading verifies the OAuth token covers the "Accounts and
+// Trading Production" Schwab product. Hits /trader/v1/accounts/
+// accountNumbers — the lightest endpoint on the Trader API surface.
+//
+// Severity is conditional on trading mode (executor.Mode):
+//   - paper or executor nil: failures are `warn` (trading scope isn't
+//     load-bearing yet; the warning is just a heads-up that re-auth is
+//     required before flipping live).
+//   - live: failures are `fail` so deploys are gated — without trading
+//     scope the cron WILL try to place orders and they WILL bounce.
+func (s *Server) checkSchwabTrading(ctx context.Context) serviceHealth {
+	failSeverity := "warn"
+	if s.executor != nil && s.executor.Mode() == "live" {
+		failSeverity = "fail"
+	}
+
+	if s.schwab == nil {
+		return serviceHealth{Status: "warn", Detail: "Not configured"}
+	}
+	if !s.schwab.IsConnected() {
+		return serviceHealth{Status: failSeverity, Detail: "Schwab OAuth not authorized — visit /auth/schwab"}
+	}
+
+	probeCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	_ = probeCtx // reserved for future use; AuthenticatedDo doesn't take ctx today
+
+	start := time.Now()
+	resp, err := s.schwab.AuthenticatedDo("GET", "https://api.schwabapi.com/trader/v1/accounts/accountNumbers", nil)
+	if err != nil {
+		return serviceHealth{Status: failSeverity, Detail: "request failed: " + err.Error(), Latency: fmtLatency(time.Since(start))}
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	switch {
+	case resp.StatusCode == 200:
+		return serviceHealth{Status: "ok", Detail: "Trading scope active", Latency: fmtLatency(time.Since(start))}
+	case resp.StatusCode == 401 || resp.StatusCode == 403:
+		// Token doesn't have trading scope. Most common cause: app was
+		// market-data-only when the user authorized; trading product was
+		// added later but the token wasn't refreshed via /auth/schwab.
+		return serviceHealth{
+			Status:  failSeverity,
+			Detail:  fmt.Sprintf("HTTP %d — token lacks trading scope; re-run /auth/schwab", resp.StatusCode),
+			Latency: fmtLatency(time.Since(start)),
+		}
+	default:
+		return serviceHealth{
+			Status:  failSeverity,
+			Detail:  fmt.Sprintf("HTTP %d — Schwab Trader API unreachable", resp.StatusCode),
+			Latency: fmtLatency(time.Since(start)),
+		}
+	}
 }
 
 func fmtLatency(d time.Duration) string {

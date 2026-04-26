@@ -67,6 +67,12 @@ func NewService(store DecisionStore, trader TraderClient, mail MailSender, cfg S
 	return &Service{store: store, trader: trader, mail: mail, cfg: cfg}
 }
 
+// Mode returns the trading mode the service was constructed with
+// ("paper" | "live"). Used by the /health endpoint to decide whether
+// schwab_trading auth failures are fatal (live) or merely a warning
+// (paper — trading scope isn't load-bearing in paper mode).
+func (s *Service) Mode() string { return s.cfg.Mode }
+
 // HandleQualifyingPick mints a decision row, sends the confirmation
 // email, and returns. The 5-minute timer is enforced by the
 // CancelExpiredDecisions cron + the token's embedded expiry — there is
