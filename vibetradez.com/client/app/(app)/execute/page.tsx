@@ -53,11 +53,7 @@ async function postConfirm(token: string, action: string): Promise<ConfirmRespon
   }
 }
 
-export default async function ExecutePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ token?: string; action?: string }>;
-}) {
+export default async function ExecutePage({ searchParams }: { searchParams: Promise<{ token?: string; action?: string }> }) {
   const params = await searchParams;
   const token = params.token ?? "";
   const action = params.action ?? "";
@@ -66,8 +62,7 @@ export default async function ExecutePage({
     return (
       <PageShell title="Invalid link">
         <p className="text-sm text-muted-foreground">
-          This URL is missing the required token or action parameter. Make sure you clicked the button directly from the
-          confirmation email and didn&apos;t copy a partial URL.
+          This URL is missing the required token or action parameter. Make sure you clicked the button directly from the confirmation email and didn&apos;t copy a partial URL.
         </p>
       </PageShell>
     );
@@ -88,8 +83,7 @@ export default async function ExecutePage({
         <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4">
           <p className="text-sm font-medium text-destructive">{result.message}</p>
           <p className="mt-2 text-xs text-muted-foreground">
-            Common causes: the 5-minute confirmation window has expired, the link was already used, or you aren&apos;t
-            signed in. The trade was <strong>not</strong> executed.
+            Common causes: the 5-minute confirmation window has expired, the link was already used, or you aren&apos;t signed in. The trade was <strong>not</strong> executed.
           </p>
         </div>
         <div className="mt-6">
@@ -121,7 +115,9 @@ export default async function ExecutePage({
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Next</p>
         <ul className="mt-2 space-y-1 text-sm">
           <li>• You&apos;ll receive a fill receipt email shortly with the order ID and fill price.</li>
-          <li>• The position will be auto-closed at <strong>3:55 PM ET</strong> regardless of P&amp;L.</li>
+          <li>
+            • The position will be auto-closed at <strong>3:55 PM ET</strong> regardless of P&amp;L.
+          </li>
           <li>• A close receipt email arrives once the close fills.</li>
         </ul>
       </div>
@@ -134,10 +130,7 @@ export default async function ExecutePage({
         >
           View on Schwab →
         </a>
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent"
-        >
+        <Link href="/dashboard" className="inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent">
           Back to dashboard
         </Link>
       </div>
