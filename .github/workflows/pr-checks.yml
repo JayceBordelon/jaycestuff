@@ -108,8 +108,10 @@ jobs:
       # version" when the auth go.mod declares 1.25).
       - name: Install golangci-lint
         run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+      # setup-go@v5 already adds GOPATH/bin to PATH so the binary
+      # installed above is callable by name.
       - name: golangci-lint
-        run: $(go env GOPATH)/bin/golangci-lint run ./...
+        run: golangci-lint run ./...
 
   workflows:
     name: Lint • Workflows
