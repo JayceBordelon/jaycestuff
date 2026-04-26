@@ -91,11 +91,13 @@ export interface ModelComparisonResponse {
   total_days_covered: number;
 }
 
-// Execution surfaces a position Jayce actually took on a trade —
-// either via the auto-execution pipeline (paper or live). Mode is
-// always rendered in the badge so paper is never mistaken for a real
-// position. Server omits this field entirely when no qualifying pick
-// converted to an execution that day.
+/**
+Execution surfaces a position Jayce actually took on a trade —
+either via the auto-execution pipeline (paper or live). Mode is
+always rendered in the badge so paper is never mistaken for a real
+position. Server omits this field entirely when no qualifying pick
+converted to an execution that day.
+*/
 export interface Execution {
   mode: "paper" | "live";
   state: "holding" | "closed" | "failed";

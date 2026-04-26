@@ -128,10 +128,12 @@ export default function LandingPage() {
 
           <div className="grid gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
             {features.map((f, i) => {
-              // Diagonal stagger across the 3-col grid (row + col), with a
-              // gentle alternating tilt so adjacent cards never animate the
-              // same direction. Mobile collapses to one col which still
-              // staggers nicely top-to-bottom.
+              /**
+              Diagonal stagger across the 3-col grid (row + col), with a
+              gentle alternating tilt so adjacent cards never animate the
+              same direction. Mobile collapses to one col which still
+              staggers nicely top-to-bottom.
+              */
               const col = i % 3;
               const row = Math.floor(i / 3);
               const stagger = (col + row) * 90;
@@ -167,9 +169,11 @@ export default function LandingPage() {
 
             <div className="space-y-10 sm:space-y-12">
               {steps.map((step, i) => (
-                // Each step slides in from the left, walking down the
-                // gradient timeline. Slight delay growth as you scroll
-                // creates a stairstep cadence.
+                /**
+                Each step slides in from the left, walking down the
+                gradient timeline. Slight delay growth as you scroll
+                creates a stairstep cadence.
+                */
                 <Reveal key={step.title} effect="left" delay={i * 110} duration={750} className="relative flex gap-6">
                   <div className="relative z-10 hidden flex-shrink-0 sm:block">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-border bg-card text-sm font-bold text-foreground">{i + 1}</div>

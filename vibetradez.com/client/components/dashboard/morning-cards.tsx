@@ -44,11 +44,13 @@ function MorningCard({ dt, liveQuotes, date, execution }: MorningCardProps) {
   const { trade } = dt;
   const moneyness = calcMoneyness(trade);
 
-  // Live option mark for "current contract price". Backend keys are
-  // "<SYMBOL>|<CALL|PUT>|<strike formatted to 2dp>|<expiration>" — see
-  // server.go:846 — so reconstruct the same key here. Falls back to
-  // null (em-dash) when Schwab isn't connected or the contract dropped
-  // off the chain.
+  /**
+  Live option mark for "current contract price". Backend keys are
+  "<SYMBOL>|<CALL|PUT>|<strike formatted to 2dp>|<expiration>" — see
+  server.go:846 — so reconstruct the same key here. Falls back to
+  null (em-dash) when Schwab isn't connected or the contract dropped
+  off the chain.
+  */
   const optionKey = `${trade.symbol}|${trade.contract_type}|${trade.strike_price.toFixed(2)}|${trade.expiration}`;
   const liveOption = liveQuotes?.options?.[optionKey] ?? null;
   const currentContractPrice = liveOption?.mark ?? null;

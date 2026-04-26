@@ -1,16 +1,18 @@
-// ExecutionBadge surfaces a position Jayce took on a trade. Two
-// variants:
-//   - compact: small inline pill for trade cards / table rows
-//   - full: 4-stat panel for the trade detail page (entry, close,
-//     realized P&L, mode label)
-//
-// Color rules:
-//   - amber background = paper (clearly distinct from real positions)
-//   - red-orange background = live (real money on the line)
-// State rules:
-//   - holding: shows entry + "live position" indicator
-//   - closed: shows P&L with green/red color
-//   - failed: shows "open failed" with neutral styling
+/**
+ExecutionBadge surfaces a position Jayce took on a trade. Two
+variants:
+  - compact: small inline pill for trade cards / table rows
+  - full: 4-stat panel for the trade detail page (entry, close,
+    realized P&L, mode label)
+
+Color rules:
+  - amber background = paper (clearly distinct from real positions)
+  - red-orange background = live (real money on the line)
+State rules:
+  - holding: shows entry + "live position" indicator
+  - closed: shows P&L with green/red color
+  - failed: shows "open failed" with neutral styling
+*/
 
 import { fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -117,9 +119,11 @@ function formatTime(iso: string): string {
   return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "America/New_York" }) + " ET";
 }
 
-// matchesTrade returns true when the execution is for the given trade
-// row (same symbol + contract_type + strike). Used by the dashboard /
-// history surfaces to find which card or row to render the badge on.
+/**
+matchesTrade returns true when the execution is for the given trade
+row (same symbol + contract_type + strike). Used by the dashboard /
+history surfaces to find which card or row to render the badge on.
+*/
 export function matchesTrade(execution: Execution | null | undefined, trade: { symbol: string; contract_type: string; strike_price: number }): boolean {
   if (!execution) return false;
   return execution.symbol === trade.symbol && execution.contract_type === trade.contract_type && Math.abs(execution.strike_price - trade.strike_price) < 0.005;

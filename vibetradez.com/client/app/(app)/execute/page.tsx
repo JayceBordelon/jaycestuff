@@ -1,10 +1,12 @@
-// /execute is the landing page for the Execute / Don't Execute buttons
-// in the auto-execution confirmation email. The page is a server
-// component that POSTs the signed token to /api/execution/confirm with
-// the user's session cookie attached, then renders the resulting
-// success / decline / error state. No client-side JS for the happy
-// path — the round-trip happens server-side so the token never lands
-// in the browser's history or any third-party script's view.
+/**
+/execute is the landing page for the Execute / Don't Execute buttons
+in the auto-execution confirmation email. The page is a server
+component that POSTs the signed token to /api/execution/confirm with
+the user's session cookie attached, then renders the resulting
+success / decline / error state. No client-side JS for the happy
+path — the round-trip happens server-side so the token never lands
+in the browser's history or any third-party script's view.
+*/
 
 import { cookies, headers } from "next/headers";
 import Link from "next/link";
@@ -22,13 +24,17 @@ async function postConfirm(token: string, action: string): Promise<ConfirmRespon
   const headerStore = await headers();
   const apiUrl = process.env.API_URL || "http://trading-server:8080";
 
-  // Forward the same vt_session cookie the browser sent so the upstream
-  // /api/execution/confirm handler sees the user as authenticated.
+  /**
+  Forward the same vt_session cookie the browser sent so the upstream
+  /api/execution/confirm handler sees the user as authenticated.
+  */
   const sessionCookie = cookieStore.get("vt_session");
   const cookieHeader = sessionCookie ? `vt_session=${sessionCookie.value}` : "";
 
-  // Forwarded host header lets the upstream server understand the
-  // origin if it ever needs to log it; not strictly required for auth.
+  /**
+  Forwarded host header lets the upstream server understand the
+  origin if it ever needs to log it; not strictly required for auth.
+  */
   const host = headerStore.get("host") || "";
 
   try {
