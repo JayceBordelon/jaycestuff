@@ -87,7 +87,7 @@ export default async function ExecutePage({ searchParams }: { searchParams: Prom
           </p>
         </div>
         <div className="mt-6">
-          <Link href="/dashboard" className="text-sm text-primary underline">
+          <Link href="/dashboard" className="inline-flex min-h-11 items-center text-sm text-primary underline underline-offset-2">
             Back to dashboard
           </Link>
         </div>
@@ -100,7 +100,7 @@ export default async function ExecutePage({ searchParams }: { searchParams: Prom
       <PageShell title="Trade declined">
         <p className="text-sm text-muted-foreground">{result.message}</p>
         <div className="mt-6">
-          <Link href="/dashboard" className="text-sm text-primary underline">
+          <Link href="/dashboard" className="inline-flex min-h-11 items-center text-sm text-primary underline underline-offset-2">
             Back to dashboard
           </Link>
         </div>
