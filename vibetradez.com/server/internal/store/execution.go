@@ -24,12 +24,12 @@ func (s *Store) InsertDecision(d exec.Decision) (int, error) {
 	err := s.db.QueryRow(`
 		INSERT INTO execution_decisions (
 			trade_date, symbol, contract_type, strike_price, expiration,
-			occ_symbol, contract_price, gpt_score, claude_score, trade_id,
+			occ_symbol, contract_price, score, trade_id,
 			decision, expires_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', $11)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending', $10)
 		RETURNING id
 	`, d.TradeDate, d.Symbol, d.ContractType, d.StrikePrice, d.Expiration,
-		d.OCCSymbol, d.ContractPrice, d.GPTScore, d.ClaudeScore, nullableInt(d.TradeID),
+		d.OCCSymbol, d.ContractPrice, d.Score, nullableInt(d.TradeID),
 		d.ExpiresAt).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("insert decision: %w", err)
@@ -61,11 +61,11 @@ func (s *Store) GetDecision(id int) (*exec.Decision, error) {
 	var tokenHash sql.NullString
 	err := s.db.QueryRow(`
 		SELECT id, trade_date, symbol, contract_type, strike_price, expiration,
-			occ_symbol, contract_price, gpt_score, claude_score, trade_id,
+			occ_symbol, contract_price, score, trade_id,
 			token_hash, decision, decided_at, expires_at, created_at
 		FROM execution_decisions WHERE id = $1
 	`, id).Scan(&d.ID, &d.TradeDate, &d.Symbol, &d.ContractType, &d.StrikePrice, &d.Expiration,
-		&d.OCCSymbol, &d.ContractPrice, &d.GPTScore, &d.ClaudeScore, &tradeID,
+		&d.OCCSymbol, &d.ContractPrice, &d.Score, &tradeID,
 		&tokenHash, &d.Decision, &decidedAt, &d.ExpiresAt, &d.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNoDecision
@@ -157,7 +157,7 @@ has elapsed.
 func (s *Store) PendingDecisions() ([]exec.Decision, error) {
 	rows, err := s.db.Query(`
 		SELECT id, trade_date, symbol, contract_type, strike_price, expiration,
-			occ_symbol, contract_price, gpt_score, claude_score,
+			occ_symbol, contract_price, score,
 			COALESCE(trade_id, 0), COALESCE(token_hash, ''), decision, expires_at, created_at
 		FROM execution_decisions
 		WHERE decision = 'pending'
@@ -171,7 +171,7 @@ func (s *Store) PendingDecisions() ([]exec.Decision, error) {
 	for rows.Next() {
 		var d exec.Decision
 		if err := rows.Scan(&d.ID, &d.TradeDate, &d.Symbol, &d.ContractType, &d.StrikePrice, &d.Expiration,
-			&d.OCCSymbol, &d.ContractPrice, &d.GPTScore, &d.ClaudeScore,
+			&d.OCCSymbol, &d.ContractPrice, &d.Score,
 			&d.TradeID, &d.TokenHash, &d.Decision, &d.ExpiresAt, &d.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan pending decision: %w", err)
 		}
@@ -263,7 +263,7 @@ the 3:55pm cron to find what needs to be closed.
 func (s *Store) OpenPositionsForDate(tradeDate string) ([]exec.Decision, error) {
 	rows, err := s.db.Query(`
 		SELECT d.id, d.trade_date, d.symbol, d.contract_type, d.strike_price, d.expiration,
-			d.occ_symbol, d.contract_price, d.gpt_score, d.claude_score,
+			d.occ_symbol, d.contract_price, d.score,
 			COALESCE(d.trade_id, 0), COALESCE(d.token_hash, ''), d.decision, d.expires_at, d.created_at
 		FROM execution_decisions d
 		WHERE d.trade_date = $1
@@ -286,7 +286,7 @@ func (s *Store) OpenPositionsForDate(tradeDate string) ([]exec.Decision, error) 
 	for rows.Next() {
 		var d exec.Decision
 		if err := rows.Scan(&d.ID, &d.TradeDate, &d.Symbol, &d.ContractType, &d.StrikePrice, &d.Expiration,
-			&d.OCCSymbol, &d.ContractPrice, &d.GPTScore, &d.ClaudeScore,
+			&d.OCCSymbol, &d.ContractPrice, &d.Score,
 			&d.TradeID, &d.TokenHash, &d.Decision, &d.ExpiresAt, &d.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan open position: %w", err)
 		}

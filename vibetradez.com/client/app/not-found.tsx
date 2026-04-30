@@ -13,7 +13,7 @@ const SUGGESTIONS = [
   {
     href: "/",
     label: "Live Dashboard",
-    description: "Today's union picks ranked by combined model conviction.",
+    description: "Today's picks ranked by Claude's conviction score.",
     Icon: BarChart3,
   },
   {
@@ -23,9 +23,9 @@ const SUGGESTIONS = [
     Icon: Compass,
   },
   {
-    href: "/models",
-    label: "Model Comparison",
-    description: "Head-to-head ChatGPT vs Claude backtest.",
+    href: "/faq",
+    label: "How it works",
+    description: "Pipeline, data sources, scoring, and execution rules.",
     Icon: BookOpen,
   },
 ];

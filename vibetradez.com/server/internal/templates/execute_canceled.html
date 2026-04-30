@@ -38,7 +38,7 @@
                 <tr>
                   <td style="padding:20px 24px;">
                     <p class="text-primary" style="margin:0;font-size:20px;font-weight:800;color:#0f172a;">{{.Symbol}} {{printf "%.2f" .StrikePrice}} {{.ContractType}}</p>
-                    <p class="text-secondary" style="margin:6px 0 0 0;font-size:13px;color:#64748b;">Expires {{.Expiration}} · Premium ${{printf "%.2f" .ContractPrice}} · {{.GPTModelName}} {{.GPTScore}}/10 · {{.ClaudeModelName}} {{.ClaudeScore}}/10</p>
+                    <p class="text-secondary" style="margin:6px 0 0 0;font-size:13px;color:#64748b;">Expires {{.Expiration}} | Premium ${{printf "%.2f" .ContractPrice}} | {{.ModelName}} {{.Score}}/10</p>
                   </td>
                 </tr>
               </table>

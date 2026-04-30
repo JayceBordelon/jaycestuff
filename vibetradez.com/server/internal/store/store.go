@@ -62,40 +62,47 @@ func migrate(db *sql.DB) error {
 			catalyst TEXT NOT NULL DEFAULT '',
 			mention_count INTEGER NOT NULL DEFAULT 0,
 			rank INTEGER NOT NULL DEFAULT 0,
-			gpt_score INTEGER NOT NULL DEFAULT 0,
-			gpt_rationale TEXT NOT NULL DEFAULT '',
-			claude_score INTEGER NOT NULL DEFAULT 0,
-			claude_rationale TEXT NOT NULL DEFAULT '',
-			combined_score DOUBLE PRECISION NOT NULL DEFAULT 0,
-			picked_by_openai BOOLEAN NOT NULL DEFAULT false,
-			picked_by_claude BOOLEAN NOT NULL DEFAULT false,
-			gpt_verdict TEXT NOT NULL DEFAULT '',
-			claude_verdict TEXT NOT NULL DEFAULT '',
-			gpt_model TEXT NOT NULL DEFAULT '',
-			claude_model TEXT NOT NULL DEFAULT '',
+			score INTEGER NOT NULL DEFAULT 0,
+			rationale TEXT NOT NULL DEFAULT '',
+			model TEXT NOT NULL DEFAULT '',
 			created_at TIMESTAMPTZ DEFAULT NOW()
 		);
 
-		ALTER TABLE trades ADD COLUMN IF NOT EXISTS gpt_score INTEGER NOT NULL DEFAULT 0;
-		ALTER TABLE trades ADD COLUMN IF NOT EXISTS gpt_rationale TEXT NOT NULL DEFAULT '';
-		ALTER TABLE trades ADD COLUMN IF NOT EXISTS claude_score INTEGER NOT NULL DEFAULT 0;
-		ALTER TABLE trades ADD COLUMN IF NOT EXISTS claude_rationale TEXT NOT NULL DEFAULT '';
-		ALTER TABLE trades ADD COLUMN IF NOT EXISTS combined_score DOUBLE PRECISION NOT NULL DEFAULT 0;
-		ALTER TABLE trades ADD COLUMN IF NOT EXISTS picked_by_openai BOOLEAN NOT NULL DEFAULT false;
-		ALTER TABLE trades ADD COLUMN IF NOT EXISTS picked_by_claude BOOLEAN NOT NULL DEFAULT false;
-		ALTER TABLE trades ADD COLUMN IF NOT EXISTS gpt_verdict TEXT NOT NULL DEFAULT '';
-		ALTER TABLE trades ADD COLUMN IF NOT EXISTS claude_verdict TEXT NOT NULL DEFAULT '';
-		ALTER TABLE trades ADD COLUMN IF NOT EXISTS gpt_model TEXT NOT NULL DEFAULT '';
-		ALTER TABLE trades ADD COLUMN IF NOT EXISTS claude_model TEXT NOT NULL DEFAULT '';
-		ALTER TABLE trades ADD COLUMN IF NOT EXISTS gpt_rank INTEGER NOT NULL DEFAULT 0;
-		ALTER TABLE trades ADD COLUMN IF NOT EXISTS claude_rank INTEGER NOT NULL DEFAULT 0;
-		-- Backfill existing rows: any pre-refactor trade had a non-zero
-		-- gpt_score (GPT generated the picks) so it counts as picked by
-		-- OpenAI. Pre-refactor Claude was a validator, not a picker, so
-		-- claude_score > 0 alone does NOT imply Claude originally picked
-		-- the trade — only forward-going rows from the new pipeline get
-		-- picked_by_claude = true.
-		UPDATE trades SET picked_by_openai = true WHERE picked_by_openai = false AND gpt_score > 0;
+		/*
+		Rename pre-refactor claude_* columns to drop the prefix so historical
+		Claude rationales survive the OpenAI removal. Wrapped in a DO block so
+		each rename is idempotent on already-migrated rows.
+		*/
+		DO $$
+		BEGIN
+			IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='trades' AND column_name='claude_score')
+				AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='trades' AND column_name='score') THEN
+				ALTER TABLE trades RENAME COLUMN claude_score TO score;
+			END IF;
+			IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='trades' AND column_name='claude_rationale')
+				AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='trades' AND column_name='rationale') THEN
+				ALTER TABLE trades RENAME COLUMN claude_rationale TO rationale;
+			END IF;
+			IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='trades' AND column_name='claude_model')
+				AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='trades' AND column_name='model') THEN
+				ALTER TABLE trades RENAME COLUMN claude_model TO model;
+			END IF;
+		END $$;
+
+		ALTER TABLE trades ADD COLUMN IF NOT EXISTS score INTEGER NOT NULL DEFAULT 0;
+		ALTER TABLE trades ADD COLUMN IF NOT EXISTS rationale TEXT NOT NULL DEFAULT '';
+		ALTER TABLE trades ADD COLUMN IF NOT EXISTS model TEXT NOT NULL DEFAULT '';
+
+		ALTER TABLE trades DROP COLUMN IF EXISTS gpt_score;
+		ALTER TABLE trades DROP COLUMN IF EXISTS gpt_rationale;
+		ALTER TABLE trades DROP COLUMN IF EXISTS gpt_model;
+		ALTER TABLE trades DROP COLUMN IF EXISTS gpt_rank;
+		ALTER TABLE trades DROP COLUMN IF EXISTS gpt_verdict;
+		ALTER TABLE trades DROP COLUMN IF EXISTS claude_verdict;
+		ALTER TABLE trades DROP COLUMN IF EXISTS claude_rank;
+		ALTER TABLE trades DROP COLUMN IF EXISTS combined_score;
+		ALTER TABLE trades DROP COLUMN IF EXISTS picked_by_openai;
+		ALTER TABLE trades DROP COLUMN IF EXISTS picked_by_claude;
 
 		CREATE INDEX IF NOT EXISTS idx_trades_date ON trades(date);
 
@@ -136,24 +143,20 @@ func migrate(db *sql.DB) error {
 			updated_at TIMESTAMPTZ DEFAULT NOW()
 		);
 
-		-- auth_user_id points at the upstream auth.jaycebordelon.com users
-		-- table. No FK here — the auth service owns its own DB and can be
-		-- down without blocking subscriber operations.
 		ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS auth_user_id BIGINT;
 		CREATE INDEX IF NOT EXISTS idx_subscribers_auth_user_id ON subscribers(auth_user_id);
 
-		-- Clean up tables from the pre-split single-service auth. Safe to
-		-- drop on any env: the rows were only created locally and in the
-		-- pre-merge branch.
 		DROP TABLE IF EXISTS sessions;
 		DROP TABLE IF EXISTS oauth_states;
 		ALTER TABLE subscribers DROP COLUMN IF EXISTS user_id;
 		DROP TABLE IF EXISTS users;
 
-		-- Auto-execution pipeline. UNIQUE(trade_date) is the schema-level
-		-- enforcement of the "at most one decision per day" rule; the
-		-- selector also enforces it in code, but the DB is the
-		-- belt-and-suspenders.
+		/*
+		Auto-execution pipeline. UNIQUE(trade_date) is the schema-level
+		enforcement of the "at most one decision per day" rule; the
+		selector also enforces it in code, but the DB is the
+		belt-and-suspenders.
+		*/
 		CREATE TABLE IF NOT EXISTS execution_decisions (
 			id              SERIAL PRIMARY KEY,
 			trade_date      TEXT NOT NULL,
@@ -163,16 +166,27 @@ func migrate(db *sql.DB) error {
 			expiration      TEXT NOT NULL,
 			occ_symbol      TEXT NOT NULL,
 			contract_price  DOUBLE PRECISION NOT NULL,
-			gpt_score       INTEGER NOT NULL,
-			claude_score    INTEGER NOT NULL,
+			score           INTEGER NOT NULL DEFAULT 0,
 			trade_id        INTEGER REFERENCES trades(id),
-			token_hash      TEXT NOT NULL UNIQUE,
+			token_hash      TEXT UNIQUE,
 			decision        TEXT NOT NULL DEFAULT 'pending',
 			decided_at      TIMESTAMPTZ,
 			expires_at      TIMESTAMPTZ NOT NULL,
 			created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 			UNIQUE(trade_date)
 		);
+
+		DO $$
+		BEGIN
+			IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='execution_decisions' AND column_name='claude_score')
+				AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='execution_decisions' AND column_name='score') THEN
+				ALTER TABLE execution_decisions RENAME COLUMN claude_score TO score;
+			END IF;
+		END $$;
+
+		ALTER TABLE execution_decisions ADD COLUMN IF NOT EXISTS score INTEGER NOT NULL DEFAULT 0;
+		ALTER TABLE execution_decisions DROP COLUMN IF EXISTS gpt_score;
+
 		CREATE INDEX IF NOT EXISTS idx_execution_decisions_pending
 			ON execution_decisions(decision) WHERE decision = 'pending';
 
@@ -195,22 +209,9 @@ func migrate(db *sql.DB) error {
 		CREATE INDEX IF NOT EXISTS idx_executions_open_pending
 			ON executions(status) WHERE status IN ('pending','working');
 
-		-- token_hash on execution_decisions was originally NOT NULL UNIQUE,
-		-- which forced HandleQualifyingPick into a clunky two-step mint
-		-- pattern. The UNIQUE was redundant defense — single-use is
-		-- enforced atomically by SetDecisionStatus's WHERE decision='pending'
-		-- guard. Drop both so the row can be inserted first with a null
-		-- hash, then updated after the row id is known.
 		ALTER TABLE execution_decisions ALTER COLUMN token_hash DROP NOT NULL;
 		ALTER TABLE execution_decisions DROP CONSTRAINT IF EXISTS execution_decisions_token_hash_key;
 
-		-- Rollout-email audit table. Tracks which one-shot announcement
-		-- emails have already gone out so a redeploy doesn't spam users.
-		-- Slug is the source of truth (set in code, registered in
-		-- internal/rollouts/). Pending-vs-sent state is implicit:
-		-- registry has slug AND db has no row → pending → fire on next
-		-- startup. Sending is best-effort; recipient_count records how
-		-- many subscribers received it for audit.
 		CREATE TABLE IF NOT EXISTS sent_rollouts (
 			slug             TEXT PRIMARY KEY,
 			sent_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -220,7 +221,6 @@ func migrate(db *sql.DB) error {
 	return err
 }
 
-// DB returns the underlying *sql.DB for ad-hoc queries.
 func (s *Store) DB() *sql.DB { return s.db }
 
 func (s *Store) Close() error {
@@ -231,7 +231,7 @@ func (s *Store) Ping() error {
 	return s.db.Ping()
 }
 
-// RemoveAllForTest clears all data — only for use in tests.
+// RemoveAllForTest clears all data, only for use in tests.
 func (s *Store) RemoveAllForTest() {
 	_, _ = s.db.Exec("DELETE FROM subscribers")
 	_, _ = s.db.Exec("DELETE FROM trades")
@@ -322,10 +322,8 @@ func (s *Store) SaveMorningTrades(date string, tradeList []trades.Trade) error {
 			estimated_price, thesis, sentiment_score, current_price,
 			target_price, stop_loss, risk_level,
 			catalyst, mention_count, rank,
-			gpt_score, gpt_rationale, claude_score, claude_rationale, combined_score,
-			picked_by_openai, picked_by_claude, gpt_verdict, claude_verdict,
-			gpt_model, claude_model, gpt_rank, claude_rank
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)
+			score, rationale, model
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to prepare statement: %w", err)
@@ -338,9 +336,7 @@ func (s *Store) SaveMorningTrades(date string, tradeList []trades.Trade) error {
 			t.EstimatedPrice, t.Thesis, t.SentimentScore, t.CurrentPrice,
 			t.TargetPrice, t.StopLoss, t.RiskLevel,
 			t.Catalyst, t.MentionCount, t.Rank,
-			t.GPTScore, t.GPTRationale, t.ClaudeScore, t.ClaudeRationale, t.CombinedScore,
-			t.PickedByOpenAI, t.PickedByClaude, t.GPTVerdict, t.ClaudeVerdict,
-			t.GPTModel, t.ClaudeModel, t.GPTRank, t.ClaudeRank,
+			t.Score, t.Rationale, t.Model,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to insert trade %s: %w", t.Symbol, err)
@@ -356,9 +352,7 @@ func (s *Store) GetMorningTrades(date string) ([]trades.Trade, error) {
 			estimated_price, thesis, sentiment_score, current_price,
 			target_price, stop_loss, risk_level,
 			catalyst, mention_count, rank,
-			gpt_score, gpt_rationale, claude_score, claude_rationale, combined_score,
-			picked_by_openai, picked_by_claude, gpt_verdict, claude_verdict,
-			gpt_model, claude_model, gpt_rank, claude_rank
+			score, rationale, model
 		FROM trades WHERE date = $1 ORDER BY rank, id
 	`, date)
 	if err != nil {
@@ -374,9 +368,7 @@ func (s *Store) GetMorningTrades(date string) ([]trades.Trade, error) {
 			&t.EstimatedPrice, &t.Thesis, &t.SentimentScore, &t.CurrentPrice,
 			&t.TargetPrice, &t.StopLoss, &t.RiskLevel,
 			&t.Catalyst, &t.MentionCount, &t.Rank,
-			&t.GPTScore, &t.GPTRationale, &t.ClaudeScore, &t.ClaudeRationale, &t.CombinedScore,
-			&t.PickedByOpenAI, &t.PickedByClaude, &t.GPTVerdict, &t.ClaudeVerdict,
-			&t.GPTModel, &t.ClaudeModel, &t.GPTRank, &t.ClaudeRank,
+			&t.Score, &t.Rationale, &t.Model,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan trade row: %w", err)
@@ -457,9 +449,7 @@ func (s *Store) GetTradesForDateRange(startDate, endDate string) (map[string][]t
 			estimated_price, thesis, sentiment_score, current_price,
 			target_price, stop_loss, risk_level,
 			catalyst, mention_count, rank,
-			gpt_score, gpt_rationale, claude_score, claude_rationale, combined_score,
-			picked_by_openai, picked_by_claude, gpt_verdict, claude_verdict,
-			gpt_model, claude_model, gpt_rank, claude_rank
+			score, rationale, model
 		FROM trades WHERE date >= $1 AND date <= $2 ORDER BY date, rank, id
 	`, startDate, endDate)
 	if err != nil {
@@ -476,9 +466,7 @@ func (s *Store) GetTradesForDateRange(startDate, endDate string) (map[string][]t
 			&t.EstimatedPrice, &t.Thesis, &t.SentimentScore, &t.CurrentPrice,
 			&t.TargetPrice, &t.StopLoss, &t.RiskLevel,
 			&t.Catalyst, &t.MentionCount, &t.Rank,
-			&t.GPTScore, &t.GPTRationale, &t.ClaudeScore, &t.ClaudeRationale, &t.CombinedScore,
-			&t.PickedByOpenAI, &t.PickedByClaude, &t.GPTVerdict, &t.ClaudeVerdict,
-			&t.GPTModel, &t.ClaudeModel, &t.GPTRank, &t.ClaudeRank,
+			&t.Score, &t.Rationale, &t.Model,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan trade row: %w", err)
@@ -541,7 +529,7 @@ func (s *Store) GetOAuthToken(provider string) (accessToken, refreshToken string
 /*
 LinkSubscriberAuthUser attaches an upstream auth user id to any
 subscriber row matching this email that isn't linked yet. Does NOT
-touch active or unsubscribed_at — users who previously opted out
+touch active or unsubscribed_at, users who previously opted out
 stay opted out.
 */
 func (s *Store) LinkSubscriberAuthUser(authUserID int64, email string) error {

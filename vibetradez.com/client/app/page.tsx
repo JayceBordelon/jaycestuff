@@ -4,18 +4,18 @@ import Link from "next/link";
 import { LandingNavAccount } from "@/components/landing/nav-account";
 import { Reveal } from "@/components/landing/reveal";
 import { SubscribeCTA } from "@/components/landing/subscribe-cta";
-import { ClaudeLogo, OpenAILogo } from "@/components/ui/brand-icons";
+import { ClaudeLogo } from "@/components/ui/brand-icons";
 
 export const metadata: Metadata = {
   title: "VibeTradez | AI-Powered Options Picks",
   description:
-    "A controlled experiment between two silly models. ChatGPT and Claude get the exact same market signals, the exact same prompt, and the exact same tools, then independently pick their top 10 and roast each other's picks. Delivered before market open.",
+    "Live experiment in letting one silly model trade. Every morning Claude pulls market signals, runs the same prompt against Schwab quotes and web search, and ranks its top 10 contracts with conviction scores. Delivered before market open.",
 };
 
 export default function LandingPage() {
   return (
     <div className="min-h-dvh bg-background text-foreground">
-      {/* ── Nav ── */}
+      {/* Nav */}
       <nav className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/95 backdrop-blur-md will-change-transform">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-6">
           <span className="text-xl font-extrabold tracking-tight">
@@ -33,16 +33,14 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* ── Hero ── */}
+      {/* Hero */}
       <section className="relative flex min-h-dvh items-center justify-center overflow-hidden pt-16">
-        {/* Gradient orbs */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden will-change-transform">
-          <div className="absolute -top-1/4 left-1/4 h-[600px] w-[600px] rounded-full bg-gpt/10 blur-[80px] sm:blur-[120px]" />
+          <div className="absolute -top-1/4 left-1/4 h-[600px] w-[600px] rounded-full bg-claude/10 blur-[80px] sm:blur-[120px]" />
           <div className="absolute -bottom-1/4 right-1/4 h-[600px] w-[600px] rounded-full bg-claude/10 blur-[80px] sm:blur-[120px]" />
           <div className="absolute top-1/2 left-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-[60px] sm:blur-[100px]" />
         </div>
 
-        {/* Grid pattern */}
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.03] dark:opacity-[0.04]"
           style={{
@@ -53,7 +51,6 @@ export default function LandingPage() {
         />
 
         <div className="relative z-10 mx-auto max-w-4xl px-5 py-20 text-center sm:px-6 sm:py-24">
-          {/* Badge */}
           <Reveal
             effect="fall"
             duration={600}
@@ -66,10 +63,9 @@ export default function LandingPage() {
             Free daily picks before market open
           </Reveal>
 
-          {/* Headline */}
           <Reveal effect="blur" delay={120} duration={1100} as="header">
             <h1 className="mb-6 text-4xl font-extrabold leading-[1.1] tracking-tight sm:mb-6 sm:text-6xl lg:text-7xl">
-              Two silly models.
+              One silly model.
               <br />
               <span className="text-gradient-brand">Zero humans.</span>
             </h1>
@@ -77,13 +73,10 @@ export default function LandingPage() {
 
           <Reveal effect="rise" delay={280} duration={900}>
             <p className="mx-auto mb-10 max-w-2xl text-base leading-relaxed text-muted-foreground sm:mb-10 sm:text-xl">
-              A controlled experiment between two silly models. Every morning, ChatGPT and Claude get the exact same market signals, the exact same prompt, and the exact same tools, then go off alone
-              and each pick their top 10. After they finish, each model reads the other&apos;s picks and writes a one-sentence roast (or grudging nod) on every trade. You get the union before market
-              open, both rationales attached, and a live argument in your inbox.
+              Every morning Claude pulls trending tickers, calls live Schwab quotes and option chains, scrapes catalysts off the open web, and ranks its top 10 contracts with conviction scores and full rationales. You get the list before market open and watch the P&amp;L roll in by close.
             </p>
           </Reveal>
 
-          {/* CTAs */}
           <Reveal effect="scale" delay={420} duration={700} className="flex w-full flex-col gap-4 px-2 sm:w-auto sm:flex-row sm:justify-center sm:gap-4 sm:px-0">
             <Link
               href="/dashboard"
@@ -98,14 +91,9 @@ export default function LandingPage() {
             </SubscribeCTA>
           </Reveal>
 
-          {/* Model badges: opposing slide-ins meeting at the divider */}
-          <div className="mt-12 flex items-center justify-center gap-6 sm:mt-12 sm:gap-8">
-            <Reveal effect="left" delay={560} duration={700} className="flex items-center gap-2.5 text-sm text-muted-foreground">
-              <OpenAILogo className="h-5 w-5" />
-              <span className="font-medium">ChatGPT</span>
-            </Reveal>
-            <Reveal effect="scale" delay={680} duration={500} className="h-4 w-px bg-border" />
-            <Reveal effect="right" delay={560} duration={700} className="flex items-center gap-2.5 text-sm text-muted-foreground">
+          <div className="mt-12 flex items-center justify-center gap-3 sm:mt-12 sm:gap-4">
+            <Reveal effect="scale" delay={560} duration={700} className="flex items-center gap-2.5 text-sm text-muted-foreground">
+              <span className="text-xs uppercase tracking-wider">Powered by</span>
               <ClaudeLogo className="h-5 w-5" />
               <span className="font-medium">Claude</span>
             </Reveal>
@@ -113,27 +101,20 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Features ── */}
+      {/* Features */}
       <section className="border-t bg-card py-20 sm:py-24">
         <div className="mx-auto max-w-6xl px-5 sm:px-6">
           <Reveal effect="blur" duration={1000} className="mb-14 text-center sm:mb-16">
             <h2 className="mb-4 text-3xl font-extrabold tracking-tight sm:text-4xl">
-              Built to <span className="text-gradient-brand">disagree</span>
+              Built to <span className="text-gradient-brand">show its work</span>
             </h2>
             <p className="mx-auto max-w-2xl text-muted-foreground">
-              Not another signal bot. Same data, same prompt, same tools: the only thing that changes is which model is reasoning. Then they cross-examine each other&apos;s picks and you get to watch
-              the drama in real time. It&apos;s a very expensive A/B test.
+              Not another signal bot. Every pick comes with the actual contract spec, a 1-10 conviction score, and a written rationale defending it. End of day you see what hit and what didn&apos;t. No cherry-picking.
             </p>
           </Reveal>
 
           <div className="grid gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
             {features.map((f, i) => {
-              /**
-              Diagonal stagger across the 3-col grid (row + col), with a
-              gentle alternating tilt so adjacent cards never animate the
-              same direction. Mobile collapses to one col which still
-              staggers nicely top-to-bottom.
-              */
               const col = i % 3;
               const row = Math.floor(i / 3);
               const stagger = (col + row) * 90;
@@ -150,7 +131,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── How It Works ── */}
+      {/* How It Works */}
       <section id="how-it-works" className="scroll-mt-16 border-t py-20 sm:py-24">
         <div className="mx-auto max-w-5xl px-5 sm:px-6">
           <Reveal effect="blur" duration={1000} className="mb-14 text-center sm:mb-16">
@@ -159,21 +140,15 @@ export default function LandingPage() {
           </Reveal>
 
           <div className="relative">
-            {/* Vertical gradient line */}
             <div
               className="absolute left-6 top-0 bottom-0 hidden w-px sm:block"
               style={{
-                background: "linear-gradient(180deg, var(--gpt), var(--claude))",
+                background: "linear-gradient(180deg, var(--claude), var(--claude))",
               }}
             />
 
             <div className="space-y-10 sm:space-y-12">
               {steps.map((step, i) => (
-                /**
-                Each step slides in from the left, walking down the
-                gradient timeline. Slight delay growth as you scroll
-                creates a stairstep cadence.
-                */
                 <Reveal key={step.title} effect="left" delay={i * 110} duration={750} className="relative flex gap-6">
                   <div className="relative z-10 hidden flex-shrink-0 sm:block">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-border bg-card text-sm font-bold text-foreground">{i + 1}</div>
@@ -193,7 +168,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Subscribe CTA ── */}
+      {/* Subscribe CTA */}
       <section className="border-t py-20 sm:py-24">
         <div className="mx-auto max-w-3xl px-5 text-center sm:px-6">
           <Reveal effect="blur" duration={1000}>
@@ -201,7 +176,7 @@ export default function LandingPage() {
               Start getting <span className="text-gradient-brand">picks</span>
             </h2>
             <p className="mx-auto mb-10 max-w-xl text-muted-foreground sm:mb-8">
-              Completely free. No credit card. No premium tier. Just two silly models doing their best and one human hoping they know what they&apos;re doing. Unsubscribe any time, no hard feelings.
+              Completely free. No credit card. No premium tier. Just one silly model doing its best and one human hoping it knows what it&apos;s doing. Unsubscribe any time, no hard feelings.
             </p>
           </Reveal>
           <Reveal effect="scale" delay={200} duration={650} className="flex w-full flex-col gap-4 px-2 sm:w-auto sm:flex-row sm:justify-center sm:gap-4 sm:px-0">
@@ -220,7 +195,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Footer ── */}
+      {/* Footer */}
       <footer className="border-t bg-card">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-8 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div className="flex items-center gap-2">
@@ -256,19 +231,14 @@ export default function LandingPage() {
 
 const features = [
   {
-    icon: <Brain className="h-6 w-6 text-gpt" />,
-    title: "Independent picks",
-    description: "Same data, same prompt, same tools. Each model goes off alone and ranks its top 10. No groupthink, no peeking, no shared scratchpad. The only variable is the model itself.",
+    icon: <Brain className="h-6 w-6 text-claude" />,
+    title: "Conviction-scored picks",
+    description: "Every pick comes with a 1-10 conviction score and a written rationale defending it. No cluster of 7s, no hand-wave: cite the evidence or accept the lower score.",
   },
   {
     icon: <TrendingUp className="h-6 w-6 text-claude" />,
     title: "Live market data",
-    description: "Real-time quotes and full option chains from Schwab. Both models call tools mid-analysis to look up actual prices instead of hallucinating them. Progress.",
-  },
-  {
-    icon: <Brain className="h-6 w-6 text-claude" />,
-    title: "Cross-examination pass",
-    description: "Once both lists are locked, each model reads the other's picks and writes a one-sentence verdict on every trade. Roasts, grudging respect, and the occasional cosign.",
+    description: "Real-time quotes and full option chains from Schwab. Claude calls tools mid-analysis to look up actual prices instead of hallucinating them. Progress.",
   },
   {
     icon: <Mail className="h-6 w-6 text-claude" />,
@@ -276,14 +246,19 @@ const features = [
     description: "Ranked picks in your inbox before the opening bell. EOD results at close. Weekly digest on Fridays. You can also just watch the dashboard and judge silently.",
   },
   {
-    icon: <Shield className="h-6 w-6 text-gpt" />,
+    icon: <Shield className="h-6 w-6 text-claude" />,
     title: "Completely free",
-    description: "No paywalls, no premium tiers, no credit card. A live experiment in letting silly models trade. Follow along and see how it goes.",
+    description: "No paywalls, no premium tiers, no credit card. A live experiment in letting one silly model trade. Follow along and see how it goes.",
   },
   {
     icon: <Clock className="h-6 w-6 text-claude" />,
     title: "End-of-day tracking",
     description: 'Every pick is tracked to close. Win rates, P&L, Sharpe, and drawdown are all computed automatically. No cherry-picking, no "trust me bro" screenshots.',
+  },
+  {
+    icon: <Brain className="h-6 w-6 text-claude" />,
+    title: "Auto-execution (paper or live)",
+    description: "When Claude ranks a contract #1 with a 9 or 10 conviction score and the premium fits the cap, the system mints a 5-minute confirmation email. One click and it's a real order.",
   },
 ];
 
@@ -291,25 +266,19 @@ const steps = [
   {
     time: "9:00 AM ET",
     title: "Market signal scan",
-    description: "The system aggregates trending tickers and market signals from StockTwits, Yahoo Finance, Finviz, and SEC EDGAR filings. The exact same payload is handed to both models.",
+    description: "The system aggregates trending tickers and market signals from StockTwits, Yahoo Finance, Finviz, and SEC EDGAR filings.",
   },
   {
     time: "9:15 AM ET",
-    title: "Independent picks",
+    title: "Claude picks",
     description:
-      "ChatGPT and Claude are run in parallel, alone, with the same prompt and the same Schwab + web search tools. Each produces 10 ranked contracts with conviction scores and written rationales. Neither model sees the other's work yet.",
-  },
-  {
-    time: "9:20 AM ET",
-    title: "Cross-examination",
-    description:
-      "Once both pick lists are locked, each model reads the other's 10 trades and writes a one-sentence verdict on every single one. Roasts, grudging respect, the occasional cosign. Verdicts are stored on the trade and shown next to the original rationale.",
+      "Claude runs the full prompt with live Schwab quotes, full option chains, and web search. It produces 10 ranked contracts, each with a 1-10 conviction score and a written rationale defending the score.",
   },
   {
     time: "9:25 AM ET",
-    title: "Merge & deliver",
+    title: "Deliver",
     description:
-      "Picks are unioned. Trades both models picked rank ahead of solo picks, ties broken by combined conviction. The final list, both rationales, and both verdicts are emailed to subscribers before the opening bell.",
+      "The final list and rationales are saved to the database, surfaced on the dashboard, and emailed to subscribers before the opening bell.",
   },
   {
     time: "4:05 PM ET",

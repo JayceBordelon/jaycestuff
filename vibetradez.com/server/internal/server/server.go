@@ -17,8 +17,6 @@ import (
 
 	"github.com/anthropics/anthropic-sdk-go"
 	anthropicoption "github.com/anthropics/anthropic-sdk-go/option"
-	"github.com/openai/openai-go/v3"
-	openaioption "github.com/openai/openai-go/v3/option"
 
 	"vibetradez.com/internal/authclient"
 	"vibetradez.com/internal/email"
@@ -38,8 +36,6 @@ type Server struct {
 	scraper        *sentiment.Scraper
 	emailClient    *email.Client
 	emailFrom      string
-	openaiKey      string
-	openaiModel    string
 	anthropicKey   string
 	anthropicModel string
 	sessionCookie  string
@@ -69,7 +65,7 @@ type apiResponse struct {
 	Message string `json:"message"`
 }
 
-func New(db *store.Store, schwabClient *schwab.Client, authClient *authclient.Client, scraper *sentiment.Scraper, emailClient *email.Client, emailFrom, openaiKey, openaiModel, anthropicKey, anthropicModel, sessionCookie string, sessionTTL time.Duration, ssoPublicURL, ssoClientID, ssoRedirectURI, port string, executor *exec.Service, executorEmail string) *Server {
+func New(db *store.Store, schwabClient *schwab.Client, authClient *authclient.Client, scraper *sentiment.Scraper, emailClient *email.Client, emailFrom, anthropicKey, anthropicModel, sessionCookie string, sessionTTL time.Duration, ssoPublicURL, ssoClientID, ssoRedirectURI, port string, executor *exec.Service, executorEmail string) *Server {
 	s := &Server{
 		db:             db,
 		schwab:         schwabClient,
@@ -77,8 +73,6 @@ func New(db *store.Store, schwabClient *schwab.Client, authClient *authclient.Cl
 		scraper:        scraper,
 		emailClient:    emailClient,
 		emailFrom:      emailFrom,
-		openaiKey:      openaiKey,
-		openaiModel:    openaiModel,
 		anthropicKey:   anthropicKey,
 		anthropicModel: anthropicModel,
 		sessionCookie:  sessionCookie,
@@ -126,7 +120,6 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/trades/week", requireInternal(s.handleTradesWeek))
 	s.mux.HandleFunc("/api/chart/", requireInternal(s.handleChart))
 	s.mux.HandleFunc("/api/quotes/live", requireInternal(s.handleLiveQuotes))
-	s.mux.HandleFunc("/api/model-comparison", requireInternal(s.handleModelComparison))
 
 	/*
 		Auto-execution endpoints. Stack: requireInternal (trusted website
@@ -219,64 +212,6 @@ func (s *Server) handleTradeDates(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"dates": dates})
 }
 
-/*
-pickerFilter is the global model filter selected from the nav bar.
-'all' returns every union trade ranked by combined_score (default).
-'openai' returns only trades where picked_by_openai = true, ranked by
-gpt_score desc. 'claude' returns only trades where picked_by_claude
-= true, ranked by claude_score desc.
-*/
-type pickerFilter string
-
-const (
-	pickerAll    pickerFilter = "all"
-	pickerOpenAI pickerFilter = "openai"
-	pickerClaude pickerFilter = "claude"
-)
-
-func parsePicker(r *http.Request) pickerFilter {
-	switch r.URL.Query().Get("picker") {
-	case "openai":
-		return pickerOpenAI
-	case "claude":
-		return pickerClaude
-	default:
-		return pickerAll
-	}
-}
-
-/*
-applyPickerFilter narrows and re-orders a single day's trades according
-to the selected picker. The all view leaves the order untouched (it's
-already ranked by combined_score from the cron). The openai / claude
-views drop trades the chosen model didn't pick and re-rank by that
-model's individual score, then renumber the rank field 1..N so the
-frontend can render the same way regardless of which view is active.
-*/
-func applyPickerFilter(picker pickerFilter, in []trades.Trade) []trades.Trade {
-	if picker == pickerAll {
-		return in
-	}
-	out := make([]trades.Trade, 0, len(in))
-	for _, t := range in {
-		if picker == pickerOpenAI && t.PickedByOpenAI {
-			out = append(out, t)
-		} else if picker == pickerClaude && t.PickedByClaude {
-			out = append(out, t)
-		}
-	}
-	sort.SliceStable(out, func(i, j int) bool {
-		if picker == pickerOpenAI {
-			return out[i].GPTScore > out[j].GPTScore
-		}
-		return out[i].ClaudeScore > out[j].ClaudeScore
-	})
-	for i := range out {
-		out[i].Rank = i + 1
-	}
-	return out
-}
-
 func (s *Server) handleTradesToday(w http.ResponseWriter, r *http.Request) {
 	// Accept optional ?date= query param for historical browsing
 	requestDate := r.URL.Query().Get("date")
@@ -304,8 +239,6 @@ func (s *Server) handleTradesToday(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, dashboardResponse{Date: date, Trades: []dashboardTrade{}})
 		return
 	}
-
-	morningTrades = applyPickerFilter(parsePicker(r), morningTrades)
 
 	summaries, _ := s.db.GetEODSummaries(date)
 	summaryMap := make(map[string]*trades.TradeSummary)
@@ -351,7 +284,6 @@ func (s *Server) handleTradesWeek(w http.ResponseWriter, r *http.Request) {
 
 	summariesMap, _ := s.db.GetSummariesForDateRange(start, end)
 	executionsMap, _ := s.db.GetExecutionsForDateRange(start, end)
-	picker := parsePicker(r)
 
 	// Collect all dates that have trades
 	dateSet := make(map[string]bool)
@@ -366,7 +298,7 @@ func (s *Server) handleTradesWeek(w http.ResponseWriter, r *http.Request) {
 
 	days := []weekDay{}
 	for _, date := range dates {
-		dayTrades := applyPickerFilter(picker, tradesMap[date])
+		dayTrades := tradesMap[date]
 		daySummaries := summariesMap[date]
 
 		summaryMap := make(map[string]*trades.TradeSummary)
@@ -473,16 +405,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		services["database"] = serviceHealth{Status: "ok", Detail: "PostgreSQL connected", Latency: fmtLatency(time.Since(dbStart))}
 	}
 
-	// OpenAI (GPT analyzer)
-	openaiStart := time.Now()
-	openaiHealth := s.checkOpenAI()
-	openaiHealth.Latency = fmtLatency(time.Since(openaiStart))
-	services["openai"] = openaiHealth
-	if openaiHealth.Status == "fail" {
-		allOK = false
-	}
-
-	// Anthropic (Claude validator)
+	// Anthropic (Claude picker)
 	anthropicStart := time.Now()
 	anthropicHealth := s.checkAnthropic()
 	anthropicHealth.Latency = fmtLatency(time.Since(anthropicStart))
@@ -592,9 +515,8 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 /*
-isStubKey returns true for the placeholder keys used by the local Docker
-stack. The local runtime sets ANTHROPIC_API_KEY / OPENAI_API_KEY to a
-stub value so the server boots without making real API calls.
+isStubKey returns true for the placeholder ANTHROPIC_API_KEY used by the
+local Docker stack so the server boots without making real API calls.
 */
 func isStubKey(k string) bool {
 	if k == "" {
@@ -649,44 +571,7 @@ func (s *Server) checkMorningPicks() serviceHealth {
 		return serviceHealth{Status: "warn", Detail: fmt.Sprintf("No trades saved for %s (cron failure or market holiday)", today)}
 	}
 
-	gptCount, claudeCount := 0, 0
-	for _, t := range tradesToday {
-		if t.PickedByOpenAI {
-			gptCount++
-		}
-		if t.PickedByClaude {
-			claudeCount++
-		}
-	}
-
-	switch {
-	case gptCount > 0 && claudeCount > 0:
-		return serviceHealth{Status: "ok", Detail: fmt.Sprintf("GPT=%d, Claude=%d picks today", gptCount, claudeCount)}
-	case gptCount > 0 && claudeCount == 0:
-		return serviceHealth{Status: "warn", Detail: fmt.Sprintf("Claude produced 0 picks today (single-model run, GPT=%d)", gptCount)}
-	case gptCount == 0 && claudeCount > 0:
-		return serviceHealth{Status: "warn", Detail: fmt.Sprintf("GPT produced 0 picks today (single-model run, Claude=%d)", claudeCount)}
-	default:
-		return serviceHealth{Status: "warn", Detail: fmt.Sprintf("Both pickers produced 0 picks today (%d trades saved with no model attribution)", len(tradesToday))}
-	}
-}
-
-func (s *Server) checkOpenAI() serviceHealth {
-	if s.openaiKey == "" {
-		return serviceHealth{Status: "fail", Detail: "API key not configured"}
-	}
-	if isStubKey(s.openaiKey) {
-		return serviceHealth{Status: "warn", Detail: "Local stub key — skipping live probe"}
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	client := openai.NewClient(openaioption.WithAPIKey(s.openaiKey))
-	if _, err := client.Models.List(ctx); err != nil {
-		return serviceHealth{Status: "fail", Detail: err.Error()}
-	}
-	return serviceHealth{Status: "ok", Detail: "OpenAI API reachable"}
+	return serviceHealth{Status: "ok", Detail: fmt.Sprintf("Claude produced %d picks today", len(tradesToday))}
 }
 
 func (s *Server) checkAnthropic() serviceHealth {

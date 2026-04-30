@@ -56,13 +56,12 @@ ServiceConfig captures everything the executor needs to know about the
 world. Built from cfg in main.go.
 */
 type ServiceConfig struct {
-	Mode              string // "paper" | "live"
+	Mode              string
 	HMACSecret        []byte
-	Recipient         string // bordelonjayce@gmail.com (single-recipient guarantee)
+	Recipient         string
 	EmailFrom         string
-	PublicBaseURL     string // https://vibetradez.com — for building confirmation links
-	GPTModelLabel     string // e.g. "GPT Latest"
-	ClaudeModelLabel  string // e.g. "Claude Latest"
+	PublicBaseURL     string
+	ModelLabel        string
 	SchwabAccountHash func(ctx context.Context) (string, error)
 }
 
@@ -130,8 +129,7 @@ func (s *Service) HandleQualifyingPick(ctx context.Context, t *trades.Trade) err
 		Expiration:    t.Expiration,
 		OCCSymbol:     occ,
 		ContractPrice: t.EstimatedPrice,
-		GPTScore:      t.GPTScore,
-		ClaudeScore:   t.ClaudeScore,
+		Score:         t.Score,
 		ExpiresAt:     expiresAt,
 	}
 	id, err := s.store.InsertDecision(d)
@@ -154,32 +152,27 @@ func (s *Service) HandleQualifyingPick(ctx context.Context, t *trades.Trade) err
 	}
 
 	emailData := templates.ExecuteConfirmData{
-		Subject:         fmt.Sprintf("[%s] Confirm trade: %s %s", strings.ToUpper(s.cfg.Mode), t.Symbol, t.ContractType),
-		Date:            now.In(easternTime()).Format("Monday, Jan 2 · 3:04 PM ET"),
-		Mode:            s.cfg.Mode,
-		Symbol:          t.Symbol,
-		ContractType:    t.ContractType,
-		StrikePrice:     t.StrikePrice,
-		Expiration:      t.Expiration,
-		DTE:             t.DTE,
-		OCCSymbol:       occ,
-		ContractPrice:   t.EstimatedPrice,
-		CapitalAtRisk:   t.EstimatedPrice * 100,
-		CurrentPrice:    t.CurrentPrice,
-		RiskLevel:       t.RiskLevel,
-		Catalyst:        t.Catalyst,
-		Thesis:          t.Thesis,
-		GPTModelName:    s.cfg.GPTModelLabel,
-		GPTScore:        t.GPTScore,
-		GPTRationale:    t.GPTRationale,
-		GPTVerdict:      t.GPTVerdict,
-		ClaudeModelName: s.cfg.ClaudeModelLabel,
-		ClaudeScore:     t.ClaudeScore,
-		ClaudeRationale: t.ClaudeRationale,
-		ClaudeVerdict:   t.ClaudeVerdict,
-		ExpiresAtText:   expiresAt.In(easternTime()).Format("3:04:05 PM ET"),
-		ExecuteURL:      s.confirmURL(executeToken, "execute"),
-		DeclineURL:      s.confirmURL(declineToken, "decline"),
+		Subject:       fmt.Sprintf("[%s] Confirm trade: %s %s", strings.ToUpper(s.cfg.Mode), t.Symbol, t.ContractType),
+		Date:          now.In(easternTime()).Format("Monday, Jan 2 (3:04 PM ET)"),
+		Mode:          s.cfg.Mode,
+		Symbol:        t.Symbol,
+		ContractType:  t.ContractType,
+		StrikePrice:   t.StrikePrice,
+		Expiration:    t.Expiration,
+		DTE:           t.DTE,
+		OCCSymbol:     occ,
+		ContractPrice: t.EstimatedPrice,
+		CapitalAtRisk: t.EstimatedPrice * 100,
+		CurrentPrice:  t.CurrentPrice,
+		RiskLevel:     t.RiskLevel,
+		Catalyst:      t.Catalyst,
+		Thesis:        t.Thesis,
+		ModelName:     s.cfg.ModelLabel,
+		Score:         t.Score,
+		Rationale:     t.Rationale,
+		ExpiresAtText: expiresAt.In(easternTime()).Format("3:04:05 PM ET"),
+		ExecuteURL:    s.confirmURL(executeToken, "execute"),
+		DeclineURL:    s.confirmURL(declineToken, "decline"),
 	}
 	html, err := templates.RenderExecuteConfirm(emailData)
 	if err != nil {
@@ -461,7 +454,7 @@ func (s *Service) recordCloseAndEmail(ctx context.Context, d *Decision, execID i
 
 	data := templates.ExecuteCloseReceiptData{
 		Subject:            fmt.Sprintf("[%s] Position closed: %s %s · P&L $%.2f", strings.ToUpper(s.cfg.Mode), d.Symbol, d.ContractType, realized),
-		Date:               time.Now().In(easternTime()).Format("Monday, Jan 2 · 3:04 PM ET"),
+		Date:               time.Now().In(easternTime()).Format("Monday, Jan 2 (3:04 PM ET)"),
 		Mode:               s.cfg.Mode,
 		Symbol:             d.Symbol,
 		ContractType:       d.ContractType,
@@ -495,18 +488,16 @@ func (s *Service) findOpenExecution(decisionID int) (*Execution, error) {
 
 func (s *Service) sendCanceledEmail(d *Decision) {
 	data := templates.ExecuteCanceledData{
-		Subject:         fmt.Sprintf("[%s] Trade not executed: %s", strings.ToUpper(s.cfg.Mode), d.Symbol),
-		Date:            time.Now().In(easternTime()).Format("Monday, Jan 2 · 3:04 PM ET"),
-		Mode:            s.cfg.Mode,
-		Symbol:          d.Symbol,
-		ContractType:    d.ContractType,
-		StrikePrice:     d.StrikePrice,
-		Expiration:      d.Expiration,
-		ContractPrice:   d.ContractPrice,
-		GPTModelName:    s.cfg.GPTModelLabel,
-		GPTScore:        d.GPTScore,
-		ClaudeModelName: s.cfg.ClaudeModelLabel,
-		ClaudeScore:     d.ClaudeScore,
+		Subject:       fmt.Sprintf("[%s] Trade not executed: %s", strings.ToUpper(s.cfg.Mode), d.Symbol),
+		Date:          time.Now().In(easternTime()).Format("Monday, Jan 2 (3:04 PM ET)"),
+		Mode:          s.cfg.Mode,
+		Symbol:        d.Symbol,
+		ContractType:  d.ContractType,
+		StrikePrice:   d.StrikePrice,
+		Expiration:    d.Expiration,
+		ContractPrice: d.ContractPrice,
+		ModelName:     s.cfg.ModelLabel,
+		Score:         d.Score,
 	}
 	html, err := templates.RenderExecuteCanceled(data)
 	if err != nil {
@@ -521,7 +512,7 @@ func (s *Service) sendCanceledEmail(d *Decision) {
 func (s *Service) sendReceiptEmail(d *Decision, orderID string, fillPrice float64) {
 	data := templates.ExecuteReceiptData{
 		Subject:            fmt.Sprintf("[%s] Order filled: %s %s @ $%.2f", strings.ToUpper(s.cfg.Mode), d.Symbol, d.ContractType, fillPrice),
-		Date:               time.Now().In(easternTime()).Format("Monday, Jan 2 · 3:04 PM ET"),
+		Date:               time.Now().In(easternTime()).Format("Monday, Jan 2 (3:04 PM ET)"),
 		Mode:               s.cfg.Mode,
 		Symbol:             d.Symbol,
 		ContractType:       d.ContractType,
@@ -546,7 +537,7 @@ func (s *Service) sendReceiptEmail(d *Decision, orderID string, fillPrice float6
 func (s *Service) sendCloseFailedEmail(d *Decision, errMsg string) {
 	data := templates.ExecuteCloseFailedData{
 		Subject:            fmt.Sprintf("[ACTION REQUIRED] vibetradez close failed: %s", d.Symbol),
-		Date:               time.Now().In(easternTime()).Format("Monday, Jan 2 · 3:04 PM ET"),
+		Date:               time.Now().In(easternTime()).Format("Monday, Jan 2 (3:04 PM ET)"),
 		Symbol:             d.Symbol,
 		ContractType:       d.ContractType,
 		StrikePrice:        d.StrikePrice,

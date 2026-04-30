@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 const tabs = [
   { href: "/dashboard", label: "Live Dashboard", short: "Live" },
   { href: "/history", label: "Historical Analytics", short: "History" },
-  { href: "/models", label: "Models", short: "Models" },
 ] as const;
 
 interface NavBarProps {

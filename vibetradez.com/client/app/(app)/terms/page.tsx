@@ -68,9 +68,9 @@ export default function TermsPage() {
               informational and entertainment purposes only. It is not a registered investment advisory service, broker-dealer, or financial institution.
             </p>
             <p>
-              All trade ideas presented on this platform are machine-generated suggestions, not recommendations. They are produced by two large language models, ChatGPT and Claude, running
-              independently with the same prompt and the same toolset over publicly available sentiment data and live market information. After both models produce their picks, each also writes a
-              one-sentence verdict on the other's trades. None of these outputs (picks or verdicts) have been reviewed, verified, or endorsed by any licensed financial professional.
+              All trade ideas presented on this platform are machine-generated suggestions, not recommendations. They are produced by a single large language model (Claude) running with a fixed prompt
+              and a fixed toolset (Schwab market data plus web search) over publicly available sentiment data and live market information. None of these outputs have been reviewed, verified, or endorsed
+              by any licensed financial professional.
             </p>
           </Section>
 
@@ -110,8 +110,8 @@ export default function TermsPage() {
 
           <Section id="data" num={5} title="Data Sources & Accuracy">
             <p>
-              Trade suggestions are generated using data from third-party sources including StockTwits, Yahoo Finance, Finviz, SEC EDGAR, the ChatGPT and Claude language model APIs, and the Schwab
-              Market Data API. While we strive for accuracy, we make no guarantees regarding the completeness, reliability, or timeliness of any data presented.
+              Trade suggestions are generated using data from third-party sources including StockTwits, Yahoo Finance, Finviz, SEC EDGAR, the Anthropic Claude API, and the Schwab Market Data API.
+              While we strive for accuracy, we make no guarantees regarding the completeness, reliability, or timeliness of any data presented.
             </p>
             <p>Market data, option prices, and stock quotes may be delayed or inaccurate. Always verify prices with your broker before placing any trades.</p>
           </Section>
