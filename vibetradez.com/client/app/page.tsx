@@ -9,8 +9,7 @@ import { ClaudeLogo } from "@/components/ui/brand-icons";
 
 export const metadata: Metadata = {
   title: "VibeTradez | AI-Powered Options Picks",
-  description:
-    "Claude ranks 10 options contracts every weekday with live Schwab market data and full conviction rationales. The rank-1 pick auto-fires as a paper trade. Free, before market open.",
+  description: "Claude ranks 10 options contracts every weekday with live Schwab market data and full conviction rationales. The rank-1 pick auto-fires as a paper trade. Free, before market open.",
 };
 
 export default function LandingPage() {
@@ -115,9 +114,7 @@ export default function LandingPage() {
                     <div className="lg-panel-strong relative h-full rounded-2xl border border-foreground/5 p-4 dark:border-white/5">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{p.time}</span>
-                        <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground dark:bg-white/5">
-                          {String(i + 1).padStart(2, "0")}
-                        </span>
+                        <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground dark:bg-white/5">{String(i + 1).padStart(2, "0")}</span>
                       </div>
                       <div className="mt-3 flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-brand text-background">
                         <p.Icon className="h-4 w-4" />
@@ -208,8 +205,8 @@ export default function LandingPage() {
             <span>&copy; {new Date().getFullYear()}</span>
           </div>
           <p className="max-w-lg leading-relaxed">
-            Not financial advice. Options trading involves substantial risk. All P&amp;L figures are hypothetical except for auto-fired paper or live trades. Past performance does not guarantee
-            future results.
+            Not financial advice. Options trading involves substantial risk. All P&amp;L figures are hypothetical except for auto-fired paper or live trades. Past performance does not guarantee future
+            results.
           </p>
           <div className="flex flex-wrap gap-4">
             <Link href="/terms" className="inline-flex min-h-11 min-w-11 items-center justify-center underline underline-offset-2 hover:text-foreground sm:min-h-0 sm:min-w-0 sm:justify-start">

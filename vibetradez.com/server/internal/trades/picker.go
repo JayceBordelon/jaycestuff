@@ -19,6 +19,23 @@ import (
 const (
 	maxOutputTokensPicks = 16384
 	maxOutputTokensEOD   = 16384
+
+	/*
+	maxToolRounds is generous on purpose. The picker walks Schwab quotes,
+	option chains, and web search across many tickers; complex mornings
+	(earnings clusters, macro events) can chain dozens of tool calls
+	before Claude's ready to commit. We'd rather burn API spend than
+	short-circuit the analysis with a "too many rounds" abort.
+	*/
+	maxToolRounds = 30
+
+	/*
+	httpRequestTimeout caps a single Anthropic API call (one round of the
+	conversation, not the whole conversation). Set high so streaming
+	responses with long tool plans don't get cut off mid-flight. The
+	conversation-level deadline lives on ctx in the caller.
+	*/
+	httpRequestTimeout = 30 * time.Minute
 )
 
 type Trade struct {
@@ -70,7 +87,7 @@ func NewClaudePicker(apiKey, model string, schwabClient *schwab.Client) *ClaudeP
 	return &ClaudePicker{
 		client: anthropic.NewClient(
 			option.WithAPIKey(apiKey),
-			option.WithRequestTimeout(15*time.Minute),
+			option.WithRequestTimeout(httpRequestTimeout),
 		),
 		model:  model,
 		schwab: schwabClient,
@@ -232,8 +249,7 @@ func (p *ClaudePicker) runConversation(ctx context.Context, prompt string, maxTo
 
 	var containerID string
 
-	const maxRounds = 10
-	for round := 0; round < maxRounds; round++ {
+	for round := 0; round < maxToolRounds; round++ {
 		_ = round
 		params := anthropic.MessageNewParams{
 			Model:     anthropic.Model(p.model),
@@ -284,7 +300,7 @@ func (p *ClaudePicker) runConversation(ctx context.Context, prompt string, maxTo
 		return text, nil
 	}
 
-	return "", fmt.Errorf("exceeded max claude tool rounds (%d)", maxRounds)
+	return "", fmt.Errorf("exceeded max claude tool rounds (%d)", maxToolRounds)
 }
 
 /*

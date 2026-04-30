@@ -209,4 +209,3 @@ function TradeDetailBody({ dt, resolvedDate, execution }: { dt: DashboardTrade; 
     </div>
   );
 }
-

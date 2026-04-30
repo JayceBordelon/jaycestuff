@@ -70,8 +70,8 @@ export default function TermsPage() {
             </p>
             <p>
               All trade ideas presented on this platform are machine-generated suggestions, not recommendations. They are produced by a single large language model (Claude) running with a fixed prompt
-              and a fixed toolset (Schwab market data plus web search) over publicly available sentiment data and live market information. None of these outputs have been reviewed, verified, or endorsed
-              by any licensed financial professional.
+              and a fixed toolset (Schwab market data plus web search) over publicly available sentiment data and live market information. None of these outputs have been reviewed, verified, or
+              endorsed by any licensed financial professional.
             </p>
           </Section>
 

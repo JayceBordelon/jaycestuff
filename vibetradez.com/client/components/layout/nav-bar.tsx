@@ -48,9 +48,7 @@ export function NavBar({ onSubscribe }: NavBarProps) {
               >
                 <span className="sm:hidden">{tab.short}</span>
                 <span className="hidden sm:inline">{tab.label}</span>
-                {isActive && (
-                  <span aria-hidden className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-gradient-brand sm:inset-x-3" />
-                )}
+                {isActive && <span aria-hidden className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-gradient-brand sm:inset-x-3" />}
               </Link>
             );
           })}

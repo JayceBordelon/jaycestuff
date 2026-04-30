@@ -89,7 +89,9 @@ export default function PrivacyPage() {
                 <strong>Email-delivery state</strong>: timestamps of when each daily picks email was sent to you, plus your active/unsubscribed status. No open or click tracking pixels.
               </li>
             </ul>
-            <p>If you do not sign in, the only data we collect is what your browser sends automatically (IP address, user agent, referrer) for the duration of each request, in standard server logs.</p>
+            <p>
+              If you do not sign in, the only data we collect is what your browser sends automatically (IP address, user agent, referrer) for the duration of each request, in standard server logs.
+            </p>
           </Section>
 
           <Section id="how-we-use-it" num={3} title="How We Use It">
@@ -141,16 +143,14 @@ export default function PrivacyPage() {
               Subscriber records (email + name + active status) are retained for the lifetime of the project. If you unsubscribe, your row remains in the database with <code>active = false</code> so
               we can honor the unsubscribe across re-signups; we do not re-add you automatically.
             </p>
-            <p>
-              Server logs (request metadata) are retained for approximately 30 days for operational debugging, then rotated out.
-            </p>
+            <p>Server logs (request metadata) are retained for approximately 30 days for operational debugging, then rotated out.</p>
             <p>If you want your data fully deleted (not just deactivated), email the maintainer using the contact info below and the row will be hard-deleted from the subscribers table.</p>
           </Section>
 
           <Section id="your-rights" num={7} title="Your Rights">
             <p>
-              Depending on where you live, you may have legal rights to access, correct, port, or delete the data we hold about you. We honor reasonable requests regardless of jurisdiction; just
-              email the maintainer.
+              Depending on where you live, you may have legal rights to access, correct, port, or delete the data we hold about you. We honor reasonable requests regardless of jurisdiction; just email
+              the maintainer.
             </p>
             <p>You can also unsubscribe from all email at any time by clicking the unsubscribe link at the bottom of any email, or via the dashboard account menu.</p>
           </Section>
