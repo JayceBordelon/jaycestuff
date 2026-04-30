@@ -62,8 +62,8 @@ jaycestuff/
 │   ├── sync.yml                # Git pull on production server
 │   ├── lint-portfolio.yml      # Biome lint for jaycebordelon.com
 │   ├── lint-trading-frontend.yml # Biome lint for vibetradez.com/client
-│   ├── lint-trading-server.yml # golangci-lint for vibetradez.com/server (per-job GOLANGCI_LINT_CACHE)
-│   ├── lint-auth-service.yml   # golangci-lint for auth.jaycebordelon.com (per-job GOLANGCI_LINT_CACHE)
+│   ├── lint-trading-server.yml # golangci-lint for vibetradez.com/server (per-job TMPDIR + GOLANGCI_LINT_CACHE)
+│   ├── lint-auth-service.yml   # golangci-lint for auth.jaycebordelon.com (per-job TMPDIR + GOLANGCI_LINT_CACHE)
 │   ├── build.yml               # Docker compose build (all three images in one shot)
 │   ├── deploy.yml              # Unified rolling deployment: portfolio + trading in one job with continue-on-error per side
 │   ├── cleanup.yml             # Post-deploy docker system prune
@@ -273,13 +273,13 @@ Triggered manually via GitHub Actions (`workflow_dispatch`). Runs on the product
                                       └──────────────────┘   └───────────────────┘
 ```
 
-Both Go lint jobs SSH into the same droplet, so each one points `GOLANGCI_LINT_CACHE` at a per-job directory (`golangci-lint-trading-server` / `golangci-lint-auth-service`). The `.cache.lock` file lives inside `$GOLANGCI_LINT_CACHE`, so disjoint cache dirs = no global lock contention = both Go lints run truly concurrently with the two Biome lints.
+Both Go lint jobs SSH into the same droplet. golangci-lint takes a process-wide flock at `$TMPDIR/golangci-lint.lock` (see [`pkg/commands/run.go`](https://github.com/golangci/golangci-lint/blob/master/pkg/commands/run.go) — `filepath.Join(os.TempDir(), "golangci-lint.lock")`); the lock is **not** inside `GOLANGCI_LINT_CACHE`, so disjoint cache dirs alone are not enough. Each job therefore exports its own `TMPDIR` (`$HOME/.tmp/golangci-lint-{trading,auth}-service`) and its own `GOLANGCI_LINT_CACHE` (`$HOME/.cache/golangci-lint-{trading,auth}-service`). With per-job lock files and per-job caches, the two Go lints run truly concurrently with each other and with the two Biome lints.
 
 1. **Sync** — `git reset --hard origin/main`
 2. **Lint / Portfolio** — Biome check on `jaycebordelon.com/` (runs in parallel with the other three lints)
 3. **Lint / Trading Frontend** — Biome check on `vibetradez.com/client/` (runs in parallel with the other three lints)
-4. **Lint / Trading Server** — `golangci-lint run ./...` on `vibetradez.com/server/`, with `GOLANGCI_LINT_CACHE=$HOME/.cache/golangci-lint-trading-server` (runs in parallel with the other three lints)
-5. **Lint / Auth Service** — `golangci-lint run ./...` on `auth.jaycebordelon.com/`, with `GOLANGCI_LINT_CACHE=$HOME/.cache/golangci-lint-auth-service` (runs in parallel with the other three lints)
+4. **Lint / Trading Server** — `golangci-lint run ./...` on `vibetradez.com/server/`, with `TMPDIR=$HOME/.tmp/golangci-lint-trading-server` + `GOLANGCI_LINT_CACHE=$HOME/.cache/golangci-lint-trading-server` (runs in parallel with the other three lints)
+5. **Lint / Auth Service** — `golangci-lint run ./...` on `auth.jaycebordelon.com/`, with `TMPDIR=$HOME/.tmp/golangci-lint-auth-service` + `GOLANGCI_LINT_CACHE=$HOME/.cache/golangci-lint-auth-service` (runs in parallel with the other three lints)
 6. **Build** — Single `docker compose build --no-cache jaycebordelon-com trading-server trading-frontend` invocation, gated on all four lints passing. (`auth-service` is linted but not built/deployed by this pipeline — it ships via manual deploys.)
 7. **Deploy** — One job with two sequential SSH steps (`continue-on-error: true` on each): (a) `docker rollout jaycebordelon-com`, (b) `docker rollout trading-frontend` + `docker compose up -d --force-recreate trading-server`. A final status step fails the job if either side failed, but both are always attempted. Per-site and overall statuses are exported as job outputs for the notify step.
 8. **Notify** — One consolidated email with the slate/portfolio theme. Subject is `[PASSED|FAILED] jaycestuff - <short_sha>`. Body shows overall badge, per-site rows (jaycebordelon.com + vibetradez.com with individual PASSED/FAILED), commit metadata, and the trading-server `/health` table. Always fires unless the workflow is cancelled, so partial failures still produce an email.

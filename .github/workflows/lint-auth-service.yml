@@ -42,11 +42,16 @@ jobs:
               curl -sL https://go.dev/dl/go1.23.6.linux-amd64.tar.gz | tar -C $HOME/go1.23 --strip-components=1 -xzf -
             fi
 
-            # Per-job cache dir so this run doesn't share the
-            # $GOLANGCI_LINT_CACHE/.cache.lock with the trading-server lint
-            # job — lets both Go lints run concurrently on the droplet.
+            # golangci-lint takes a process-wide flock at
+            # $TMPDIR/golangci-lint.lock (NOT in the cache dir — see
+            # pkg/commands/run.go: filepath.Join(os.TempDir(),
+            # "golangci-lint.lock")). Per-job TMPDIR + cache dir means
+            # this run gets its own lock file and its own cache, so it
+            # can run concurrently with the trading-server Go lint on the
+            # same droplet.
+            export TMPDIR=$HOME/.tmp/golangci-lint-auth-service
             export GOLANGCI_LINT_CACHE=$HOME/.cache/golangci-lint-auth-service
-            mkdir -p "$GOLANGCI_LINT_CACHE"
+            mkdir -p "$TMPDIR" "$GOLANGCI_LINT_CACHE"
 
             cd auth.jaycebordelon.com && golangci-lint run ./...
 

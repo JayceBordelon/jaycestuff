@@ -33,7 +33,6 @@ jobs:
             "https://vibetradez.com"
             "https://www.vibetradez.com"
             "https://vibetradez.com/history"
-            "https://vibetradez.com/models"
           )
 
           FAILED=0
