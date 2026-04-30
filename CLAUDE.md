@@ -80,7 +80,7 @@ jaycestuff/
 |---------|-------|
 | jaycebordelon.com | Next.js 16, React 19, Tailwind CSS v4, shadcn/ui (new-york), MDX, Framer Motion |
 | vibetradez.com/client | Next.js 16, React 19, Tailwind CSS v4, shadcn/ui (new-york), Recharts v3, TradingView Lightweight Charts |
-| vibetradez.com/server | Go 1.23, PostgreSQL (Digital Ocean managed), OpenAI GPT-5.5, Schwab Market Data API, Resend email |
+| vibetradez.com/server | Go 1.25, PostgreSQL (Digital Ocean managed), Anthropic Claude Opus 4.7, Schwab Market Data API, Resend email |
 | auth.jaycebordelon.com | Go 1.25, PostgreSQL (Digital Ocean managed), golang.org/x/oauth2, bcrypt |
 | Infrastructure | Docker Compose, Traefik v2.10, Let's Encrypt, Digital Ocean Droplet |
 
@@ -150,7 +150,7 @@ When working with Next.js, shadcn/ui, Tailwind CSS, Recharts, or any external li
 **Project-specific rules for chart components:**
 
 - Always render charts through `ChartContainer` from `@/components/ui/chart` — it owns the `ResponsiveContainer`, the `--color-*` CSS variable injection, and the tooltip context.
-- Never call `.map()` directly on a `data` prop you receive from a parent without a fallback. The `Cannot read properties of null (reading 'map')` runtime crash on `/history` was caused by the server returning `{"days": null}` for an empty range and `filterByRank` calling `data.days.map(...)` unguarded. The lesson: any boundary that produces JSON arrays must initialize them as empty slices server-side (Go nil slice → JSON `null`), and any client function that consumes them must `?? []` them defensively. Same pattern applies to `comparison.go`, `cmd/scanner/main.go`, and any future endpoint that returns lists.
+- Never call `.map()` directly on a `data` prop you receive from a parent without a fallback. The `Cannot read properties of null (reading 'map')` runtime crash on `/history` was caused by the server returning `{"days": null}` for an empty range and `filterByRank` calling `data.days.map(...)` unguarded. The lesson: any boundary that produces JSON arrays must initialize them as empty slices server-side (Go nil slice → JSON `null`), and any client function that consumes them must `?? []` them defensively. Same pattern applies to `cmd/scanner/main.go` and any future endpoint that returns lists.
 - When passing data into Recharts components, the data prop must be an array, not null/undefined. A guard like `data && data.length > 0 && <BarChart data={data} ...>` is the safest pattern.
 
 ### Always use feature branches
@@ -179,7 +179,7 @@ Cross-apex cookie sharing (vibetradez.com ↔ jaycebordelon.com) is intentionall
 ## Trading Server Workflows
 
 The Go server runs three cron jobs in Eastern Time:
-- **9:25 AM Mon-Fri** — Aggregate market signals (StockTwits, Yahoo Finance, Finviz, SEC EDGAR), call OpenAI + Claude for independent trade picks, save to DB, email subscribers
+- **9:25 AM Mon-Fri** — Aggregate market signals (StockTwits, Yahoo Finance, Finviz, SEC EDGAR), call Claude for ranked trade picks, save to DB, email subscribers
 - **4:05 PM Mon-Fri** — Fetch closing prices from Schwab, compute EOD P&L, save summaries, email subscribers
 - **4:30 PM Fridays** — Aggregate weekly performance, compute stats (win rate, Sharpe, drawdown), email weekly report
 
@@ -194,7 +194,7 @@ Visit `https://vibetradez.com/auth/schwab` in a browser. Tokens are stored in th
 ```bash
 curl https://vibetradez.com/health | jq
 ```
-Returns per-service status for database, OpenAI, Anthropic, Schwab, and API with latencies. Both LLM checks go through the official SDKs and warn (instead of fail) when a stub local key is detected.
+Returns per-service status for database, Anthropic, Schwab, and API with latencies. The Anthropic check goes through the official SDK and warns (instead of fails) when a stub local key is detected.
 
 ### Docker commands on production
 ```bash
@@ -206,26 +206,25 @@ docker compose restart trading-server           # Restart Go server
 docker compose up -d --force-recreate trading-server  # Full recreate
 ```
 
-## Dual-Model Trade Analysis
+## Trade Analysis
 
-The morning trade pipeline uses **two language models in sequence**:
+The morning trade pipeline uses **a single language model**: Anthropic Claude.
 
-1. **OpenAI (GPT-5.5 by default)** generates 10 ranked trade ideas via `vibetradez.com/server/internal/trades/analyzer.go`. The analyzer uses the official `github.com/openai/openai-go/v3` SDK against the Responses API with multi-round Schwab `get_stock_quotes` / `get_option_chain` function tools and built-in `web_search`. Each trade comes back with a 1-10 conviction `score` and a free-form `rationale` defending the score.
-2. **Anthropic (Claude Opus 4.7 by default)** then validates GPT's picks via `vibetradez.com/server/internal/trades/validator.go`. Claude is fed GPT's full output and the same Schwab + `web_search` tool surface (using `github.com/anthropics/anthropic-sdk-go`). It returns its own independent 1-10 `score`, a substantive `rationale`, and an optional `concerns` array of red flags.
-3. `cmd/scanner/main.go` merges Claude's scores into the trades, computes `combined_score = (gpt + claude) / 2`, and re-ranks the picks by combined score with Claude as the tiebreaker. Both per-model scores and rationales persist to the `trades` table and surface on the dashboard.
+1. **Claude (Opus 4.7 by default)** generates 10 ranked trade ideas via `vibetradez.com/server/internal/trades/picker.go`. The picker uses the official `github.com/anthropics/anthropic-sdk-go` SDK with multi-round Schwab `get_stock_quotes` / `get_option_chain` tools and built-in `web_search`. Each trade comes back with a 1-10 conviction `score` and a free-form `rationale` defending the score.
+2. The same picker handles end-of-day analysis via `GetEndOfDayAnalysis`: morning trades are passed back in, Claude fetches closing Schwab marks via the same toolset, and returns realised entry/closing prices plus a brief notes string per pick.
+3. `cmd/scanner/main.go` saves the picks to the `trades` table, fires the morning email, then runs the auto-execution selector against the rank-1 trade if `TRADING_ENABLED=true`.
 
-If `ANTHROPIC_API_KEY` is missing or matches a local stub, validation is skipped silently and trades persist with `claude_score = 0`. The `/api/model-comparison` endpoint backtests "if you had only followed each model's ranking" and powers the `/models` page.
+`ANTHROPIC_API_KEY` is required at boot (`mustEnv` in `internal/config/config.go`). When it's a local stub the picker is left nil and cron jobs short-circuit so the local Docker stack boots without making real API calls.
 
 ### Model version refresh policy
 
-Both models are configured via env vars (`OPENAI_MODEL`, `ANTHROPIC_MODEL`) with defaults defined as constants in `vibetradez.com/server/internal/config/config.go` (`DefaultOpenAIModel`, `DefaultAnthropicModel`).
+The picker model is configured via the `ANTHROPIC_MODEL` env var with the default defined as the `DefaultAnthropicModel` constant in `vibetradez.com/server/internal/config/config.go`.
 
-**Any time work touches the trade analyzer, validator, or these defaults, fetch the official Go SDK documentation and refresh the defaults to the current latest production model.** OpenAI and Anthropic publish new model versions regularly; if a default sits stale, trade quality degrades silently. The two pages to read are:
+**Any time work touches the trade picker or this default, fetch the official Anthropic Go SDK documentation and refresh the default to the current latest production model.** Anthropic publishes new model versions regularly; if the default sits stale, trade quality degrades silently. The page to read is:
 
 - Anthropic Go SDK: <https://platform.claude.com/docs/en/api/sdks/go>
-- OpenAI Go SDK: <https://developers.openai.com/api/docs/libraries?language=golang>
 
-When updating, also bump the `OPENAI_MODEL` / `ANTHROPIC_MODEL` defaults baked into `vibetradez.com/local/docker-compose.local.yml` so the local dev stack matches.
+When updating, also bump the `ANTHROPIC_MODEL` default baked into `vibetradez.com/local/docker-compose.local.yml` so the local dev stack matches.
 
 ## CI/CD Pipeline
 
@@ -276,4 +275,4 @@ Triggered manually via GitHub Actions (`workflow_dispatch`). Runs on the product
 6. **Deploy** — One job with two sequential SSH steps (`continue-on-error: true` on each): (a) `docker rollout jaycebordelon-com`, (b) `docker rollout trading-frontend` + `docker compose up -d --force-recreate trading-server`. A final status step fails the job if either side failed, but both are always attempted. Per-site and overall statuses are exported as job outputs for the notify step.
 7. **Notify** — One consolidated email with the slate/portfolio theme. Subject is `[PASSED|FAILED] jaycestuff - <short_sha>`. Body shows overall badge, per-site rows (jaycebordelon.com + vibetradez.com with individual PASSED/FAILED), commit metadata, and the trading-server `/health` table. Always fires unless the workflow is cancelled, so partial failures still produce an email.
 8. **Cleanup** — `docker system prune -af` (volumes preserved so Traefik's cert storage survives). Runs only when deploy succeeded on both sides.
-9. **Health Check** — Verify all endpoints + granular `/health` for trading server services (database, openai, anthropic, schwab, api). The healthcheck step iterates `services | keys[]` so any new service added to the granular `/health` response is automatically gated without YAML changes. Runs only when deploy succeeded on both sides.
+9. **Health Check** — Verify all endpoints + granular `/health` for trading server services (database, anthropic, schwab, api). The healthcheck step iterates `services | keys[]` so any new service added to the granular `/health` response is automatically gated without YAML changes. Runs only when deploy succeeded on both sides.

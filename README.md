@@ -28,7 +28,7 @@ flowchart TB
         direction LR
         JBC["jaycebordelon-com<br/>Next.js 16 portfolio + MDX blog<br/>:3000"]:::droplet
         AUTH["auth-service<br/>Go OAuth identity provider<br/>:8081"]:::droplet
-        TF["trading-frontend<br/>Next.js 16 dashboard /<br/>history / models / trade<br/>:3001"]:::droplet
+        TF["trading-frontend<br/>Next.js 16 dashboard /<br/>history / trade<br/>:3001"]:::droplet
         TS["trading-server<br/>Go API + cron + email<br/>:8080"]:::droplet
       end
 
@@ -42,11 +42,7 @@ flowchart TB
 
     DB[("Digital Ocean<br/>Managed Postgres<br/>vibetradez · auth")]:::data
 
-    subgraph Pickers["LLM trade pickers (run in parallel)"]
-      direction LR
-      OAI["ChatGPT<br/>via openai-go/v3"]:::external
-      ANT["Claude<br/>via anthropic-sdk-go"]:::external
-    end
+    Picker["Anthropic Claude<br/>via anthropic-sdk-go"]:::external
 
     Schwab["Schwab Market Data API<br/>quotes + option chain + greeks"]:::external
     Signals["Market Signals<br/>StockTwits · Yahoo · Finviz · EDGAR"]:::external
@@ -65,19 +61,17 @@ flowchart TB
     TS --> DB
     AUTH --> DB
     AUTH -- "upstream identity" --> Google
-    TS -- "morning cron 9:25 ET" --> OAI
-    TS -- "morning cron 9:25 ET" --> ANT
-    TS -- "EOD cron 4:05 ET<br/>live dashboard quotes" --> Schwab
+    TS -- "morning cron 9:25 ET<br/>EOD cron 4:05 ET" --> Picker
+    TS -- "live dashboard quotes" --> Schwab
     TS -- "morning cron market signals" --> Signals
     TS -- "subscriber email" --> Resend
 
-    OAI -. "function tools<br/>+ web search" .-> Schwab
-    ANT -. "function tools<br/>+ web search" .-> Schwab
+    Picker -. "function tools<br/>+ web search" .-> Schwab
 
     GH -- "SSH on manual dispatch" --> Droplet
 ```
 
-**Reading the diagram:** users hit GoDaddy DNS, which points at the droplet. Traefik terminates TLS (Let's Encrypt) and routes by hostname + path priority to one of four containers. The trading server talks to Postgres for persistence, Schwab for market data, ChatGPT **and** Claude in parallel for the dual-model picker, four sentiment sources, and Resend for email. The auth service brokers Google OAuth and verifies tokens for the trading server on every request. GitHub Actions deploys via SSH against the same `docker-compose.yml` that defines the stack.
+**Reading the diagram:** users hit GoDaddy DNS, which points at the droplet. Traefik terminates TLS (Let's Encrypt) and routes by hostname + path priority to one of four containers. The trading server talks to Postgres for persistence, Schwab for market data, Claude for the daily picker and EOD analysis, four sentiment sources, and Resend for email. The auth service brokers Google OAuth and verifies tokens for the trading server on every request. GitHub Actions deploys via SSH against the same `docker-compose.yml` that defines the stack.
 
 ## What's in here
 
@@ -86,14 +80,14 @@ jaycestuff/
 ├── jaycebordelon.com/      Personal portfolio + blog (Next.js 16, MDX, Framer Motion)
 ├── auth.jaycebordelon.com/ Centralized OAuth identity provider (Go 1.25, Postgres)
 ├── vibetradez.com/         Options trading service
-│   ├── server/             Go API (cron jobs, dual-model LLM picking, Schwab market data, Resend email)
-│   ├── client/             Next.js 16 dashboard (live picks, history, model comparison, /trade/[symbol])
+│   ├── server/             Go API (cron jobs, Claude trade picker, Schwab market data, Resend email)
+│   ├── client/             Next.js 16 dashboard (live picks, history, /trade/[symbol])
 │   └── local/              Self-contained Docker stack with seeded Postgres for offline dev
 ├── scripts/
 │   └── ux-audit/           Puppeteer UX audit harness (light + dark, desktop + mobile)
 ├── .github/workflows/      CI/CD pipelines (pr-checks for PRs, main-pipeline for deploy)
 ├── docker-compose.yml      Production stack: Traefik + portfolio + auth + trading server + trading frontend
-└── CLAUDE.md               Project conventions, dev rules, dual-model architecture
+└── CLAUDE.md               Project conventions, dev rules, trade pipeline architecture
 ```
 
 ## Hostnames, containers, routes
@@ -110,14 +104,14 @@ Traefik routes by hostname + path priority. The legacy `jayceb.com` portfolio do
 
 ## Trading service highlights
 
-- **Dual-model independent picking.** Every weekday morning the Go cron sends the same `AnalysisPrompt` to both ChatGPT (via `openai-go/v3`) **and** Claude (via `anthropic-sdk-go`) in parallel. Each model independently runs the workflow with the same Schwab market data toolset and built-in web search, and each produces its own ranked top 10 picks. Neither model sees the other's output. The cron then unions both pick sets — consensus picks (where both models picked the same ticker) carry both scores and tie-break ahead of single-model picks.
-- **`/models` head-to-head page.** Side-by-side ChatGPT vs Claude backtest with cumulative P&L curve, agreement rate, best/worst pick per model, and a configurable date range. Backed by `GET /api/model-comparison?range=...`.
-- **`/trade/[symbol]?date=...` single-contract page.** Deep-link surface for any individual pick. Reached by clicking any trade card on `/dashboard`, any row in the EOD trade table, or any contract row in the historical Daily Breakdown. Renders the full metric grid, dual-model rationales with cross verdicts, and the EOD result block.
+- **Single-model picker (Claude).** Every weekday morning the Go cron sends the `AnalysisPrompt` to Claude (via `anthropic-sdk-go`) with live Schwab quotes, full option chains, and built-in web search as tools. Claude returns 10 ranked contracts, each with a 1-10 conviction score and a written rationale defending the score.
+- **`/trade/[symbol]?date=...` single-contract page.** Deep-link surface for any individual pick. Reached by clicking any trade card on `/dashboard`, any row in the EOD trade table, or any contract row in the historical Daily Breakdown. Renders the full metric grid, Claude's rationale, and the EOD result block.
 - **Live data.** `/api/quotes/live` polls Schwab every few seconds for stock quotes + the exact option contracts on today's picks. The dashboard's live cards surface **Buy** (entry premium) and **Current** (live option mark) per pick.
 - **Stock chart.** Underlying price candles from Schwab `GetPriceHistory` plus a modeled contract-premium overlay (sticky moneyness-based delta, anchored to the real entry/exit marks the cron persists). BUY/SELL render as full-height vertical lines + price-labeled dots at the candle level.
-- **Configurable models.** `OPENAI_MODEL` and `ANTHROPIC_MODEL` env vars override defaults baked into `vibetradez.com/server/internal/config/config.go`. The defaults must be refreshed from the official SDK docs whenever this code is touched — see CLAUDE.md "Model version refresh policy".
-- **Email delivery.** Resend handles morning picks (yesterday recap + each model's top pick + cross-scrutiny + Open Dashboard CTA), EOD summaries, weekly reports, and admin announcements. Subscribers stored in Postgres; HTML templates in `vibetradez.com/server/internal/templates/`. Render the morning email locally via `go run ./cmd/preview-email`.
-- **Granular `/health`.** One endpoint reports per-service status (database, openai, anthropic, schwab, market_signals, api) using actual SDK clients with latencies. The deployment healthcheck job auto-gates on every service in the response without YAML changes per addition.
+- **Configurable model.** `ANTHROPIC_MODEL` env var overrides the default baked into `vibetradez.com/server/internal/config/config.go`. The default must be refreshed from the official Anthropic Go SDK docs whenever picker code is touched (see CLAUDE.md "Model version refresh policy").
+- **Auto-execution gate.** When Claude ranks a contract #1 with a 9 or 10 conviction score and the premium is at or below `MaxContractPremium` ($5/share), the executor mints a 5-minute confirmation email. One click and the order goes through Schwab (paper or live, depending on `TRADING_MODE`).
+- **Email delivery.** Resend handles morning picks (yesterday recap + headline pick + Open Dashboard CTA), EOD summaries, weekly reports, and admin announcements. Subscribers stored in Postgres; HTML templates in `vibetradez.com/server/internal/templates/`. Render the morning email locally via `go run ./cmd/preview-email`.
+- **Granular `/health`.** One endpoint reports per-service status (database, anthropic, schwab, market_signals, api) using actual SDK clients with latencies. The deployment healthcheck job auto-gates on every service in the response without YAML changes per addition.
 
 ## Auth service
 
@@ -136,7 +130,7 @@ cd vibetradez.com/local
 docker compose -f docker-compose.local.yml up --build
 ```
 
-Then open <http://localhost:3001>. Stub keys are baked into the compose file so the server starts without making real ChatGPT / Claude / Schwab / Resend calls; the cron jobs are pushed to Sunday so they never fire. The seed includes ~10 trading days of dual-scored union picks (ChatGPT-only, Claude-only, and consensus) with EOD summaries.
+Then open <http://localhost:3001>. Stub keys are baked into the compose file so the server starts without making real Claude / Schwab / Resend calls; the cron jobs are pushed to Sunday so they never fire. The seed includes ~1 year of Claude-picked trades (rank-1 through rank-10 per day) with EOD summaries.
 
 `LOCAL_MOCK_QUOTES=1` is set on the local trading-server so `/api/quotes/live` synthesizes plausible option marks for today's picks (otherwise the live cards stay at em-dashes locally — Schwab OAuth isn't set up). Production never sets this var.
 
@@ -253,7 +247,7 @@ node audit.mjs
 
 ## Where to look next
 
-- `CLAUDE.md` — full project conventions, env var reference, dual-model details, common operations, model version refresh policy
+- `CLAUDE.md` — full project conventions, env var reference, trade pipeline details, common operations, model version refresh policy
 - `vibetradez.com/local/README.md` — running the local Docker stack and inspecting the seeded data
 - `docker-compose.yml` — production Traefik routing and TLS configuration
 - `.github/workflows/` — CI/CD pipeline definitions (`pr-checks.yml` for PRs, `main-pipeline.yml` for deploys)
