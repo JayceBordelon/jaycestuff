@@ -42,11 +42,10 @@ type Config struct {
 		not literally 'live'" resolves to paper, there is no fallback to
 		live on misconfiguration.
 	*/
-	TradingEnabled      bool
-	TradingMode         string
-	ExecutionHMACSecret []byte
-	ExecutionRecipient  string
-	PublicBaseURL       string
+	TradingEnabled     bool
+	TradingMode        string
+	ExecutionRecipient string
+	PublicBaseURL      string
 }
 
 /*
@@ -123,21 +122,20 @@ func Load() *Config {
 			Schwab market data is optional, live quotes degrade gracefully when
 			keys are unset.
 		*/
-		SchwabAppKey:        os.Getenv("SCHWAB_APP_KEY"),
-		SchwabSecret:        os.Getenv("SCHWAB_SECRET"),
-		SchwabCallbackURL:   getEnvOrDefault("SCHWAB_CALLBACK_URL", "https://vibetradez.com/auth/callback"),
-		AuthBaseURL:         authBaseURL,
-		AuthPublicURL:       getEnvOrDefault("VT_AUTH_PUBLIC_URL", "https://auth.jaycebordelon.com"),
-		AuthClientID:        authClientID,
-		AuthClientSecret:    authClientSecret,
-		AuthRedirectURI:     authRedirectURI,
-		SessionCookieName:   getEnvOrDefault("SESSION_COOKIE_NAME", "vt_session"),
-		SessionTTLDays:      sessionTTLDays,
-		TradingEnabled:      os.Getenv("TRADING_ENABLED") == "true",
-		TradingMode:         resolveTradingMode(os.Getenv("TRADING_MODE")),
-		ExecutionHMACSecret: []byte(os.Getenv("EXECUTION_HMAC_SECRET")),
-		ExecutionRecipient:  getEnvOrDefault("EXECUTION_RECIPIENT", "bordelonjayce@gmail.com"),
-		PublicBaseURL:       getEnvOrDefault("PUBLIC_BASE_URL", "https://vibetradez.com"),
+		SchwabAppKey:       os.Getenv("SCHWAB_APP_KEY"),
+		SchwabSecret:       os.Getenv("SCHWAB_SECRET"),
+		SchwabCallbackURL:  getEnvOrDefault("SCHWAB_CALLBACK_URL", "https://vibetradez.com/auth/callback"),
+		AuthBaseURL:        authBaseURL,
+		AuthPublicURL:      getEnvOrDefault("VT_AUTH_PUBLIC_URL", "https://auth.jaycebordelon.com"),
+		AuthClientID:       authClientID,
+		AuthClientSecret:   authClientSecret,
+		AuthRedirectURI:    authRedirectURI,
+		SessionCookieName:  getEnvOrDefault("SESSION_COOKIE_NAME", "vt_session"),
+		SessionTTLDays:     sessionTTLDays,
+		TradingEnabled:     os.Getenv("TRADING_ENABLED") == "true",
+		TradingMode:        resolveTradingMode(os.Getenv("TRADING_MODE")),
+		ExecutionRecipient: getEnvOrDefault("EXECUTION_RECIPIENT", "bordelonjayce@gmail.com"),
+		PublicBaseURL:      getEnvOrDefault("PUBLIC_BASE_URL", "https://vibetradez.com"),
 	}
 }
 

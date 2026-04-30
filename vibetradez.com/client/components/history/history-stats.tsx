@@ -69,7 +69,7 @@ export function HistoryStats({
         <StatCard index={0} label="Net P&L" value={fmtPnlInt(totalPnl)} sub={`${totalTrades} trades`} tone={signTone(totalPnl)} icon={totalPnl >= 0 ? TrendingUp : TrendingDown} />
         <StatCard index={1} label="Win Rate" value={`${winRate.toFixed(0)}%`} sub={`${totalWinners}W \u00B7 ${totalLosers}L`} valueColor={percentHueColor(winRate)} icon={Target} />
         <StatCard index={2} label="Return on Capital" value={fmtPctDec(roc)} sub="ROC" tone={signTone(roc)} icon={Percent} tooltip="Net P&L / total capital deployed" />
-        <StatCard index={3} label="Profit Factor" value={profitFactorValue} tone="neutral" icon={Scale} tooltip="Profit Factor = gross wins \u00F7 gross losses" />
+        <StatCard index={3} label="Profit Factor" value={profitFactorValue} tone="neutral" icon={Scale} tooltip="Profit Factor = gross wins / gross losses" />
       </div>
 
       {/* Secondary stats */}

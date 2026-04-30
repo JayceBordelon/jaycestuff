@@ -6,20 +6,19 @@ import (
 	"vibetradez.com/internal/trades"
 )
 
-func mkTrade(symbol, kind string, rank, score int, price float64) trades.Trade {
+func mkTrade(symbol, kind string, rank int, price float64) trades.Trade {
 	return trades.Trade{
 		Symbol:         symbol,
 		ContractType:   kind,
 		EstimatedPrice: price,
 		Rank:           rank,
-		Score:          score,
 	}
 }
 
-func TestQualifyingPick_Rank1HighScoreUnderCap(t *testing.T) {
+func TestQualifyingPick_Rank1UnderCap(t *testing.T) {
 	in := []trades.Trade{
-		mkTrade("AAPL", "CALL", 1, 9, 3.50),
-		mkTrade("MSFT", "CALL", 2, 8, 2.10),
+		mkTrade("AAPL", "CALL", 1, 3.50),
+		mkTrade("MSFT", "CALL", 2, 2.10),
 	}
 	pick, ok := QualifyingPick(in)
 	if !ok {
@@ -30,19 +29,10 @@ func TestQualifyingPick_Rank1HighScoreUnderCap(t *testing.T) {
 	}
 }
 
-func TestQualifyingPick_RejectsBelowScoreFloor(t *testing.T) {
-	in := []trades.Trade{
-		mkTrade("AAPL", "CALL", 1, MinExecutionScore-1, 3.50),
-	}
-	if _, ok := QualifyingPick(in); ok {
-		t.Fatal("expected no pick when score below floor")
-	}
-}
-
 func TestQualifyingPick_RejectsNonRank1(t *testing.T) {
 	in := []trades.Trade{
-		mkTrade("AAPL", "CALL", 2, 10, 3.50),
-		mkTrade("MSFT", "CALL", 3, 10, 2.10),
+		mkTrade("AAPL", "CALL", 2, 3.50),
+		mkTrade("MSFT", "CALL", 3, 2.10),
 	}
 	if _, ok := QualifyingPick(in); ok {
 		t.Fatal("expected no pick when no trade is rank 1")
@@ -51,7 +41,7 @@ func TestQualifyingPick_RejectsNonRank1(t *testing.T) {
 
 func TestQualifyingPick_RejectsAbovePriceCap(t *testing.T) {
 	in := []trades.Trade{
-		mkTrade("NVDA", "CALL", 1, 10, MaxContractPremium+0.01),
+		mkTrade("NVDA", "CALL", 1, MaxContractPremium+0.01),
 	}
 	if _, ok := QualifyingPick(in); ok {
 		t.Fatal("expected no pick when price exceeds cap")
@@ -60,7 +50,7 @@ func TestQualifyingPick_RejectsAbovePriceCap(t *testing.T) {
 
 func TestQualifyingPick_AcceptsPriceExactlyAtCap(t *testing.T) {
 	in := []trades.Trade{
-		mkTrade("NVDA", "CALL", 1, 9, MaxContractPremium),
+		mkTrade("NVDA", "CALL", 1, MaxContractPremium),
 	}
 	if _, ok := QualifyingPick(in); !ok {
 		t.Fatal("expected pick at exactly the cap")
@@ -69,7 +59,7 @@ func TestQualifyingPick_AcceptsPriceExactlyAtCap(t *testing.T) {
 
 func TestQualifyingPick_AcceptsPutAtRank1(t *testing.T) {
 	in := []trades.Trade{
-		mkTrade("AAPL", "PUT", 1, 9, 3.50),
+		mkTrade("AAPL", "PUT", 1, 3.50),
 	}
 	pick, ok := QualifyingPick(in)
 	if !ok || pick.ContractType != "PUT" {

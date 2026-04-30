@@ -122,16 +122,12 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/quotes/live", requireInternal(s.handleLiveQuotes))
 
 	/*
-		Auto-execution endpoints. Stack: requireInternal (trusted website
-		origin) → executionLimit (per-IP rate cap, defense vs DoS-flood)
-		→ attachUser (load session) → requireUser (must be signed in) →
-		requireEmailAllowlist (must be the one allowed email) → executor
-		handler. All five gates must pass; any single failure returns
-		401/403/429 before the handler runs.
+		Auto-execution kill switch. Stack: requireInternal (trusted website
+		origin) → executionLimit (per-IP rate cap) → attachUser (load
+		session) → requireUser (signed in) → requireEmailAllowlist (single
+		allowed email) → handler. All five gates must pass.
 	*/
 	if s.executor != nil {
-		s.mux.HandleFunc("/api/execution/confirm",
-			requireInternal(executionLimit.middleware(s.attachUser(s.requireUser(s.requireEmailAllowlist(s.executorEmail, s.executor.HandleConfirm))))))
 		s.mux.HandleFunc("/api/execution/cancel-all",
 			requireInternal(executionLimit.middleware(s.attachUser(s.requireUser(s.requireEmailAllowlist(s.executorEmail, s.executor.HandleCancelAll))))))
 	}

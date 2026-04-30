@@ -35,6 +35,13 @@ export function Footer() {
             </Link>
             <Separator orientation="vertical" className="hidden h-3 sm:inline-flex" />
             <Link
+              href="/privacy"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center underline underline-offset-2 transition-colors hover:text-foreground sm:min-h-0 sm:min-w-0 sm:justify-start"
+            >
+              Privacy
+            </Link>
+            <Separator orientation="vertical" className="hidden h-3 sm:inline-flex" />
+            <Link
               href="/faq"
               className="inline-flex min-h-11 min-w-11 items-center justify-center underline underline-offset-2 transition-colors hover:text-foreground sm:min-h-0 sm:min-w-0 sm:justify-start"
             >

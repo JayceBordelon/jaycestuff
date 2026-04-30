@@ -152,47 +152,15 @@ func migrate(db *sql.DB) error {
 		DROP TABLE IF EXISTS users;
 
 		/*
-		Auto-execution pipeline. UNIQUE(trade_date) is the schema-level
-		enforcement of the "at most one decision per day" rule; the
-		selector also enforces it in code, but the DB is the
-		belt-and-suspenders.
+		Auto-execution pipeline. The cron fires the rank-1 paper trade
+		(or live, if TRADING_MODE=live) every weekday at 9:30 ET, no
+		user confirmation step. Each row in the executions table is one
+		order lifecycle (open or close), referencing the trades.id row
+		that spawned it.
 		*/
-		CREATE TABLE IF NOT EXISTS execution_decisions (
-			id              SERIAL PRIMARY KEY,
-			trade_date      TEXT NOT NULL,
-			symbol          TEXT NOT NULL,
-			contract_type   TEXT NOT NULL,
-			strike_price    DOUBLE PRECISION NOT NULL,
-			expiration      TEXT NOT NULL,
-			occ_symbol      TEXT NOT NULL,
-			contract_price  DOUBLE PRECISION NOT NULL,
-			score           INTEGER NOT NULL DEFAULT 0,
-			trade_id        INTEGER REFERENCES trades(id),
-			token_hash      TEXT UNIQUE,
-			decision        TEXT NOT NULL DEFAULT 'pending',
-			decided_at      TIMESTAMPTZ,
-			expires_at      TIMESTAMPTZ NOT NULL,
-			created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-			UNIQUE(trade_date)
-		);
-
-		DO $$
-		BEGIN
-			IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='execution_decisions' AND column_name='claude_score')
-				AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='execution_decisions' AND column_name='score') THEN
-				ALTER TABLE execution_decisions RENAME COLUMN claude_score TO score;
-			END IF;
-		END $$;
-
-		ALTER TABLE execution_decisions ADD COLUMN IF NOT EXISTS score INTEGER NOT NULL DEFAULT 0;
-		ALTER TABLE execution_decisions DROP COLUMN IF EXISTS gpt_score;
-
-		CREATE INDEX IF NOT EXISTS idx_execution_decisions_pending
-			ON execution_decisions(decision) WHERE decision = 'pending';
-
 		CREATE TABLE IF NOT EXISTS executions (
 			id                  SERIAL PRIMARY KEY,
-			decision_id         INTEGER NOT NULL REFERENCES execution_decisions(id),
+			trade_id            INTEGER REFERENCES trades(id),
 			mode                TEXT NOT NULL,
 			side                TEXT NOT NULL,
 			schwab_order_id     TEXT,
@@ -205,12 +173,30 @@ func migrate(db *sql.DB) error {
 			error_message       TEXT NOT NULL DEFAULT '',
 			created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 		);
-		CREATE INDEX IF NOT EXISTS idx_executions_decision_id ON executions(decision_id);
+
+		/*
+		Migrate the legacy executions schema (decision_id reference) to
+		the new trade_id reference. Drop the FK first so the column
+		rename doesn't trip the constraint checker, then drop the table
+		that's no longer load-bearing. Safe to run on a fresh DB; the
+		IF EXISTS clauses make every step idempotent.
+		*/
+		ALTER TABLE executions DROP CONSTRAINT IF EXISTS executions_decision_id_fkey;
+		DO $$
+		BEGIN
+			IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='executions' AND column_name='decision_id')
+				AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='executions' AND column_name='trade_id') THEN
+				ALTER TABLE executions RENAME COLUMN decision_id TO trade_id;
+			END IF;
+		END $$;
+		ALTER TABLE executions ADD COLUMN IF NOT EXISTS trade_id INTEGER;
+		ALTER TABLE executions DROP COLUMN IF EXISTS decision_id;
+		DROP INDEX IF EXISTS idx_executions_decision_id;
+		DROP TABLE IF EXISTS execution_decisions;
+
+		CREATE INDEX IF NOT EXISTS idx_executions_trade_id ON executions(trade_id);
 		CREATE INDEX IF NOT EXISTS idx_executions_open_pending
 			ON executions(status) WHERE status IN ('pending','working');
-
-		ALTER TABLE execution_decisions ALTER COLUMN token_hash DROP NOT NULL;
-		ALTER TABLE execution_decisions DROP CONSTRAINT IF EXISTS execution_decisions_token_hash_key;
 
 		CREATE TABLE IF NOT EXISTS sent_rollouts (
 			slug             TEXT PRIMARY KEY,
@@ -305,6 +291,11 @@ func (s *Store) GetActiveEmails() ([]string, error) {
 
 // --- Trade methods ---
 
+/*
+SaveMorningTrades replaces all rows for `date` with `tradeList` and
+populates each Trade's ID field with the inserted row id so the
+caller can pass it to the executor.
+*/
 func (s *Store) SaveMorningTrades(date string, tradeList []trades.Trade) error {
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -324,20 +315,22 @@ func (s *Store) SaveMorningTrades(date string, tradeList []trades.Trade) error {
 			catalyst, mention_count, rank,
 			score, rationale, model
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+		RETURNING id
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to prepare statement: %w", err)
 	}
 	defer func() { _ = stmt.Close() }()
 
-	for _, t := range tradeList {
-		_, err := stmt.Exec(
+	for i := range tradeList {
+		t := &tradeList[i]
+		err := stmt.QueryRow(
 			date, t.Symbol, t.ContractType, t.StrikePrice, t.Expiration, t.DTE,
 			t.EstimatedPrice, t.Thesis, t.SentimentScore, t.CurrentPrice,
 			t.TargetPrice, t.StopLoss, t.RiskLevel,
 			t.Catalyst, t.MentionCount, t.Rank,
 			t.Score, t.Rationale, t.Model,
-		)
+		).Scan(&t.ID)
 		if err != nil {
 			return fmt.Errorf("failed to insert trade %s: %w", t.Symbol, err)
 		}
@@ -348,7 +341,7 @@ func (s *Store) SaveMorningTrades(date string, tradeList []trades.Trade) error {
 
 func (s *Store) GetMorningTrades(date string) ([]trades.Trade, error) {
 	rows, err := s.db.Query(`
-		SELECT symbol, contract_type, strike_price, expiration, dte,
+		SELECT id, symbol, contract_type, strike_price, expiration, dte,
 			estimated_price, thesis, sentiment_score, current_price,
 			target_price, stop_loss, risk_level,
 			catalyst, mention_count, rank,
@@ -364,7 +357,7 @@ func (s *Store) GetMorningTrades(date string) ([]trades.Trade, error) {
 	for rows.Next() {
 		var t trades.Trade
 		err := rows.Scan(
-			&t.Symbol, &t.ContractType, &t.StrikePrice, &t.Expiration, &t.DTE,
+			&t.ID, &t.Symbol, &t.ContractType, &t.StrikePrice, &t.Expiration, &t.DTE,
 			&t.EstimatedPrice, &t.Thesis, &t.SentimentScore, &t.CurrentPrice,
 			&t.TargetPrice, &t.StopLoss, &t.RiskLevel,
 			&t.Catalyst, &t.MentionCount, &t.Rank,
@@ -445,7 +438,7 @@ func (s *Store) GetTradeDates(limit int) ([]string, error) {
 
 func (s *Store) GetTradesForDateRange(startDate, endDate string) (map[string][]trades.Trade, error) {
 	rows, err := s.db.Query(`
-		SELECT date, symbol, contract_type, strike_price, expiration, dte,
+		SELECT date, id, symbol, contract_type, strike_price, expiration, dte,
 			estimated_price, thesis, sentiment_score, current_price,
 			target_price, stop_loss, risk_level,
 			catalyst, mention_count, rank,
@@ -462,7 +455,7 @@ func (s *Store) GetTradesForDateRange(startDate, endDate string) (map[string][]t
 		var date string
 		var t trades.Trade
 		err := rows.Scan(
-			&date, &t.Symbol, &t.ContractType, &t.StrikePrice, &t.Expiration, &t.DTE,
+			&date, &t.ID, &t.Symbol, &t.ContractType, &t.StrikePrice, &t.Expiration, &t.DTE,
 			&t.EstimatedPrice, &t.Thesis, &t.SentimentScore, &t.CurrentPrice,
 			&t.TargetPrice, &t.StopLoss, &t.RiskLevel,
 			&t.Catalyst, &t.MentionCount, &t.Rank,

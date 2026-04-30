@@ -22,6 +22,11 @@ const (
 )
 
 type Trade struct {
+	// ID is the trades.id row identifier, populated by store.SaveMorningTrades
+	// + the various read paths. Exposed only to internal callers (omitted from
+	// the public JSON wire) so dashboard responses don't leak the row id.
+	ID int `json:"-"`
+
 	Symbol         string  `json:"symbol"`
 	ContractType   string  `json:"contract_type"`
 	StrikePrice    float64 `json:"strike_price"`

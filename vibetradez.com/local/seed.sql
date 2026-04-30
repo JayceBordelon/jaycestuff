@@ -256,36 +256,18 @@ END $$;
 
 -- ─── Auto-execution demo data ──────────────────────────────────────────────
 --
--- Seeds the execution_decisions + executions tables with 5 demo positions
--- spanning the different badge states, so the local dashboard / history /
--- trade detail pages have visible examples of the transparency labeling
--- before any real auto-execution has fired in prod.
+-- Seeds the executions table with 5 demo positions spanning the different
+-- badge states, so the local dashboard / history / trade detail pages
+-- have visible examples of the transparency labeling before any real
+-- auto-execution has fired in prod.
 --
 -- Mode mix: 4 paper + 1 live. State mix: holding / closed-winner /
--- closed-loser / failed / closed-live.
-
-CREATE TABLE IF NOT EXISTS execution_decisions (
-    id              SERIAL PRIMARY KEY,
-    trade_date      TEXT NOT NULL,
-    symbol          TEXT NOT NULL,
-    contract_type   TEXT NOT NULL,
-    strike_price    DOUBLE PRECISION NOT NULL,
-    expiration      TEXT NOT NULL,
-    occ_symbol      TEXT NOT NULL,
-    contract_price  DOUBLE PRECISION NOT NULL,
-    score           INTEGER NOT NULL DEFAULT 0,
-    trade_id        INTEGER REFERENCES trades(id),
-    token_hash      TEXT UNIQUE,
-    decision        TEXT NOT NULL DEFAULT 'pending',
-    decided_at      TIMESTAMPTZ,
-    expires_at      TIMESTAMPTZ NOT NULL,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(trade_date)
-);
+-- closed-loser / failed / closed-live. Each row references the rank-1
+-- trades.id for its target date directly, no separate decision row.
 
 CREATE TABLE IF NOT EXISTS executions (
     id                  SERIAL PRIMARY KEY,
-    decision_id         INTEGER NOT NULL REFERENCES execution_decisions(id),
+    trade_id            INTEGER REFERENCES trades(id),
     mode                TEXT NOT NULL,
     side                TEXT NOT NULL,
     schwab_order_id     TEXT,
@@ -304,10 +286,8 @@ DECLARE
     today_date DATE := CURRENT_DATE;
     scenarios RECORD;
     t RECORD;
-    decision_id INT;
     fill_open NUMERIC;
     fill_close NUMERIC;
-    occ TEXT;
 BEGIN
     FOR scenarios IN
         SELECT * FROM (VALUES
@@ -327,47 +307,19 @@ BEGIN
 
         CONTINUE WHEN t IS NULL;
 
-        occ := rpad(t.symbol, 6, ' ')
-            || to_char(to_date(t.expiration, 'YYYY-MM-DD'), 'YYMMDD')
-            || CASE WHEN t.contract_type = 'CALL' THEN 'C' ELSE 'P' END
-            || lpad((round(t.strike_price * 1000))::text, 8, '0');
-
-        INSERT INTO execution_decisions (
-            trade_date, symbol, contract_type, strike_price, expiration,
-            occ_symbol, contract_price, score, trade_id,
-            token_hash, decision, decided_at, expires_at
-        ) VALUES (
-            to_char(today_date - scenarios.offset_days, 'YYYY-MM-DD'),
-            t.symbol, t.contract_type, t.strike_price, t.expiration,
-            occ, t.estimated_price,
-            GREATEST(t.score, 9),
-            t.id,
-            md5(scenarios.offset_days::text || scenarios.state || 'demo-token-hash'),
-            'execute',
-            (today_date - scenarios.offset_days)::timestamptz + interval '9 hours 31 minutes',
-            (today_date - scenarios.offset_days)::timestamptz + interval '9 hours 35 minutes'
-        )
-        ON CONFLICT (trade_date) DO NOTHING
-        RETURNING id INTO decision_id;
-
-        IF decision_id IS NULL THEN
-            SELECT id INTO decision_id FROM execution_decisions
-            WHERE trade_date = to_char(today_date - scenarios.offset_days, 'YYYY-MM-DD');
-        END IF;
-
         IF scenarios.state = 'failed' THEN
-            INSERT INTO executions (decision_id, mode, side, status, requested_quantity, error_message, submitted_at)
+            INSERT INTO executions (trade_id, mode, side, status, requested_quantity, error_message, submitted_at)
             VALUES (
-                decision_id, scenarios.mode, 'open', 'failed', 1,
+                t.id, scenarios.mode, 'open', 'failed', 1,
                 'Demo: simulated broker rejection (insufficient buying power)',
                 (today_date - scenarios.offset_days)::timestamptz + interval '9 hours 31 minutes 12 seconds'
             );
         ELSE
             fill_open := round((t.estimated_price * scenarios.fill_open_pct)::numeric, 2);
-            INSERT INTO executions (decision_id, mode, side, schwab_order_id, status, fill_price, filled_quantity, requested_quantity, submitted_at, filled_at)
+            INSERT INTO executions (trade_id, mode, side, schwab_order_id, status, fill_price, filled_quantity, requested_quantity, submitted_at, filled_at)
             VALUES (
-                decision_id, scenarios.mode, 'open',
-                CASE WHEN scenarios.mode = 'paper' THEN 'paper-' || md5(decision_id::text || 'open') ELSE '10000' || decision_id::text END,
+                t.id, scenarios.mode, 'open',
+                CASE WHEN scenarios.mode = 'paper' THEN 'paper-' || md5(t.id::text || 'open') ELSE '10000' || t.id::text END,
                 'filled', fill_open, 1, 1,
                 (today_date - scenarios.offset_days)::timestamptz + interval '9 hours 31 minutes 12 seconds',
                 (today_date - scenarios.offset_days)::timestamptz + interval '9 hours 31 minutes 18 seconds'
@@ -375,10 +327,10 @@ BEGIN
 
             IF scenarios.state IN ('closed-win', 'closed-loss') THEN
                 fill_close := round((fill_open * scenarios.fill_close_pct)::numeric, 2);
-                INSERT INTO executions (decision_id, mode, side, schwab_order_id, status, fill_price, filled_quantity, requested_quantity, submitted_at, filled_at)
+                INSERT INTO executions (trade_id, mode, side, schwab_order_id, status, fill_price, filled_quantity, requested_quantity, submitted_at, filled_at)
                 VALUES (
-                    decision_id, scenarios.mode, 'close',
-                    CASE WHEN scenarios.mode = 'paper' THEN 'paper-' || md5(decision_id::text || 'close') ELSE '20000' || decision_id::text END,
+                    t.id, scenarios.mode, 'close',
+                    CASE WHEN scenarios.mode = 'paper' THEN 'paper-' || md5(t.id::text || 'close') ELSE '20000' || t.id::text END,
                     'filled', fill_close, 1, 1,
                     (today_date - scenarios.offset_days)::timestamptz + interval '15 hours 55 minutes',
                     (today_date - scenarios.offset_days)::timestamptz + interval '15 hours 55 minutes 8 seconds'
@@ -394,14 +346,12 @@ DECLARE
     trade_ct INT;
     summary_ct INT;
     sub_ct INT;
-    decision_ct INT;
     exec_ct INT;
 BEGIN
     SELECT COUNT(*) INTO trade_ct FROM trades;
     SELECT COUNT(*) INTO summary_ct FROM summaries;
     SELECT COUNT(*) INTO sub_ct FROM subscribers;
-    SELECT COUNT(*) INTO decision_ct FROM execution_decisions;
     SELECT COUNT(*) INTO exec_ct FROM executions;
-    RAISE NOTICE 'Seed complete: % trades, % summaries, % subscribers, % execution_decisions, % executions',
-        trade_ct, summary_ct, sub_ct, decision_ct, exec_ct;
+    RAISE NOTICE 'Seed complete: % trades, % summaries, % subscribers, % executions',
+        trade_ct, summary_ct, sub_ct, exec_ct;
 END $$;

@@ -232,15 +232,10 @@ func main() {
 		}
 		execCfg := exec.ServiceConfig{
 			Mode:              cfg.TradingMode,
-			HMACSecret:        cfg.ExecutionHMACSecret,
 			Recipient:         cfg.ExecutionRecipient,
 			EmailFrom:         cfg.EmailFrom,
-			PublicBaseURL:     cfg.PublicBaseURL,
 			ModelLabel:        modelLabel,
 			SchwabAccountHash: trader.AccountHash,
-		}
-		if len(execCfg.HMACSecret) < 32 {
-			log.Fatalf("execution: TRADING_ENABLED=true but EXECUTION_HMAC_SECRET is missing or <32 bytes")
 		}
 		executor = exec.NewService(db, trader, emailClient, execCfg)
 	}
@@ -284,12 +279,6 @@ func main() {
 
 	if executor != nil {
 		ctxBg := context.Background()
-		if _, err := c.AddFunc("30-59 9 * * 1-5", func() {
-			executor.CancelExpiredDecisions(ctxBg)
-		}); err != nil {
-			log.Fatalf("Failed to add cancel-expired cron: %v", err)
-		}
-
 		if _, err := c.AddFunc("55 15 * * 1-5", func() {
 			if open, reason := isMarketOpen(); !open {
 				log.Printf("Skipping 3:55pm close: %s", reason)
@@ -316,7 +305,7 @@ func main() {
 		}); err != nil {
 			log.Fatalf("Failed to add 12:55pm half-day close cron: %v", err)
 		}
-		log.Printf("execution: cron registered (cancel-expired 9:30-9:59am, close 3:55pm or 12:55pm half-days)")
+		log.Printf("execution: cron registered (close 3:55pm or 12:55pm half-days)")
 	}
 
 	c.Start()
@@ -430,14 +419,14 @@ func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Sc
 	*/
 	if executor != nil {
 		if pick, ok := exec.QualifyingPick(topTrades); ok {
-			log.Printf("execution: qualifying pick found, %s %s @ %.2f (rank=%d, score=%d)",
+			log.Printf("execution: qualifying pick found, %s %s @ %.2f (rank=%d, score=%d, mode=%s)",
 				pick.Symbol, pick.ContractType, pick.EstimatedPrice,
-				pick.Rank, pick.Score)
-			if err := executor.HandleQualifyingPick(ctx, pick); err != nil {
+				pick.Rank, pick.Score, executor.Mode())
+			if err := executor.HandleQualifyingPick(ctx, pick, pick.ID); err != nil {
 				log.Printf("execution: handle qualifying pick: %v", err)
 			}
 		} else {
-			log.Printf("execution: no qualifying pick today (no rank-1 with score>=%d under $%.2f cap)", exec.MinExecutionScore, exec.MaxContractPremium)
+			log.Printf("execution: no qualifying pick today (rank-1 missing or premium > $%.2f cap)", exec.MaxContractPremium)
 		}
 	}
 

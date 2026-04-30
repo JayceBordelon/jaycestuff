@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-//go:embed email.html summary.html test.html error.html weekly.html execute_confirm.html execute_canceled.html execute_receipt.html execute_close_receipt.html execute_close_failed.html rollout_auto_execution_live.html rollout_claude_only.html
+//go:embed email.html summary.html test.html error.html weekly.html execute_receipt.html execute_close_receipt.html execute_close_failed.html rollout_auto_execution_live.html rollout_claude_only.html
 var templateFS embed.FS
 
 type Trade struct {
@@ -254,50 +254,6 @@ type ErrorEmailData struct {
 
 // ── Auto-execution emails ──
 
-/*
-ExecuteConfirmData powers the 5-minute confirmation email. Includes
-every piece of context the user could possibly want when deciding
-whether to fire: contract details, capital at risk, the picker's
-score and rationale, catalyst, expiry timer, signed Execute / Decline
-links.
-*/
-type ExecuteConfirmData struct {
-	Subject       string
-	Date          string
-	Mode          string
-	Symbol        string
-	ContractType  string
-	StrikePrice   float64
-	Expiration    string
-	DTE           int
-	OCCSymbol     string
-	ContractPrice float64
-	CapitalAtRisk float64
-	CurrentPrice  float64
-	RiskLevel     string
-	Catalyst      string
-	Thesis        string
-	ModelName     string
-	Score         int
-	Rationale     string
-	ExpiresAtText string
-	ExecuteURL    string
-	DeclineURL    string
-}
-
-type ExecuteCanceledData struct {
-	Subject       string
-	Date          string
-	Mode          string
-	Symbol        string
-	ContractType  string
-	StrikePrice   float64
-	Expiration    string
-	ContractPrice float64
-	ModelName     string
-	Score         int
-}
-
 type ExecuteReceiptData struct {
 	Subject            string
 	Date               string
@@ -339,12 +295,6 @@ type ExecuteCloseFailedData struct {
 	SchwabPositionsURL string
 }
 
-func RenderExecuteConfirm(d ExecuteConfirmData) (string, error) {
-	return renderOne("execute_confirm.html", d)
-}
-func RenderExecuteCanceled(d ExecuteCanceledData) (string, error) {
-	return renderOne("execute_canceled.html", d)
-}
 func RenderExecuteReceipt(d ExecuteReceiptData) (string, error) {
 	return renderOne("execute_receipt.html", d)
 }
