@@ -47,14 +47,14 @@ jobs:
     with:
       project_path: /home/jayce/jaycestuff
 
-  # Serialized after trading-server lint because both SSH into the same
-  # droplet and golangci-lint refuses to run concurrently with itself
-  # (global process lock — fails with "parallel golangci-lint is
-  # running"). Adds ~30-60s wall time but eliminates the race entirely
-  # without needing per-job cache-dir gymnastics.
+  # Runs concurrently with the trading-server Go lint. Both jobs SSH into
+  # the same droplet, so each one points GOLANGCI_LINT_CACHE at its own
+  # directory in lint-{auth-service,trading-server}.yml — the
+  # $GOLANGCI_LINT_CACHE/.cache.lock file is per-cache-dir, so disjoint
+  # caches mean no contention.
   lint_auth_service:
     name: Lint / Auth Service
-    needs: [sync, lint_trading_server]
+    needs: sync
     if: success()
     uses: ./.github/workflows/lint-auth-service.yml
     secrets: inherit

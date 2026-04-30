@@ -193,7 +193,8 @@ flowchart LR
 
     LP["Lint / Portfolio<br/>Biome"]:::lint
     LTF["Lint / Trading FE<br/>Biome"]:::lint
-    LTS["Lint / Trading BE<br/>gofmt + go vet"]:::lint
+    LTS["Lint / Trading BE<br/>golangci-lint"]:::lint
+    LAS["Lint / Auth Service<br/>golangci-lint"]:::lint
 
     BUILD["Build<br/>compose build --no-cache<br/>jaycebordelon-com,<br/>trading-server,<br/>trading-frontend"]:::build
 
@@ -208,10 +209,12 @@ flowchart LR
     Sync --> LP
     Sync --> LTF
     Sync --> LTS
+    Sync --> LAS
 
     LP --> BUILD
     LTF --> BUILD
     LTS --> BUILD
+    LAS --> BUILD
 
     BUILD --> DEPLOY
 
@@ -220,17 +223,18 @@ flowchart LR
     DEPLOY --> HC
 ```
 
-**Reading the diagram:** after `git reset --hard` syncs the droplet, three independent lint jobs run in parallel. All three gate a single build step that rebuilds the three deploy-tracked images. The deploy job runs both rollouts sequentially with `continue-on-error: true` per SSH step, so a failure on one side doesn't block the other. Once deploy finishes (success, partial, or fail) a single email fires with per-site statuses, commit metadata, and the trading-server `/health` table. Cleanup and healthcheck only run when both sides deployed successfully.
+**Reading the diagram:** after `git reset --hard` syncs the droplet, four independent lint jobs run in parallel. All four gate a single build step that rebuilds the three deploy-tracked images. The two Go lints (trading-server and auth-service) both shell into the droplet, so they each point `GOLANGCI_LINT_CACHE` at a per-job directory — golangci-lint's `.cache.lock` is per-cache-dir, so disjoint caches mean no contention and they run truly in parallel. The deploy job runs both rollouts sequentially with `continue-on-error: true` per SSH step, so a failure on one side doesn't block the other. Once deploy finishes (success, partial, or fail) a single email fires with per-site statuses, commit metadata, and the trading-server `/health` table. Cleanup and healthcheck only run when both sides deployed successfully.
 
 1. **Sync** — `git reset --hard origin/main`
 2. **Lint / Portfolio** — Biome check on `jaycebordelon.com/`
 3. **Lint / Trading Frontend** — Biome check on `vibetradez.com/client/`
-4. **Lint / Trading Server** — gofmt + go vet on `vibetradez.com/server/`
-5. **Build** — Single `docker compose build --no-cache jaycebordelon-com trading-server trading-frontend` invocation, gated on all three lints passing. (`auth-service` isn't deploy-tracked here — it gets deployed manually and lives in `pr-checks.yml`'s lint matrix.)
-6. **Deploy** — One job with two `continue-on-error` SSH steps: (a) `docker rollout jaycebordelon-com`, (b) `docker rollout trading-frontend` + `docker compose up -d --force-recreate trading-server`.
-7. **Notify** — One consolidated email ("jaycestuff" slate theme) showing overall PASS/FAIL, per-site status, commit metadata, and live trading-server `/health` table. Always runs unless the workflow is cancelled.
-8. **Cleanup** — `docker system prune -af` (no `--volumes`, so Traefik's Let's Encrypt cert volume is preserved). Runs only on full success.
-9. **Health Check** — endpoint checks plus granular `/health` parsing that fails on any non-ok service. Runs only on full success.
+4. **Lint / Trading Server** — `golangci-lint run ./...` on `vibetradez.com/server/` (per-job `GOLANGCI_LINT_CACHE`)
+5. **Lint / Auth Service** — `golangci-lint run ./...` on `auth.jaycebordelon.com/` (per-job `GOLANGCI_LINT_CACHE`)
+6. **Build** — Single `docker compose build --no-cache jaycebordelon-com trading-server trading-frontend` invocation, gated on all four lints passing. (`auth-service` is linted here but not deploy-tracked by `main-pipeline.yml` — it ships via manual deploys.)
+7. **Deploy** — One job with two `continue-on-error` SSH steps: (a) `docker rollout jaycebordelon-com`, (b) `docker rollout trading-frontend` + `docker compose up -d --force-recreate trading-server`.
+8. **Notify** — One consolidated email ("jaycestuff" slate theme) showing overall PASS/FAIL, per-site status, commit metadata, and live trading-server `/health` table. Always runs unless the workflow is cancelled.
+9. **Cleanup** — `docker system prune -af` (no `--volumes`, so Traefik's Let's Encrypt cert volume is preserved). Runs only on full success.
+10. **Health Check** — endpoint checks plus granular `/health` parsing that fails on any non-ok service. Runs only on full success.
 
 Per the project rules in `CLAUDE.md`: never push directly to `main`, always work on feature branches, and let the human merge.
 

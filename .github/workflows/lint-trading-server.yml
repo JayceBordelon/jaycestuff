@@ -42,6 +42,12 @@ jobs:
               curl -sL https://go.dev/dl/go1.23.6.linux-amd64.tar.gz | tar -C $HOME/go1.23 --strip-components=1 -xzf -
             fi
 
+            # Per-job cache dir so this run doesn't share the
+            # $GOLANGCI_LINT_CACHE/.cache.lock with the auth-service lint
+            # job — lets both Go lints run concurrently on the droplet.
+            export GOLANGCI_LINT_CACHE=$HOME/.cache/golangci-lint-trading-server
+            mkdir -p "$GOLANGCI_LINT_CACHE"
+
             cd vibetradez.com/server && golangci-lint run ./...
 
       - name: Set lint status
