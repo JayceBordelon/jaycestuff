@@ -377,11 +377,11 @@ func runTradeAnalysis(cfg *config.Config, db *store.Store, scraper *sentiment.Sc
 	}
 
 	/*
-	Wall-clock budget for the entire morning analysis: sentiment scrape +
-	Claude's full multi-round conversation + DB write + email render +
-	auto-execution submit. Set to 60 minutes so Claude has room to walk
-	the option chains for many tickers without ever hitting a deadline,
-	while still bounding worst-case if the API is wedged.
+		Wall-clock budget for the entire morning analysis: sentiment scrape +
+		Claude's full multi-round conversation + DB write + email render +
+		auto-execution submit. Set to 60 minutes so Claude has room to walk
+		the option chains for many tickers without ever hitting a deadline,
+		while still bounding worst-case if the API is wedged.
 	*/
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Minute)
 	defer cancel()
@@ -756,10 +756,10 @@ func runEndOfDayAnalysis(cfg *config.Config, db *store.Store, claudePicker *trad
 	}
 
 	/*
-	EOD analysis is a fixed-shape task (re-quote N contracts, compute
-	close prices) so the wall-clock budget is much shorter than the
-	morning picker, but still generous enough to absorb retries against
-	a slow or rate-limited Schwab.
+		EOD analysis is a fixed-shape task (re-quote N contracts, compute
+		close prices) so the wall-clock budget is much shorter than the
+		morning picker, but still generous enough to absorb retries against
+		a slow or rate-limited Schwab.
 	*/
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Minute)
 	defer cancel()

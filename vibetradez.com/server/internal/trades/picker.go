@@ -21,19 +21,19 @@ const (
 	maxOutputTokensEOD   = 16384
 
 	/*
-	maxToolRounds is generous on purpose. The picker walks Schwab quotes,
-	option chains, and web search across many tickers; complex mornings
-	(earnings clusters, macro events) can chain dozens of tool calls
-	before Claude's ready to commit. We'd rather burn API spend than
-	short-circuit the analysis with a "too many rounds" abort.
+		maxToolRounds is generous on purpose. The picker walks Schwab quotes,
+		option chains, and web search across many tickers; complex mornings
+		(earnings clusters, macro events) can chain dozens of tool calls
+		before Claude's ready to commit. We'd rather burn API spend than
+		short-circuit the analysis with a "too many rounds" abort.
 	*/
 	maxToolRounds = 30
 
 	/*
-	httpRequestTimeout caps a single Anthropic API call (one round of the
-	conversation, not the whole conversation). Set high so streaming
-	responses with long tool plans don't get cut off mid-flight. The
-	conversation-level deadline lives on ctx in the caller.
+		httpRequestTimeout caps a single Anthropic API call (one round of the
+		conversation, not the whole conversation). Set high so streaming
+		responses with long tool plans don't get cut off mid-flight. The
+		conversation-level deadline lives on ctx in the caller.
 	*/
 	httpRequestTimeout = 30 * time.Minute
 )
