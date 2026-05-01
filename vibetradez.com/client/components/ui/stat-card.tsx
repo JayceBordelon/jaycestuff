@@ -66,7 +66,7 @@ export function StatCard({ label, value, sub, icon: Icon, tone = "neutral", valu
   const card = (
     <Card
       className={cn(
-        "group gap-0 py-0 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md",
+        "lg-card group gap-0 py-0 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md",
         typeof index === "number" && "animate-in fade-in slide-in-from-bottom-1 duration-300",
         className
       )}

@@ -207,7 +207,7 @@ export function DashboardShell() {
             <StatsGrid totalPnl={stats.totalPnl} winRate={stats.winRate} profitFactor={stats.profitFactor} bestPnl={stats.bestPnl} bestSym={stats.bestSym} />
             <Section title="Price Chart" className="mt-8">
               <SymbolTabs trades={filtered.trades} activeSymbol={activeSymbol} onSelect={setActiveSymbol} />
-              <div className="mt-3 h-[280px] overflow-hidden rounded-lg border bg-card sm:h-[360px] lg:h-[420px]">
+              <div className="lg-card mt-3 h-[280px] overflow-hidden p-1.5 sm:h-[360px] lg:h-[420px]">
                 {activeSymbol &&
                   (() => {
                     const dt = filtered.trades.find((t) => t.trade.symbol === activeSymbol);
@@ -230,7 +230,7 @@ export function DashboardShell() {
           <>
             <Section title="Price Chart">
               <SymbolTabs trades={filtered.trades} activeSymbol={activeSymbol} onSelect={setActiveSymbol} />
-              <div className="mt-3 h-[280px] overflow-hidden rounded-lg border bg-card sm:h-[360px] lg:h-[420px]">
+              <div className="lg-card mt-3 h-[280px] overflow-hidden p-1.5 sm:h-[360px] lg:h-[420px]">
                 {activeSymbol &&
                   (() => {
                     const dt = filtered.trades.find((t) => t.trade.symbol === activeSymbol);

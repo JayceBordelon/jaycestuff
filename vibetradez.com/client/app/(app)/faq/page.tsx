@@ -56,7 +56,7 @@ export default function FAQPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
       <div className="mb-8 flex items-start gap-3">
-        <div className="rounded-md border bg-card p-2 shadow-sm">
+        <div className="lg-control p-2">
           <HelpCircle className="h-5 w-5 text-primary" />
         </div>
         <div>
@@ -70,7 +70,7 @@ export default function FAQPage() {
         </div>
       </div>
 
-      <Accordion type="single" collapsible className="rounded-lg border bg-card shadow-sm">
+      <Accordion type="single" collapsible className="lg-card overflow-hidden">
         {faqs.map((faq, i) => (
           <AccordionItem key={faq.question} value={`item-${i}`} className="border-b last:border-b-0">
             <AccordionTrigger className="px-5 text-left text-base font-semibold hover:no-underline">{faq.question}</AccordionTrigger>

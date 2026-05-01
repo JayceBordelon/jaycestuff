@@ -77,7 +77,7 @@ function MorningCard({ dt, liveQuotes, date, execution }: MorningCardProps) {
 
   return (
     <Link href={tradeHref(trade.symbol, date)} className="block">
-      <Card className="group h-full animate-in fade-in fill-mode-backwards duration-200 transition-all hover:-translate-y-0.5 hover:border-foreground/30 hover:shadow-md">
+      <Card className="lg-card group h-full animate-in fade-in fill-mode-backwards duration-200 transition-all hover:-translate-y-0.5 hover:border-foreground/30 hover:shadow-md">
         <CardContent className="space-y-4 p-5">
           <div className="flex flex-wrap items-center gap-1.5">
             <Badge variant="secondary">#{trade.rank}</Badge>

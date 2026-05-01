@@ -35,7 +35,7 @@ export default function TermsPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
       <div className="mb-10 flex items-start gap-3">
-        <div className="rounded-md border bg-card p-2 shadow-sm">
+        <div className="lg-control p-2">
           <ScrollText className="h-5 w-5 text-primary" />
         </div>
         <div>
@@ -62,7 +62,7 @@ export default function TermsPage() {
         </aside>
 
         {/* Long-form content */}
-        <article className="prose-terms min-w-0">
+        <article className="lg-card prose-terms min-w-0 p-6 sm:p-8">
           <Section id="experimental" num={1} title="Experimental Nature of This Service">
             <p>
               VibeTradez is an <strong>experimental, educational project</strong> that generates AI-powered options trade suggestions. The platform is provided on an &quot;as-is&quot; basis for

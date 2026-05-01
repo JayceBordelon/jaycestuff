@@ -99,7 +99,7 @@ interface DualMetricCardProps {
 
 function DualMetricCard({ label, left, right }: DualMetricCardProps) {
   return (
-    <Card className="group gap-0 py-0 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md">
+    <Card className="lg-card group gap-0 py-0 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md">
       <CardContent className="p-5">
         <div className="flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />

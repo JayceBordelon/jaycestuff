@@ -331,6 +331,59 @@ body {
     background: color-mix(in srgb, white 7%, transparent);
   }
 
+  /*
+  .lg-card  Drop-in glass surface for shadcn Card. Higher opacity than
+            .lg-panel so dense data (tables, charts, dashboards) stay
+            legible while still picking up colored bleed from the orbs.
+            Designed to override Card's default bg-card / shadow-sm /
+            rounded-xl via cascade order in @layer utilities.
+  */
+  .lg-card {
+    background: color-mix(in srgb, var(--card) 88%, transparent);
+    backdrop-filter: saturate(160%) blur(24px);
+    -webkit-backdrop-filter: saturate(160%) blur(24px);
+    border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+    border-radius: 16px;
+    box-shadow:
+      0 1px 0 0 color-mix(in srgb, white 60%, transparent) inset,
+      0 -1px 0 0 color-mix(in srgb, var(--foreground) 3%, transparent) inset,
+      0 12px 32px -16px rgb(0 0 0 / 0.14),
+      0 4px 12px -8px rgb(0 0 0 / 0.08);
+  }
+  .dark .lg-card {
+    background: color-mix(in srgb, white 5%, transparent);
+    border-color: color-mix(in srgb, white 9%, transparent);
+    box-shadow:
+      0 1px 0 0 color-mix(in srgb, white 10%, transparent) inset,
+      0 -1px 0 0 color-mix(in srgb, white 3%, transparent) inset,
+      0 12px 32px -16px rgb(0 0 0 / 0.50),
+      0 4px 12px -8px rgb(0 0 0 / 0.30);
+  }
+
+  /*
+  .lg-control  Small rounded glass surface for inline controls (date
+               navigators, mode toggles, segmented bars). Smaller radius
+               than .lg-pill so it pairs visually with rounded-md
+               buttons.
+  */
+  .lg-control {
+    background: color-mix(in srgb, var(--card) 70%, transparent);
+    backdrop-filter: saturate(160%) blur(18px);
+    -webkit-backdrop-filter: saturate(160%) blur(18px);
+    border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent);
+    border-radius: 10px;
+    box-shadow:
+      0 1px 0 0 color-mix(in srgb, white 50%, transparent) inset,
+      0 4px 12px -8px rgb(0 0 0 / 0.10);
+  }
+  .dark .lg-control {
+    background: color-mix(in srgb, white 5%, transparent);
+    border-color: color-mix(in srgb, white 11%, transparent);
+    box-shadow:
+      0 1px 0 0 color-mix(in srgb, white 10%, transparent) inset,
+      0 4px 12px -8px rgb(0 0 0 / 0.30);
+  }
+
   .lg-pill {
     background: color-mix(in srgb, var(--card) 60%, transparent);
     backdrop-filter: saturate(160%) blur(20px);
@@ -353,6 +406,11 @@ body {
   Ambient orbs. Use absolute positioning + a high blur to bleed colored
   light through the panels stacked above. Saturate via the body color
   variables so light/dark mode each get appropriately tuned hues.
+
+  The slow drift animation (lg-drift) gives the background a gentle
+  "alive" feel without distracting from data — each orb moves a few
+  percent over 30-50s with staggered timing so they never lock in
+  step. Disabled under prefers-reduced-motion.
   */
   .lg-orb {
     position: absolute;
@@ -361,6 +419,7 @@ body {
     will-change: transform;
     filter: blur(96px);
     opacity: 0.55;
+    animation: lg-drift 38s ease-in-out infinite alternate;
   }
   .dark .lg-orb {
     opacity: 0.45;
@@ -368,34 +427,66 @@ body {
   }
   .lg-orb-claude {
     background: radial-gradient(circle at center, #d97757 0%, transparent 70%);
+    animation-duration: 42s;
   }
   .lg-orb-amber {
     background: radial-gradient(circle at center, #f59e0b 0%, transparent 70%);
+    animation-duration: 36s;
+    animation-direction: alternate-reverse;
+    animation-delay: -8s;
   }
   .lg-orb-rose {
     background: radial-gradient(circle at center, #fb7185 0%, transparent 70%);
+    animation-duration: 48s;
+    animation-delay: -12s;
   }
   .lg-orb-cyan {
     background: radial-gradient(circle at center, #38bdf8 0%, transparent 70%);
+    animation-duration: 33s;
+    animation-direction: alternate-reverse;
+    animation-delay: -4s;
   }
   .lg-orb-violet {
     background: radial-gradient(circle at center, #a78bfa 0%, transparent 70%);
+    animation-duration: 50s;
+    animation-delay: -16s;
+  }
+
+  /*
+  Drift keyframe. Small enough that it reads as ambient breathing
+  rather than parallax — large translations distract from data and
+  re-trigger paint over a 1200px-wide column.
+  */
+  @keyframes lg-drift {
+    from {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    to {
+      transform: translate3d(2.5%, -2%, 0) scale(1.04);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lg-orb {
+      animation: none;
+    }
   }
 
   /*
   Film grain. Inline SVG, modest opacity, mix-blend-mode so it tints with
   whatever's underneath instead of looking like a flat overlay.
+  Tuned slightly lower than the landing-grade value so it stays calm
+  on inner pages where data is the focus.
   */
   .lg-noise {
     position: absolute;
     inset: 0;
     pointer-events: none;
-    opacity: 0.12;
+    opacity: 0.08;
     mix-blend-mode: overlay;
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   }
   .dark .lg-noise {
-    opacity: 0.06;
+    opacity: 0.04;
   }
 
   /* Specular edge highlight, useful on hover or to mark a primary surface. */
