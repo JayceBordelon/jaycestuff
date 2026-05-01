@@ -405,14 +405,10 @@ body {
   }
 
   /*
-  Ambient orbs. Use absolute positioning + a high blur to bleed colored
-  light through the panels stacked above. Saturate via the body color
-  variables so light/dark mode each get appropriately tuned hues.
-
-  The slow drift animation (lg-drift) gives the background a gentle
-  "alive" feel without distracting from data — each orb moves a few
-  percent over 30-50s with staggered timing so they never lock in
-  step. Disabled under prefers-reduced-motion.
+  Legacy orb primitive — kept only for the landing CTA panel which
+  uses two scoped lg-orb decorations as glass accents. The full-page
+  ambient now uses .lg-mesh (below) instead. If you're reaching for
+  this for a full-bg, use .lg-mesh.
   */
   .lg-orb {
     position: absolute;
@@ -421,7 +417,6 @@ body {
     will-change: transform;
     filter: blur(96px);
     opacity: 0.55;
-    animation: lg-drift 38s ease-in-out infinite alternate;
   }
   .dark .lg-orb {
     opacity: 0.45;
@@ -429,66 +424,78 @@ body {
   }
   .lg-orb-claude {
     background: radial-gradient(circle at center, #d97757 0%, transparent 70%);
-    animation-duration: 42s;
-  }
-  .lg-orb-amber {
-    background: radial-gradient(circle at center, #f59e0b 0%, transparent 70%);
-    animation-duration: 36s;
-    animation-direction: alternate-reverse;
-    animation-delay: -8s;
-  }
-  .lg-orb-rose {
-    background: radial-gradient(circle at center, #fb7185 0%, transparent 70%);
-    animation-duration: 48s;
-    animation-delay: -12s;
   }
   .lg-orb-cyan {
     background: radial-gradient(circle at center, #38bdf8 0%, transparent 70%);
-    animation-duration: 33s;
-    animation-direction: alternate-reverse;
-    animation-delay: -4s;
-  }
-  .lg-orb-violet {
-    background: radial-gradient(circle at center, #a78bfa 0%, transparent 70%);
-    animation-duration: 50s;
-    animation-delay: -16s;
   }
 
   /*
-  Drift keyframe. Small enough that it reads as ambient breathing
-  rather than parallax — large translations distract from data and
-  re-trigger paint over a 1200px-wide column.
+  .lg-mesh  Single continuous mesh-gradient wash. Three oversized
+            radial tints layered at low opacity so they merge into a
+            seamless gradient field — no discrete orb edges, no
+            "splotchy" blobs. Tuned per theme: light mode pale warm
+            + cool tints, dark mode slightly stronger so the wash
+            survives the near-black canvas.
+
+            The drift is intentionally barely perceptible: the entire
+            mesh transforms as a single layer (scale + tiny translate)
+            over ~80s, so the wash subtly "breathes" without any
+            moving parts the eye can lock onto. Disabled under
+            prefers-reduced-motion.
   */
-  @keyframes lg-drift {
-    from {
+  .lg-mesh {
+    position: absolute;
+    inset: -8%;
+    pointer-events: none;
+    will-change: transform;
+    background:
+      radial-gradient(ellipse 90% 70% at 12% 8%, color-mix(in oklab, #d97757 22%, transparent) 0%, transparent 60%),
+      radial-gradient(ellipse 95% 75% at 92% 96%, color-mix(in oklab, #38bdf8 18%, transparent) 0%, transparent 62%),
+      radial-gradient(ellipse 80% 90% at 60% 40%, color-mix(in oklab, var(--gpt) 10%, transparent) 0%, transparent 70%);
+    filter: blur(40px) saturate(120%);
+    animation: lg-mesh-breathe 90s ease-in-out infinite alternate;
+  }
+  .dark .lg-mesh {
+    background:
+      radial-gradient(ellipse 90% 70% at 12% 8%, color-mix(in oklab, #d97757 28%, transparent) 0%, transparent 62%),
+      radial-gradient(ellipse 95% 75% at 92% 96%, color-mix(in oklab, #38bdf8 22%, transparent) 0%, transparent 64%),
+      radial-gradient(ellipse 80% 90% at 60% 40%, color-mix(in oklab, var(--gpt) 14%, transparent) 0%, transparent 72%);
+    filter: blur(56px) saturate(110%);
+  }
+
+  @keyframes lg-mesh-breathe {
+    0% {
       transform: translate3d(0, 0, 0) scale(1);
     }
-    to {
-      transform: translate3d(2.5%, -2%, 0) scale(1.04);
+    50% {
+      transform: translate3d(-1.5%, 1%, 0) scale(1.03);
+    }
+    100% {
+      transform: translate3d(1.5%, -1%, 0) scale(1);
     }
   }
   @media (prefers-reduced-motion: reduce) {
-    .lg-orb {
+    .lg-mesh {
       animation: none;
     }
   }
 
   /*
   Film grain. Inline SVG, modest opacity, mix-blend-mode so it tints with
-  whatever's underneath instead of looking like a flat overlay.
-  Tuned slightly lower than the landing-grade value so it stays calm
-  on inner pages where data is the focus.
+  whatever's underneath instead of looking like a flat overlay. Kept
+  very faint — the mesh wash is the primary texture, the grain just
+  takes the digital-flat edge off it.
   */
   .lg-noise {
     position: absolute;
     inset: 0;
     pointer-events: none;
-    opacity: 0.08;
+    opacity: 0.05;
     mix-blend-mode: overlay;
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   }
   .dark .lg-noise {
-    opacity: 0.04;
+    opacity: 0.03;
   }
 
   /* Specular edge highlight, useful on hover or to mark a primary surface. */
