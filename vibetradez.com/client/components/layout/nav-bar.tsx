@@ -1,6 +1,5 @@
 "use client";
 
-import { LogIn } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -65,11 +64,10 @@ export function NavBar({ onSubscribe }: NavBarProps) {
                 variant="outline"
                 size="sm"
                 onClick={onSubscribe}
-                className="h-9 gap-1.5 rounded-full border-foreground/10 bg-foreground/5 px-3 text-xs hover:bg-foreground/10 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10 sm:px-3.5 sm:text-sm"
+                className="h-9 gap-1.5 rounded-full border-foreground/10 bg-foreground/5 px-3 text-xs font-semibold hover:bg-foreground/10 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10 sm:px-3.5 sm:text-sm"
                 aria-label="Sign in or sign up"
               >
-                <LogIn className="h-3.5 w-3.5 sm:hidden" />
-                <span className="hidden sm:inline">Sign in</span>
+                Sign in
               </Button>
             )
           )}
