@@ -28,7 +28,7 @@ export function NavBar({ onSubscribe }: NavBarProps) {
           don't paint a pseudo-element across the full-width header. */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-b from-foreground/15 to-transparent dark:from-white/15" aria-hidden />
       <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 sm:px-7 sm:py-3">
-        <Link href="/" className="inline-flex min-h-9 shrink-0 items-center text-[19px] font-extrabold tracking-tight sm:min-h-0 sm:text-[21px]">
+        <Link href="/" className="inline-flex min-h-11 shrink-0 items-center py-2 text-[19px] font-extrabold tracking-tight sm:min-h-9 sm:py-0 sm:text-[21px]">
           <span className="text-foreground">Vibe</span>
           <span className="text-gradient-brand">Tradez</span>
         </Link>

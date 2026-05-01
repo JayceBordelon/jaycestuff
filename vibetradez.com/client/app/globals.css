@@ -62,7 +62,7 @@
   --red-border: #fca5a5;
   --amber: #92400e;
   --amber-bg: #fef3c7;
-  --percent-hue-l: 38%;
+  --percent-hue-l: 30%;
   --card-elevated: #fafafa;
   --card-hover: #ffffff;
   --accent-subtle: #fafafa;
@@ -332,14 +332,16 @@ body {
   }
 
   /*
-  .lg-card  Drop-in glass surface for shadcn Card. Higher opacity than
-            .lg-panel so dense data (tables, charts, dashboards) stay
-            legible while still picking up colored bleed from the orbs.
+  .lg-card  Drop-in glass surface for shadcn Card. Tuned high enough
+            opacity (93% / 7%) that colored value text on stat cards
+            (win-rate hue, ROC tone) keeps WCAG large-text contrast
+            even on the lightest hue bands, while still letting the
+            ambient orbs show through as a soft pastel tint.
             Designed to override Card's default bg-card / shadow-sm /
             rounded-xl via cascade order in @layer utilities.
   */
   .lg-card {
-    background: color-mix(in srgb, var(--card) 88%, transparent);
+    background: color-mix(in srgb, var(--card) 93%, transparent);
     backdrop-filter: saturate(160%) blur(24px);
     -webkit-backdrop-filter: saturate(160%) blur(24px);
     border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
@@ -351,7 +353,7 @@ body {
       0 4px 12px -8px rgb(0 0 0 / 0.08);
   }
   .dark .lg-card {
-    background: color-mix(in srgb, white 5%, transparent);
+    background: color-mix(in srgb, white 7%, transparent);
     border-color: color-mix(in srgb, white 9%, transparent);
     box-shadow:
       0 1px 0 0 color-mix(in srgb, white 10%, transparent) inset,

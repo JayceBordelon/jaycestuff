@@ -20,7 +20,7 @@ export default function LandingPage() {
       {/* ── Glass nav ── */}
       <nav className="fixed top-3 left-1/2 z-50 w-[calc(100%-1.5rem)] -translate-x-1/2 sm:top-4 sm:max-w-5xl">
         <div className="lg-panel lg-edge-shine flex items-center justify-between px-4 py-2 sm:px-5 sm:py-2.5">
-          <Link href="/" className="text-xl font-extrabold tracking-tight">
+          <Link href="/" className="inline-flex min-h-11 items-center text-xl font-extrabold tracking-tight sm:min-h-9">
             <span className="text-foreground">Vibe</span>
             <span className="text-gradient-brand">Tradez</span>
           </Link>
