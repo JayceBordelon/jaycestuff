@@ -25,7 +25,7 @@ jobs:
       status: ${{ steps.sync_status.outputs.status }}
       error: ${{ steps.sync_status.outputs.error }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Pull from base of repository
         id: sync_run

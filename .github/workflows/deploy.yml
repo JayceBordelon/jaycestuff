@@ -50,7 +50,7 @@ jobs:
       overall_status: ${{ steps.deploy_status.outputs.overall_status }}
       error: ${{ steps.deploy_status.outputs.error }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
