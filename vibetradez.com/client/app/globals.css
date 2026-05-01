@@ -453,7 +453,7 @@ body {
       radial-gradient(ellipse 95% 75% at 92% 96%, color-mix(in oklab, #38bdf8 18%, transparent) 0%, transparent 62%),
       radial-gradient(ellipse 80% 90% at 60% 40%, color-mix(in oklab, var(--gpt) 10%, transparent) 0%, transparent 70%);
     filter: blur(40px) saturate(120%);
-    animation: lg-mesh-breathe 90s ease-in-out infinite alternate;
+    animation: lg-mesh-breathe 48s ease-in-out infinite;
   }
   .dark .lg-mesh {
     background:
@@ -463,15 +463,25 @@ body {
     filter: blur(56px) saturate(110%);
   }
 
+  /*
+  Three-stop drift cycle so the wash never lands back in its original
+  configuration mid-cycle — every quadrant of the viewport gets
+  visited over a 48s loop. Translations are larger than the previous
+  pass (now 4-5%) so the motion reads as alive rather than imagined,
+  while staying soft enough that data on top of it stays legible.
+  */
   @keyframes lg-mesh-breathe {
     0% {
       transform: translate3d(0, 0, 0) scale(1);
     }
-    50% {
-      transform: translate3d(-1.5%, 1%, 0) scale(1.03);
+    33% {
+      transform: translate3d(-4.5%, 2.5%, 0) scale(1.06);
+    }
+    66% {
+      transform: translate3d(3.5%, -3%, 0) scale(1.04);
     }
     100% {
-      transform: translate3d(1.5%, -1%, 0) scale(1);
+      transform: translate3d(0, 0, 0) scale(1);
     }
   }
   @media (prefers-reduced-motion: reduce) {
