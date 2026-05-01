@@ -36,16 +36,11 @@ const ROUTES = [
   { path: "/", label: "home" },
   { path: "/dashboard", label: "dashboard" },
   { path: "/history", label: "history" },
-  { path: "/models", label: "models" },
   { path: "/trade/COIN?date=2026-04-24", label: "trade-with-execution" },
   { path: "/trade/RIVN?date=2026-04-23", label: "trade-no-execution" },
   { path: "/faq", label: "faq" },
   { path: "/terms", label: "terms" },
-  // /execute auto-execution confirmation page — three error paths to
-  // audit since the happy path requires a real signed token + auth.
-  { path: "/execute", label: "execute-missing-params" },
-  { path: "/execute?token=bogus&action=execute", label: "execute-bad-token" },
-  { path: "/execute?token=bogus&action=salami", label: "execute-bad-action" },
+  { path: "/privacy", label: "privacy" },
   { path: "/this-route-does-not-exist", label: "not-found" },
 ];
 
@@ -577,10 +572,10 @@ async function interactionWalk(browser, viewport) {
   await sleep(400);
   await snap("06-history-after-toggle");
 
-  // 5. Visit /models
-  await page.goto(TRADING_BASE + "/models", { waitUntil: "networkidle2", timeout: 30000 });
+  // 5. Visit /privacy to capture the long-form glass article surface
+  await page.goto(TRADING_BASE + "/privacy", { waitUntil: "networkidle2", timeout: 30000 });
   await sleep(800);
-  await snap("07-models");
+  await snap("07-privacy");
 
   await page.close();
   return { viewport: viewport.name, observations, errors };

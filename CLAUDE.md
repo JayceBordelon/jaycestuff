@@ -107,16 +107,25 @@ Run these checks before every push. No exceptions. CI will fail if they don't pa
 # Lint Go
 cd vibetradez.com/server && gofmt -w . && go vet ./...
 
-# Lint Next.js (both projects, run from jaycebordelon.com/ where biome is installed)
-cd jaycebordelon.com && npx biome check .
-cd jaycebordelon.com && npx biome check ../vibetradez.com/client/
+# Lint + auto-format Next.js (both projects, run from jaycebordelon.com/ where biome is installed).
+# CRITICAL: use --write so formatter issues are FIXED, not just reported. CI runs biome
+# with format-as-error semantics, so a stray unwrapped string or long line will fail
+# Lint + Build • Trading Frontend even though `biome check` (no --write) only "warns".
+cd jaycebordelon.com && npx biome check --write .
+cd jaycebordelon.com && npx biome check --write ../vibetradez.com/client/
 
 # Build Next.js (both projects)
 cd jaycebordelon.com && npx next build
 cd vibetradez.com/client && npx next build
 ```
 
-If any lint or build fails, fix it before pushing. Never push code that hasn't been verified locally.
+If any lint or build fails, fix it before pushing. Never push code that hasn't been verified locally. **`biome check` without `--write` is not enough** — it reports format errors but doesn't apply them, so the working tree still has CI-failing files when you commit. Always use `--write`.
+
+### `gh` commands target the wrong repo by default
+
+The personal worktree (`~/Career/jaycestuff/`) shares a machine with work worktrees (`~/Mechanize/Code/eden-*`). When `gh pr checks` / `gh run view` / `gh api` is run from a directory whose git remote points elsewhere — or when the working directory got reset back to a Mechanize worktree — `gh` will silently query the wrong repo and return `HTTP 404` against `mechanize-work/eden`.
+
+**Always pass `--repo JayceBordelon/jaycestuff` explicitly** for any `gh` command relating to this project, or `cd ~/Career/jaycestuff && gh ...`. Don't trust the working directory to be the personal repo just because the last command was.
 
 ### Always read the latest documentation
 
