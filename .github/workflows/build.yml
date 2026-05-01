@@ -22,7 +22,7 @@ jobs:
       status: ${{ steps.build_status.outputs.status }}
       error: ${{ steps.build_status.outputs.error }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Build all services
         id: build_run

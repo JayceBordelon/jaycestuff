@@ -22,7 +22,7 @@ jobs:
       status: ${{ steps.lint_status.outputs.status }}
       error: ${{ steps.lint_status.outputs.error }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Run Go linters
         id: lint_run
