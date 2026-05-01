@@ -10,7 +10,8 @@ import { ClaudeLogo } from "@/components/ui/brand-icons";
 
 export const metadata: Metadata = {
   title: "VibeTradez | AI-Powered Options Picks",
-  description: "An LLM ranks 10 options contracts every weekday with live market data and a written rationale for each. The rank-1 pick auto-fires in my actual brokerage account every morning. Free to watch, expensive to run.",
+  description:
+    "An LLM ranks 10 options contracts every weekday with live market data and a written rationale for each. The rank-1 pick auto-fires in my actual brokerage account every morning. Free to watch, expensive to run.",
 };
 
 export default function LandingPage() {
@@ -104,9 +105,8 @@ export default function LandingPage() {
                 <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">The pipeline</span>
                 <h2 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">A real trade fires every weekday. No clicks needed.</h2>
                 <p className="mx-auto max-w-2xl text-sm text-muted-foreground sm:text-base">
-                  Picks land in your inbox before the bell. At 9:30 ET the rank-1 contract gets ordered live in my actual Schwab account with my actual money, held until 3:55 ET, and
-                  unconditionally closed before the close. You watch it happen on the dashboard. I watch it happen on the dashboard. Honestly, that&apos;s most of what &ldquo;oversight&rdquo; means
-                  around here.
+                  Picks land in your inbox before the bell. At 9:30 ET the rank-1 contract gets ordered live in my actual Schwab account with my actual money, held until 3:55 ET, and unconditionally
+                  closed before the close. You watch it happen on the dashboard. I watch it happen on the dashboard. Honestly, that&apos;s most of what &ldquo;oversight&rdquo; means around here.
                 </p>
               </div>
 
@@ -141,8 +141,8 @@ export default function LandingPage() {
               Built to <span className="text-gradient-brand">show its work</span>
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Every pick comes with the contract spec, a 1-10 conviction score, and Claude&apos;s whole essay defending it. We don&apos;t cherry-pick the wins because we don&apos;t actually know
-              which ones will be wins.
+              Every pick comes with the contract spec, a 1-10 conviction score, and Claude&apos;s whole essay defending it. We don&apos;t cherry-pick the wins because we don&apos;t actually know which
+              ones will be wins.
             </p>
           </Reveal>
 
@@ -283,7 +283,8 @@ const features = [
   {
     Icon: Zap,
     title: "Auto-fired live trade",
-    description: "The rank-1 pick auto-fires every morning in my actual brokerage account, with my actual money. Capped at $5/share, mandatory close at 3:55 ET. No clicks, no overnight risk, no chance for me to second-guess it.",
+    description:
+      "The rank-1 pick auto-fires every morning in my actual brokerage account, with my actual money. Capped at $5/share, mandatory close at 3:55 ET. No clicks, no overnight risk, no chance for me to second-guess it.",
   },
   {
     Icon: Mail,

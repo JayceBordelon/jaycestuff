@@ -121,8 +121,8 @@ export default function TermsPage() {
               PAPER so the actual mode is never ambiguous; the badge state reflects the real mode the order was placed in, never inferred or extrapolated.
             </p>
             <p>
-              The auto-execution pipeline operates with three hard guardrails regardless of mode: (1) a price cap of $5/share (= $500 of capital exposure per contract); (2) a mandatory close at
-              3:55 PM ET (12:55 PM ET on half-trading days) regardless of P&amp;L; and (3) a single contract per trade, hardcoded at the package level.
+              The auto-execution pipeline operates with three hard guardrails regardless of mode: (1) a price cap of $5/share (= $500 of capital exposure per contract); (2) a mandatory close at 3:55
+              PM ET (12:55 PM ET on half-trading days) regardless of P&amp;L; and (3) a single contract per trade, hardcoded at the package level.
             </p>
           </Section>
 
