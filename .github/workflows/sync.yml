@@ -29,7 +29,7 @@ jobs:
 
       - name: Pull from base of repository
         id: sync_run
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
